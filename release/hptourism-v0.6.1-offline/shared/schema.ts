@@ -34,6 +34,74 @@ const serviceContextSchema = z.object({
 
 export type ApplicationServiceContext = z.infer<typeof serviceContextSchema>;
 
+// Water Sports Application Data (stored in JSONB when applicationType = 'water_sports')
+export type WaterSportsApplicationData = {
+  // Water Body Selection
+  waterBodyId: string;
+  waterBodyName: string;
+  waterBodyType: 'dam' | 'river' | 'lake';
+
+  // Selected Activities
+  activities: Array<{
+    activityId: string;
+    activityName: string;
+    category: 'non_motorized' | 'motorized' | 'towed' | 'personal_watercraft';
+    quantity: number;
+    seats?: number; // For per-seat fee activities
+    feeAmount: number;
+  }>;
+
+  // Water Sports Units (Equipment)
+  waterSportsUnits: Array<{
+    unitType: string;
+    manufacturer: string;
+    identificationNo: string;
+    dateOfManufacture: string;
+    certificationAgency?: string;
+    certificationNo?: string;
+  }>;
+
+  // Rescue Team Details
+  rescueTeam: {
+    hasRescueBoat: boolean;
+    rescueBoat?: {
+      manufacturer: string;
+      identificationNo: string;
+      dateOfManufacture: string;
+    };
+    teamMembers: Array<{
+      name: string;
+      address: string;
+      role: string;
+    }>;
+  };
+
+  // Crew Members (Boatman, Driver, Life Guard)
+  crewMembers: Array<{
+    name: string;
+    fatherName: string;
+    dateOfBirth: string;
+    role: 'boatman' | 'motor_boat_driver' | 'life_guard' | 'crew_member';
+    qualificationCertNo?: string;
+    medicalFitness: boolean;
+    firstAidCertified: boolean;
+  }>;
+
+  // Total Annual Fee Calculated
+  totalAnnualFee: number;
+
+  // Indemnity Bond
+  indemnityBondUploaded: boolean;
+
+  // Demand Draft Details (if applicable)
+  demandDraft?: {
+    bankName: string;
+    draftNo: string;
+    date: string;
+    amount: number;
+  };
+};
+
 // Users Table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -59,6 +127,7 @@ export const users = pgTable("users", {
   // System fields
   role: varchar("role", { length: 50 }).notNull().default('property_owner'), // 'property_owner', 'district_officer', 'state_officer', 'admin', 'dealing_assistant', 'district_tourism_officer', 'super_admin', 'admin_rc'
   aadhaarNumber: varchar("aadhaar_number", { length: 12 }).unique(),
+  ssoId: varchar("sso_id", { length: 50 }).unique(), // HP SSO integration ID
   district: varchar("district", { length: 100 }),
   password: text("password"), // For demo/testing, in production would use proper auth
   isActive: boolean("is_active").default(true),
@@ -180,6 +249,12 @@ export const homestayApplications = pgTable("homestay_applications", {
   serviceContext: jsonb("service_context").$type<ApplicationServiceContext>(),
   serviceNotes: text("service_notes"),
   serviceRequestedAt: timestamp("service_requested_at"),
+
+  // Multi-Activity Support (v0.7+)
+  applicationType: varchar("application_type", { length: 50 }).default('homestay'), // 'homestay' | 'water_sports'
+
+  // Water Sports Specific Data (when applicationType = 'water_sports')
+  waterSportsData: jsonb("water_sports_data").$type<WaterSportsApplicationData>(),
 
   // Property Details (ANNEXURE-I)
   propertyName: varchar("property_name", { length: 255 }).notNull(),

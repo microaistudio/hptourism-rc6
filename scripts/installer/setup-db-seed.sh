@@ -22,16 +22,22 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
 DB_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
-SEED_DIR="$APP_DIR/Database"
 
-if [ ! -d "$SEED_DIR" ]; then
+# Try new structure first (app/Database), then old flat structure, then relative path
+if [ -d "$APP_DIR/app/Database" ]; then
+    SEED_DIR="$APP_DIR/app/Database"
+elif [ -d "$APP_DIR/Database" ]; then
+    SEED_DIR="$APP_DIR/Database"
+else
     SEED_DIR="$(dirname "$0")/../../Database"
 fi
 
 if [ ! -d "$SEED_DIR" ]; then
-    log_warn "Database seed directory not found"
+    log_warn "Database seed directory not found at: $SEED_DIR"
     exit 0
 fi
+
+log_info "Using seed directory: $SEED_DIR"
 
 # Seed admin accounts
 if [ -f "$SEED_DIR/admin_accounts_seed.sql" ]; then

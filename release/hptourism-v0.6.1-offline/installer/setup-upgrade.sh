@@ -30,41 +30,50 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# Check existing installation
-if [ ! -d "$APP_DIR" ]; then
+# Check existing installation - support both old and new structure
+if [ -d "$APP_DIR/app" ]; then
+    # New structure
+    CODE_DIR="$APP_DIR/app"
+    log_info "Detected new directory structure (app/ subdirectory)"
+elif [ -d "$APP_DIR/dist" ]; then
+    # Old flat structure
+    CODE_DIR="$APP_DIR"
+    log_warn "Detected old flat structure - will upgrade in place"
+else
     log_error "No existing installation found at $APP_DIR"
     log_info "Run setup-fresh.sh for new installation"
     exit 1
 fi
 
 # Backup existing .env
-if [ -f "$APP_DIR/.env" ]; then
+if [ -f "$CODE_DIR/.env" ]; then
     log_info "Backing up .env..."
-    cp "$APP_DIR/.env" "$APP_DIR/.env.backup.$(date +%Y%m%d_%H%M%S)"
+    cp "$CODE_DIR/.env" "$CODE_DIR/.env.backup.$(date +%Y%m%d_%H%M%S)"
 fi
 
 # Stop application
 log_info "Stopping application..."
 pm2 stop hptourism 2>/dev/null || true
 
-# Backup existing installation
-BACKUP_DIR="/opt/hptourism-backup-$(date +%Y%m%d_%H%M%S)"
-log_info "Backing up to $BACKUP_DIR..."
-cp -r "$APP_DIR" "$BACKUP_DIR"
+# Backup existing installation to backups folder
+BACKUP_NAME="app-$(date +%Y%m%d_%H%M%S).tar.gz"
+mkdir -p "$APP_DIR/backups/app"
+log_info "Backing up to $APP_DIR/backups/app/$BACKUP_NAME..."
+tar -czf "$APP_DIR/backups/app/$BACKUP_NAME" -C "$CODE_DIR" .
 
 # Update application files
 log_info "Updating application files..."
-cp -r dist/* "$APP_DIR/dist/"
-cp -r shared/* "$APP_DIR/shared/"
-cp -r migrations/* "$APP_DIR/migrations/" 2>/dev/null || true
-cp -r node_modules/* "$APP_DIR/node_modules/"
-cp package.json "$APP_DIR/"
-cp ecosystem.config.cjs "$APP_DIR/"
-cp drizzle.config.ts "$APP_DIR/"
+cp -r dist/* "$CODE_DIR/dist/"
+cp -r shared/* "$CODE_DIR/shared/"
+cp -r migrations/* "$CODE_DIR/migrations/" 2>/dev/null || true
+cp -r node_modules/* "$CODE_DIR/node_modules/"
+cp package.json "$CODE_DIR/"
+cp ecosystem.config.cjs "$CODE_DIR/"
+cp drizzle.config.ts "$CODE_DIR/"
 
 # Run database migrations
 log_info "Running database migrations..."
-cd "$APP_DIR"
+cd "$CODE_DIR"
 npx drizzle-kit push
 
 # Restart application
@@ -75,7 +84,7 @@ pm2 restart hptourism
 log_info "Waiting for application to start..."
 sleep 5
 
-APP_PORT=$(grep PORT "$APP_DIR/.env" | cut -d'=' -f2 | tr -d ' ')
+APP_PORT=$(grep PORT "$CODE_DIR/.env" | cut -d'=' -f2 | tr -d ' ')
 APP_PORT="${APP_PORT:-5050}"
 
 if curl -s http://localhost:$APP_PORT/api/health > /dev/null; then
@@ -90,11 +99,11 @@ echo "============================================"
 echo "  ✅ Upgrade Complete!"
 echo "============================================"
 echo ""
-echo "Backup saved to: $BACKUP_DIR"
+echo "Backup saved to: $APP_DIR/backups/app/$BACKUP_NAME"
 echo ""
 echo "To rollback:"
 echo "  pm2 stop hptourism"
-echo "  rm -rf $APP_DIR"
-echo "  mv $BACKUP_DIR $APP_DIR"
-echo "  pm2 start $APP_DIR/ecosystem.config.cjs"
+echo "  cd $CODE_DIR && tar -xzf $APP_DIR/backups/app/$BACKUP_NAME"
+echo "  pm2 restart hptourism"
 echo ""
+
