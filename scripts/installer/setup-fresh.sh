@@ -113,24 +113,30 @@ source "$SCRIPT_DIR/setup-db.sh"
 # 6. Deploy Application
 # ============================================
 log_info "Deploying application to $APP_DIR..."
-mkdir -p "$APP_DIR"
 
-# Copy everything except installer scripts
-cp -r dist "$APP_DIR/"
-cp -r shared "$APP_DIR/"
-cp -r migrations "$APP_DIR/"
-cp -r Database "$APP_DIR/"
-cp -r node_modules "$APP_DIR/"
-cp package.json "$APP_DIR/"
-cp ecosystem.config.cjs "$APP_DIR/"
-cp drizzle.config.ts "$APP_DIR/"
-cp .env.example "$APP_DIR/"
-cp start.sh "$APP_DIR/"
+# Create organized directory structure
+mkdir -p "$APP_DIR/app"
+mkdir -p "$APP_DIR/data/uploads"
+mkdir -p "$APP_DIR/data/logs"
+mkdir -p "$APP_DIR/backups/db"
+mkdir -p "$APP_DIR/backups/app"
+
+# Copy application files to app/ subdirectory
+cp -r dist "$APP_DIR/app/"
+cp -r shared "$APP_DIR/app/"
+cp -r migrations "$APP_DIR/app/"
+cp -r Database "$APP_DIR/app/"
+cp -r node_modules "$APP_DIR/app/"
+cp package.json "$APP_DIR/app/"
+cp ecosystem.config.cjs "$APP_DIR/app/"
+cp drizzle.config.ts "$APP_DIR/app/"
+cp .env.example "$APP_DIR/app/"
+cp start.sh "$APP_DIR/app/"
 
 # Create .env if not exists
-if [ ! -f "$APP_DIR/.env" ]; then
+if [ ! -f "$APP_DIR/app/.env" ]; then
     log_info "Creating .env file..."
-    cat > "$APP_DIR/.env" << EOF
+    cat > "$APP_DIR/app/.env" << EOF
 NODE_ENV=production
 PORT=$APP_PORT
 HOST=0.0.0.0
@@ -141,18 +147,19 @@ SESSION_COOKIE_NAME=hp-tourism.sid
 SESSION_COOKIE_SECURE=false
 SESSION_STORE=postgres
 OBJECT_STORAGE_MODE=local
-LOCAL_OBJECT_DIR=$APP_DIR/local-object-storage
+LOCAL_OBJECT_DIR=$APP_DIR/data/uploads
 CAPTCHA_ENABLED=false
+LOG_DIR=$APP_DIR/data/logs
+BACKUP_DIR=$APP_DIR/backups
 EOF
 fi
 
-# Create local storage directory
-mkdir -p "$APP_DIR/local-object-storage"
-mkdir -p "$APP_DIR/logs"
+# Create symlinks for convenience
+ln -sf "$APP_DIR/app/.env" "$APP_DIR/.env" 2>/dev/null || true
 
 # Run database migrations
 log_info "Running database migrations..."
-cd "$APP_DIR"
+cd "$APP_DIR/app"
 npx drizzle-kit push
 
 # ============================================
@@ -171,7 +178,7 @@ source "$SCRIPT_DIR/setup-nginx.sh"
 # 9. Setup PM2
 # ============================================
 log_info "Setting up PM2..."
-cd "$APP_DIR"
+cd "$APP_DIR/app"
 
 # Stop any existing process
 pm2 delete hptourism 2>/dev/null || true
@@ -214,6 +221,11 @@ echo ""
 echo "Database: $DB_NAME"
 echo "DB User: $DB_USER"
 echo "DB Password: $DB_PASS"
+echo ""
+echo "Directory Structure:"
+echo "  $APP_DIR/app/       - Application code"
+echo "  $APP_DIR/data/      - Uploads and logs"
+echo "  $APP_DIR/backups/   - DB and app backups"
 echo ""
 echo "PM2 Commands:"
 echo "  pm2 list              - View processes"
