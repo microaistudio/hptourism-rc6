@@ -195,6 +195,28 @@ export const notificationEventDefinitions: NotificationEventDefinition[] = [
     defaultSmsEnabled: true,
     defaultEmailEnabled: true,
   },
+  {
+    id: "application_approved",
+    label: "Application Approved",
+    description: "Sent when an application is finally approved and certificate (or cancellation) is issued.",
+    defaultSmsTemplate: "Application {{APPLICATION_ID}} has been APPROVED. {{REMARKS}} - HP Tourism",
+    defaultEmailSubject: "Application {{APPLICATION_ID}} Approved",
+    defaultEmailBody: "Hello {{OWNER_NAME}},\n\nYour application {{APPLICATION_ID}} has been APPROVED.\n\n{{REMARKS}}\n\nYou can now download your certificate (if applicable) from the portal.\n\n- Tourism Department",
+    placeholders: ["OWNER_NAME", "APPLICATION_ID", "REMARKS"],
+    defaultSmsEnabled: true,
+    defaultEmailEnabled: true,
+  },
+  {
+    id: "application_rejected",
+    label: "Application Rejected",
+    description: "Sent when an application is rejected.",
+    defaultSmsTemplate: "Application {{APPLICATION_ID}} has been REJECTED. Reason: {{REMARKS}} - HP Tourism",
+    defaultEmailSubject: "Application {{APPLICATION_ID}} Rejected",
+    defaultEmailBody: "Hello {{OWNER_NAME}},\n\nYour application {{APPLICATION_ID}} has been REJECTED.\n\nReason:\n{{REMARKS}}\n\n- Tourism Department",
+    placeholders: ["OWNER_NAME", "APPLICATION_ID", "REMARKS"],
+    defaultSmsEnabled: true,
+    defaultEmailEnabled: true,
+  }
 ];
 
 const notificationDefinitionMap = new Map(
@@ -264,31 +286,31 @@ export const sanitizeSmsGateway = (value?: SmsGatewaySettingValue | null) => {
   const provider: SmsGatewayProvider = value.provider ?? "nic";
   const nic = value.nic
     ? {
-        username: value.nic.username,
-        senderId: value.nic.senderId,
-        departmentKey: value.nic.departmentKey,
-        templateId: value.nic.templateId,
-        postUrl: value.nic.postUrl,
-        passwordSet: Boolean(value.nic.password),
-      }
+      username: value.nic.username,
+      senderId: value.nic.senderId,
+      departmentKey: value.nic.departmentKey,
+      templateId: value.nic.templateId,
+      postUrl: value.nic.postUrl,
+      passwordSet: Boolean(value.nic.password),
+    }
     : undefined;
   const nicV2 = value.nicV2
     ? {
-        username: value.nicV2.username,
-        senderId: value.nicV2.senderId,
-        templateId: value.nicV2.templateId,
-        key: value.nicV2.key,
-        postUrl: value.nicV2.postUrl,
-        passwordSet: Boolean(value.nicV2.password),
-      }
+      username: value.nicV2.username,
+      senderId: value.nicV2.senderId,
+      templateId: value.nicV2.templateId,
+      key: value.nicV2.key,
+      postUrl: value.nicV2.postUrl,
+      passwordSet: Boolean(value.nicV2.password),
+    }
     : undefined;
   const twilio = value.twilio
     ? {
-        accountSid: value.twilio.accountSid,
-        fromNumber: value.twilio.fromNumber,
-        messagingServiceSid: value.twilio.messagingServiceSid,
-        authTokenSet: Boolean(value.twilio.authToken),
-      }
+      accountSid: value.twilio.accountSid,
+      fromNumber: value.twilio.fromNumber,
+      messagingServiceSid: value.twilio.messagingServiceSid,
+      authTokenSet: Boolean(value.twilio.authToken),
+    }
     : undefined;
   return {
     provider,

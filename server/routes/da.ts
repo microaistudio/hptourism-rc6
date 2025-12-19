@@ -18,11 +18,58 @@ import {
 } from "@shared/schema";
 import { DA_SEND_BACK_SETTING_KEY, normalizeBooleanSetting } from "@shared/appSettings";
 import { isLegacyApplication as isLegacyApplicationRecord } from "@shared/legacy";
-import { desc, eq, and, inArray } from "drizzle-orm";
+import { desc, eq, and, inArray, or } from "drizzle-orm";
 
 const routeLog = logger.child({ module: "routes/da" });
 
 export function registerDaRoutes(router: Router) {
+    // Get incomplete applications for DA (draft status)
+    router.get("/api/da/applications/incomplete", requireRole('dealing_assistant'), async (req, res) => {
+        try {
+            const userId = req.session.userId!;
+            const user = await storage.getUser(userId);
+
+            if (!user || !user.district) {
+                return res.status(400).json({ message: "DA must be assigned to a district" });
+            }
+
+            const districtCondition = buildDistrictWhereClause(homestayApplications.district, user.district);
+
+            // Get all draft applications from this DA's district
+            const incompleteApplications = await db
+                .select()
+                .from(homestayApplications)
+                .where(
+                    and(
+                        districtCondition,
+                        or(
+                            eq(homestayApplications.status, 'draft'),
+                            eq(homestayApplications.status, 'legacy_rc_draft')
+                        )
+                    )
+                )
+                .orderBy(desc(homestayApplications.updatedAt));
+
+            // Enrich with owner information
+            const applicationsWithOwner = await Promise.all(
+                incompleteApplications.map(async (app) => {
+                    const owner = await storage.getUser(app.userId);
+                    return {
+                        ...app,
+                        ownerName: owner?.fullName || 'Unknown',
+                        ownerMobile: owner?.mobile || 'N/A',
+                        ownerEmail: owner?.email || 'N/A',
+                    };
+                })
+            );
+
+            res.json(applicationsWithOwner);
+        } catch (error) {
+            routeLog.error("[da] Failed to fetch incomplete applications:", error);
+            res.status(500).json({ message: "Failed to fetch incomplete applications" });
+        }
+    });
+
     // Get applications for DA (district-specific)
     router.get("/api/da/applications", requireRole('dealing_assistant'), async (req, res) => {
         try {
@@ -229,14 +276,17 @@ export function registerDaRoutes(router: Router) {
                 });
             }
 
-            const docs = await storage.getDocumentsByApplication(req.params.id);
-            if (docs.length === 0) {
-                return res.status(400).json({ message: "Upload and verify required documents before forwarding" });
-            }
+            // For cancellation requests, documents are optional/not expected
+            if (application.applicationKind !== 'cancel_certificate') {
+                const docs = await storage.getDocumentsByApplication(req.params.id);
+                if (docs.length === 0) {
+                    return res.status(400).json({ message: "Upload and verify required documents before forwarding" });
+                }
 
-            const pendingDoc = docs.find((doc) => !doc.verificationStatus || doc.verificationStatus === 'pending');
-            if (pendingDoc) {
-                return res.status(400).json({ message: "Verify every document (mark Verified / Needs correction / Rejected) before forwarding" });
+                const pendingDoc = docs.find((doc) => !doc.verificationStatus || doc.verificationStatus === 'pending');
+                if (pendingDoc) {
+                    return res.status(400).json({ message: "Verify every document (mark Verified / Needs correction / Rejected) before forwarding" });
+                }
             }
 
             await storage.updateApplication(req.params.id, {

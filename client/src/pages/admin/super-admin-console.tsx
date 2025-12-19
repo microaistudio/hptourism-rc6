@@ -466,6 +466,17 @@ export default function SuperAdminConsole() {
     },
   });
 
+  // Multi-Service Hub Mode
+  const { data: multiServiceData, isLoading: multiServiceLoading, refetch: refetchMultiService } = useQuery<{
+    enabled: boolean;
+  }>({
+    queryKey: ["/api/admin/settings/portal/multi-service"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/admin/settings/portal/multi-service");
+      return response.json();
+    },
+  });
+
   const {
     data: himkoshActivity,
     isLoading: himkoshActivityLoading,
@@ -768,6 +779,30 @@ export default function SuperAdminConsole() {
     onError: (error: any) => {
       toast({
         title: "Failed to update captcha setting",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Toggle multi-service hub mutation
+  const toggleMultiServiceMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      await apiRequest("POST", "/api/admin/settings/portal/multi-service/toggle", { enabled });
+      return enabled;
+    },
+    onSuccess: (_data, enabled) => {
+      toast({
+        title: enabled ? "Multi-Service Hub enabled" : "Multi-Service Hub disabled",
+        description: enabled
+          ? "Users will see service selection page after login."
+          : "Users go directly to Homestay dashboard after login.",
+      });
+      refetchMultiService();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update multi-service setting",
         description: error.message || "An error occurred",
         variant: "destructive",
       });
@@ -2382,6 +2417,55 @@ export default function SuperAdminConsole() {
                       </>
                     ) : (
                       <>{captchaData?.enabled ? "Disable" : "Enable"}</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Multi-Service Hub Toggle */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-primary" />
+                  <CardTitle>Multi-Service Portal Mode</CardTitle>
+                </div>
+                <CardDescription>Enable the service selection hub after login</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">Service Selection Hub</h3>
+                      {multiServiceData?.enabled ? (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                          Enabled
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300">
+                          Disabled
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {multiServiceData?.enabled
+                        ? "Users see the 8-service selection page after login (Homestay, Adventure Sports, etc.)."
+                        : "Users go directly to Homestay dashboard after login (default behavior)."}
+                    </p>
+                  </div>
+                  <Button
+                    variant={multiServiceData?.enabled ? "destructive" : "default"}
+                    onClick={() => toggleMultiServiceMutation.mutate(!multiServiceData?.enabled)}
+                    disabled={multiServiceLoading || toggleMultiServiceMutation.isPending}
+                    data-testid="button-toggle-multi-service"
+                  >
+                    {toggleMultiServiceMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>{multiServiceData?.enabled ? "Disable" : "Enable"}</>
                     )}
                   </Button>
                 </div>

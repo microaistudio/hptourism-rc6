@@ -193,6 +193,15 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async deleteApplication(id: string): Promise<void> {
+    // Delete in order of dependencies
+    await this.deleteApplicationActions(id);
+    await db.delete(notifications).where(eq(notifications.applicationId, id));
+    await db.delete(payments).where(eq(payments.applicationId, id));
+    await this.deleteDocumentsByApplication(id);
+    await db.delete(homestayApplications).where(eq(homestayApplications.id, id));
+  }
+
   // Document methods
   async createDocument(doc: InsertDocument): Promise<Document> {
     const result = await db.insert(documents).values(doc).returning();
@@ -396,6 +405,10 @@ export class DbStorage implements IStorage {
     return await db.select().from(applicationActions)
       .where(eq(applicationActions.applicationId, applicationId))
       .orderBy(applicationActions.createdAt);
+  }
+
+  async deleteApplicationActions(applicationId: string): Promise<void> {
+    await db.delete(applicationActions).where(eq(applicationActions.applicationId, applicationId));
   }
 
   // Dev methods

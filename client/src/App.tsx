@@ -15,6 +15,7 @@ import Dashboard from "@/pages/dashboard";
 import OwnerDashboardNew from "@/pages/owner-dashboard-new";
 import ProfilePage from "@/pages/profile";
 import NewApplication from "@/pages/applications/new";
+import ServiceRequestHandler from "@/pages/applications/service-request";
 import ApplicationDetail from "@/pages/applications/detail";
 import HimKoshPaymentPage from "@/pages/applications/payment-himkosh";
 import PublicProperties from "@/pages/public/properties";
@@ -39,6 +40,7 @@ import AdminExportImport from "@/pages/admin/export-import";
 import DADashboard from "@/pages/da/dashboard";
 import DALegacyDashboard from "@/pages/da/legacy-dashboard";
 import DAApplicationDetail from "@/pages/da/application-detail";
+import DAIncompleteApplications from "@/pages/da/incomplete-applications";
 import DAInspections from "@/pages/da/inspections";
 import DAInspectionReport from "@/pages/da/inspection-report";
 import DAProfile from "@/pages/da/profile";
@@ -56,6 +58,8 @@ import SandboxLoginExperiment from "@/pages/sandbox/login-experiment";
 import ContactPage from "@/pages/contact";
 import TrackApplicationPage from "@/pages/track-application";
 import VerifyCertificatePage from "@/pages/verify-certificate";
+import AdventureSportsRegistration from "@/pages/adventure-sports/registration";
+import ServiceSelection from "@/pages/services";
 import type { User } from "@shared/schema";
 
 interface ProtectedRouteProps {
@@ -124,6 +128,11 @@ function Router() {
       <Route path="/sandbox/login-experiment" component={SandboxLoginExperiment} />
 
       {/* Protected Routes - All wrapped in AuthLayout */}
+      {/* Service Selection Hub - Renders without sidebar (user selects service first) */}
+      <Route path="/services">
+        {() => <ServiceSelection />}
+      </Route>
+
       {/* Property Owner Routes */}
       <Route path="/dashboard">
         {() => <ProtectedRoute component={Dashboard} />}
@@ -137,8 +146,15 @@ function Router() {
       <Route path="/existing-owner">
         {() => <ProtectedRoute component={ExistingOwnerOnboarding} allowedRoles={['property_owner']} />}
       </Route>
+      <Route path="/applications/service-request">
+        {() => <ProtectedRoute component={ServiceRequestHandler} allowedRoles={['property_owner']} />}
+      </Route>
       <Route path="/applications/new">
         {() => <ProtectedRoute component={NewApplication} allowedRoles={['property_owner']} />}
+      </Route>
+      {/* Adventure Sports - Separate pipeline without Homestay sidebar */}
+      <Route path="/adventure-sports/register">
+        {() => <AdventureSportsRegistration />}
       </Route>
       <Route path="/applications/:id/payment-himkosh">
         {() => <ProtectedRoute component={HimKoshPaymentPage} allowedRoles={['property_owner']} />}
@@ -222,6 +238,9 @@ function Router() {
       </Route>
       <Route path="/da/applications/:id">
         {() => <ProtectedRoute component={DAApplicationDetail} allowedRoles={['dealing_assistant']} />}
+      </Route>
+      <Route path="/da/incomplete-applications">
+        {() => <ProtectedRoute component={DAIncompleteApplications} allowedRoles={['dealing_assistant']} />}
       </Route>
       <Route path="/da/inspections">
         {() => <ProtectedRoute component={DAInspections} allowedRoles={['dealing_assistant']} />}

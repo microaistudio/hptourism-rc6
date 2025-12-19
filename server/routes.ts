@@ -506,6 +506,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   app.use("/api/service-center", createServiceCenterRouter());
   app.use("/api/existing-owners", createExistingOwnersRouter());
+
+  // Adventure Sports routes
+  const adventureSportsRoutes = (await import("./routes/adventure-sports")).default;
+  app.use("/api/adventure-sports", adventureSportsRoutes);
+
+  // Public endpoint for multi-service hub check (used by login redirect)
+  const { getMultiServiceHubEnabled } = await import("./routes/core/multi-service");
+  app.get("/api/portal/multi-service-enabled", async (_req, res) => {
+    try {
+      const enabled = await getMultiServiceHubEnabled();
+      res.json({ enabled });
+    } catch (error) {
+      routeLog.error("[portal] Failed to check multi-service setting:", error);
+      res.json({ enabled: false }); // Default to disabled on error
+    }
+  });
+
   app.use("/api/admin", createAdminCommunicationsRouter());
   app.use("/api/admin", createAdminHimkoshRouter());
   app.use("/api/admin", createAdminUsersRouter());

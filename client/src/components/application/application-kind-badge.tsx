@@ -23,6 +23,10 @@ const APPLICATION_KIND_META: Record<ApplicationKind, { label: string; className:
     label: "Cancel Certificate",
     className: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-700",
   },
+  change_category: {
+    label: "Change Category",
+    className: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700",
+  },
 };
 
 export function getApplicationKindLabel(kind?: ApplicationKind | null) {

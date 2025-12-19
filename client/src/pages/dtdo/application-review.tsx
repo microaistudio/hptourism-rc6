@@ -79,7 +79,7 @@ export default function DTDOApplicationReview() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const [actionType, setActionType] = useState<'accept' | 'reject' | 'revert' | null>(null);
+  const [actionType, setActionType] = useState<'accept' | 'reject' | 'revert' | 'approve-cancellation' | null>(null);
   const [remarks, setRemarks] = useState("");
   const [previewDoc, setPreviewDoc] = useState<HomestayDocument | null>(null);
   const [copied, setCopied] = useState(false);
@@ -253,13 +253,13 @@ export default function DTDOApplicationReview() {
       mimeType: doc.mimeType,
     });
 
-  const handleAction = (action: 'accept' | 'reject' | 'revert') => {
+  const handleAction = (action: 'accept' | 'reject' | 'revert' | 'approve-cancellation') => {
     setActionType(action);
     setRemarks("");
   };
 
   const actionRequiresRemarks = (action: typeof actionType) =>
-    action === 'accept' || action === 'reject' || action === 'revert';
+    action === 'accept' || action === 'reject' || action === 'revert' || action === 'approve-cancellation';
 
   const confirmAction = () => {
     if (!actionType) return;
@@ -268,9 +268,11 @@ export default function DTDOApplicationReview() {
       const context =
         actionType === 'accept'
           ? 'scheduling the inspection'
-          : actionType === 'reject'
-            ? 'rejection'
-            : 'reverting';
+          : actionType === 'approve-cancellation'
+            ? 'cancellation approval'
+            : actionType === 'reject'
+              ? 'rejection'
+              : 'reverting';
       toast({
         title: "Remarks Required",
         description: `Please provide remarks for ${context}.`,
@@ -287,17 +289,7 @@ export default function DTDOApplicationReview() {
     if (!application) return;
     setIsGeneratingCertificate(true);
     try {
-      let inspectionSummary = null;
-      if (id) {
-        try {
-          inspectionSummary = await fetchInspectionReportSummary(id);
-        } catch (error) {
-          console.warn("[certificate] Failed to fetch inspection reference", error);
-        }
-      }
-      generateCertificatePDF(application, certificateFormat, {
-        inspectionReport: inspectionSummary ?? undefined,
-      });
+      generateCertificatePDF(application, certificateFormat);
       toast({
         title: "Certificate Downloaded",
         description: "RC certificate has been generated and downloaded.",
@@ -698,6 +690,30 @@ export default function DTDOApplicationReview() {
                   Accept & Schedule Inspection
                 </Button>
 
+                {application?.applicationKind === 'cancel_certificate' ? (
+                  <Button
+                    className="w-full"
+                    variant="destructive"
+                    onClick={() => handleAction('approve-cancellation')}
+                    disabled={actionMutation.isPending}
+                    data-testid="button-approve-cancellation"
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Approve Cancellation (Revoke Certificate)
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    variant="default"
+                    onClick={() => handleAction('accept')}
+                    disabled={actionMutation.isPending}
+                    data-testid="button-accept"
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Accept & Schedule Inspection
+                  </Button>
+                )}
+
                 <Button
                   className="w-full"
                   variant="outline"
@@ -719,6 +735,11 @@ export default function DTDOApplicationReview() {
                   <XCircle className="mr-2 h-4 w-4" />
                   Reject Application
                 </Button>
+                {application?.applicationKind === 'cancel_certificate' && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Rejecting this request will restore the original certificate.
+                  </p>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -819,6 +840,7 @@ export default function DTDOApplicationReview() {
           />
         </div>
       </div>
+
 
       {/* Action Dialog */}
       <Dialog open={actionType !== null} onOpenChange={(open) => !open && setActionType(null)}>
@@ -934,7 +956,7 @@ export default function DTDOApplicationReview() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }
 

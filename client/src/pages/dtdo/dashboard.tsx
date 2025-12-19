@@ -329,7 +329,7 @@ export default function DTDODashboard() {
         title: "Under Process",
         description: "Field work progress, reports, and payments.",
         icon: ClipboardCheck,
-        actionCount: sortedInspectionReports.length + sortedPaymentPending.length,
+
         actionLabel: "Clear inspections and payments",
         totalCount: sortedInspectionPending.length + sortedInspectionReports.length + sortedPaymentPending.length,
         pills: [

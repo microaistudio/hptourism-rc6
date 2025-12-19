@@ -73,7 +73,7 @@ export default function DADashboard() {
   const navigateToInspections = useCallback(() => {
     setLocation("/da/inspections");
   }, [setLocation]);
-  
+
   const { data: applications, isLoading } = useQuery<ApplicationWithOwner[]>({
     queryKey: ["/api/da/applications"],
   });
@@ -186,21 +186,28 @@ export default function DADashboard() {
       ),
     [completedInspections],
   );
-  const isModificationKind = useCallback((kind?: ApplicationKind | null) => {
-    const value = (kind as string | undefined)?.toLowerCase() || "";
-    return value.includes("modification");
+  const isModificationKind = useCallback((app: ApplicationWithOwner) => {
+    const kind = (app.applicationKind || (app as any).application_kind) as string | undefined;
+    const value = kind?.toLowerCase() || "";
+    return value === "cancel_certificate" || value.includes("modification");
   }, []);
-  const isAmendmentKind = useCallback((kind?: ApplicationKind | null) => {
-    const value = (kind as string | undefined)?.toLowerCase() || "";
-    return value.includes("amend");
+
+  const isAmendmentKind = useCallback((app: ApplicationWithOwner) => {
+    const kind = (app.applicationKind || (app as any).application_kind) as string | undefined;
+    const value = kind?.toLowerCase() || "";
+    // Explicit checks for known kinds
+    if (value === "add_rooms" || value === "delete_rooms" || value === "change_category") return true;
+    // Fallback for variations
+    return value.includes("amend") || value.includes("add_room") || value.includes("delete_room");
   }, []);
+
   const submittedNew = useMemo(
     () =>
       sortApplications(
         submittedApplications.filter(
           (app) =>
-            !isModificationKind(app.applicationKind as ApplicationKind) &&
-            !isAmendmentKind(app.applicationKind as ApplicationKind),
+            !isModificationKind(app) &&
+            !isAmendmentKind(app),
         ),
       ),
     [submittedApplications, sortApplications, isModificationKind, isAmendmentKind],
@@ -208,14 +215,14 @@ export default function DADashboard() {
   const submittedAmendments = useMemo(
     () =>
       sortApplications(
-        submittedApplications.filter((app) => isAmendmentKind(app.applicationKind as ApplicationKind)),
+        submittedApplications.filter((app) => isAmendmentKind(app)),
       ),
     [submittedApplications, sortApplications, isAmendmentKind],
   );
   const submittedModifications = useMemo(
     () =>
       sortApplications(
-        submittedApplications.filter((app) => isModificationKind(app.applicationKind as ApplicationKind)),
+        submittedApplications.filter((app) => isModificationKind(app)),
       ),
     [submittedApplications, sortApplications, isModificationKind],
   );
@@ -383,9 +390,8 @@ export default function DADashboard() {
       process: `Screening ${sortedUnderScrutiny.length} · Forwarded ${sortedForwarded.length}`,
       corrections: `Sent back ${sortedAwaitingOwners.length} · Resubmitted ${sortedResubmitted.length}`,
       inspections: `Scheduled ${scheduledInspections.length} · Reports ${completedInspectionsThisMonth.length}`,
-      completed: `Approved ${approvedCompleted.length} · Rejected ${rejectedCompleted.length} · ${
-        completedRange === "month" ? "This month" : "Last 30d"
-      }`,
+      completed: `Approved ${approvedCompleted.length} · Rejected ${rejectedCompleted.length} · ${completedRange === "month" ? "This month" : "Last 30d"
+        }`,
     }),
     [
       submittedNew.length,
@@ -679,6 +685,14 @@ export default function DADashboard() {
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLocation("/da/incomplete-applications")}
+            className="w-full sm:w-fit"
+          >
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Incomplete Applications
+          </Button>
         </div>
       </div>
 
@@ -864,11 +878,7 @@ export default function DADashboard() {
                   </Select>
                 </div>
               )}
-              {activePillConfig.actionLabel && activePillConfig.count > 0 && (
-                <Button variant="default" onClick={() => setActivePill(activePillConfig.value)}>
-                  {activePillConfig.actionLabel}
-                </Button>
-              )}
+
             </div>
           </CardHeader>
           <CardContent>

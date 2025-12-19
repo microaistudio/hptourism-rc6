@@ -128,6 +128,23 @@ export default function Login() {
   const selectedAudience = audienceContent[audience];
   const oppositeAudience: LoginAudience = audience === "user" ? "office" : "user";
 
+  // Helper function to get redirect route with multi-service hub check
+  const getRedirectRoute = async (user: User): Promise<string> => {
+    // Only check multi-service for property owners
+    if (user.role === 'property_owner') {
+      try {
+        const response = await apiRequest("GET", "/api/portal/multi-service-enabled");
+        const data = await response.json();
+        if (data?.enabled) {
+          return "/services";
+        }
+      } catch (error) {
+        console.warn("[auth] Failed to check multi-service setting, using default route");
+      }
+    }
+    return getDefaultRouteForRole(user.role);
+  };
+
   const ensureValidOtpChannel = (preferred?: OtpChannel) => {
     const current = preferred ?? form.getValues("otpChannel");
     if (current && otpChannels[current]) {
@@ -229,12 +246,12 @@ export default function Login() {
     return () => {
       cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     ensureValidOtpChannel();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otpChannels.sms, otpChannels.email]);
 
   const loginMutation = useMutation({
@@ -271,8 +288,8 @@ export default function Login() {
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-      const defaultRoute = getDefaultRouteForRole(data.user.role);
-      setLocation(defaultRoute);
+      // Use async redirect with multi-service hub check
+      getRedirectRoute(data.user).then((route) => setLocation(route));
     },
     onError: (error: any) => {
       toast({
@@ -295,8 +312,8 @@ export default function Login() {
         title: "Welcome back!",
         description: "OTP verified successfully.",
       });
-      const defaultRoute = getDefaultRouteForRole(data.user.role);
-      setLocation(defaultRoute);
+      // Use async redirect with multi-service hub check
+      getRedirectRoute(data.user).then((route) => setLocation(route));
     },
     onError: (error: any) => {
       setOtpError(error?.message || "OTP verification failed");

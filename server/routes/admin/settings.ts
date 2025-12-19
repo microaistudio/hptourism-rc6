@@ -7,6 +7,11 @@ import { systemSettings, users, documents, payments, homestayApplications } from
 import { getSystemSettingRecord } from "../../services/systemSettings";
 import { trimOptionalString } from "../helpers/format";
 import { CAPTCHA_SETTING_KEY, getCaptchaSetting, updateCaptchaSettingCache } from "../core/captcha";
+import {
+  getMultiServiceHubEnabled,
+  setMultiServiceHubEnabled,
+  MULTI_SERVICE_HUB_KEY
+} from "../core/multi-service";
 
 const log = logger.child({ module: "admin-settings-router" });
 
@@ -114,6 +119,35 @@ export function createAdminSettingsRouter() {
     } catch (error) {
       log.error("[admin] Failed to toggle captcha:", error);
       res.status(500).json({ message: "Failed to toggle captcha" });
+    }
+  });
+
+  // Multi-Service Hub Toggle
+  // When enabled, users see service selection page after login
+  // When disabled, users go directly to homestay dashboard
+  router.get("/settings/portal/multi-service", requireRole("admin", "super_admin"), async (_req, res) => {
+    try {
+      const enabled = await getMultiServiceHubEnabled();
+      res.json({ enabled });
+    } catch (error) {
+      log.error("[admin] Failed to fetch multi-service hub setting:", error);
+      res.status(500).json({ message: "Failed to fetch multi-service hub setting" });
+    }
+  });
+
+  router.post("/settings/portal/multi-service/toggle", requireRole("admin", "super_admin"), async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      if (typeof enabled !== "boolean") {
+        return res.status(400).json({ message: "enabled must be a boolean" });
+      }
+
+      const userId = req.session.userId || undefined;
+      await setMultiServiceHubEnabled(enabled, userId);
+      res.json({ enabled });
+    } catch (error) {
+      log.error("[admin] Failed to toggle multi-service hub:", error);
+      res.status(500).json({ message: "Failed to toggle multi-service hub" });
     }
   });
 

@@ -1,10 +1,19 @@
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { MoreHorizontal } from "lucide-react";
 
 type ServiceRequestSummary = {
   id: string;
@@ -63,6 +72,7 @@ const EmptyState = () => (
 );
 
 export function ServiceCenterPanel() {
+  const [, setLocation] = useLocation();
   const { data, isLoading, isError } = useQuery<{ applications: ServiceRequestSummary[] }>({
     queryKey: ["/api/service-center"],
   });
@@ -112,9 +122,10 @@ export function ServiceCenterPanel() {
       <div className="max-w-2xl space-y-4">
         <div>
           <h2 className="text-xl font-semibold">Service Center</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mb-3">
             Renew or amend approved applications without starting from scratch.
           </p>
+          <GuardRail />
         </div>
 
         {applications.map((application) => {
@@ -125,8 +136,8 @@ export function ServiceCenterPanel() {
 
           const activeRequestMessage = application.activeServiceRequest
             ? `Active request: ${application.activeServiceRequest.applicationKind
-                .replace(/_/g, " ")
-                .toUpperCase()} (${application.activeServiceRequest.status.replace(/_/g, " ")})`
+              .replace(/_/g, " ")
+              .toUpperCase()} (${application.activeServiceRequest.status.replace(/_/g, " ")})`
             : "No pending service requests. Choose an action below to get started.";
 
           const actionDisabled = Boolean(application.activeServiceRequest);
@@ -201,36 +212,54 @@ export function ServiceCenterPanel() {
                   >
                     Renew Certificate
                   </Button>
-                  <Button
-                    variant="outline"
-                    disabled
-                    className="rounded-full border border-rose-200 bg-rose-50 text-rose-600"
-                  >
-                    Cancel Certificate
-                  </Button>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                    Under Development (Testing Stage)
-                  </span>
-                </div>
 
-                <div className="flex flex-wrap gap-3">
                   <Button
                     variant="outline"
                     disabled={!application.canAddRooms || actionDisabled}
                     className="rounded-full border-slate-200"
+                    onClick={() => {
+                      setLocation(`/applications/service-request?type=add_rooms&parentId=${application.id}`);
+                    }}
                   >
                     Add Rooms
                   </Button>
-                  <Button
-                    variant="outline"
-                    disabled={!application.canDeleteRooms || actionDisabled}
-                    className="rounded-full border-slate-200"
-                  >
-                    Delete Rooms
-                  </Button>
-                </div>
 
-                <GuardRail />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="rounded-full border-slate-200" disabled={actionDisabled}>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        disabled={!application.canDeleteRooms || actionDisabled}
+                        onClick={() => {
+                          setLocation(`/applications/service-request?type=delete_rooms&parentId=${application.id}`);
+                        }}
+                      >
+                        Delete Rooms
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={actionDisabled}
+                        onClick={() => {
+                          setLocation(`/applications/service-request?type=change_category&parentId=${application.id}`);
+                        }}
+                      >
+                        Change Category
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-rose-600 focus:text-rose-700 focus:bg-rose-50"
+                        disabled={actionDisabled}
+                        onClick={() => {
+                          setLocation(`/applications/service-request?type=cancel_certificate&parentId=${application.id}`);
+                        }}
+                      >
+                        Cancel Certificate
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </CardContent>
             </Card>
           );

@@ -31,6 +31,7 @@ import heroImageRiver from "@assets/stock_images/beautiful_scenic_him_10b034ba.j
 import heroImageVillage from "@assets/stock_images/beautiful_scenic_him_3e373e25.jpg";
 import heroImageSnow from "@assets/stock_images/beautiful_scenic_him_799557d0.jpg";
 import hpsedcLogo from "@/assets/logos/hpsedc.svg";
+import vCliqLogo from "@/assets/logos/v-cliq-logo.jpg";
 import { CATEGORY_REQUIREMENTS, MAX_ROOMS_ALLOWED, MAX_BEDS_ALLOWED } from "@shared/fee-calculator";
 
 // Fallback stats if the production scraper cannot load (values from today's prod snapshot)
@@ -48,6 +49,7 @@ export default function HomePage() {
   const [certificateNumber, setCertificateNumber] = useState("");
   const [searchType, setSearchType] = useState<"application" | "aadhaar" | "phone">("application");
   const [showCmSlide, setShowCmSlide] = useState(false);
+  const [logoPosition, setLogoPosition] = useState<"top" | "bottom">("top");
   const handleScrollTo = (anchor: string) => {
     const el = document.getElementById(anchor);
     if (el) {
@@ -93,7 +95,7 @@ export default function HomePage() {
         showHome={false}
         onPrimaryLogoToggle={() => setShowCmSlide((prev) => !prev)}
         actions={
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             <ThemeSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -152,8 +154,24 @@ export default function HomePage() {
               key="hero-sukhu"
               images={heroImages}
               interval={5000}
+
               overlayClassName={overlayClass}
             />
+            {/* V-CLIQ Campaign Badge */}
+            <div
+              onClick={() => setLogoPosition(prev => prev === "top" ? "bottom" : "top")}
+              className={`absolute right-4 z-20 md:right-8 transition-all duration-1000 ease-in-out cursor-pointer hover:scale-105 active:scale-95 ${logoPosition === "top"
+                ? "top-4 md:top-5"
+                : "bottom-4 md:bottom-16"
+                }`}
+              title="Click to toggle position"
+            >
+              <img
+                src={vCliqLogo}
+                alt="V CLIQ - We Click"
+                className="w-20 h-auto md:w-32 object-contain drop-shadow-2xl rounded-lg border-2 border-white/20 shadow-black/20"
+              />
+            </div>
           </div>
         )}
 
@@ -537,6 +555,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }

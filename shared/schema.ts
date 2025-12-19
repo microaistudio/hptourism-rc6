@@ -3,7 +3,7 @@ import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb } f
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const APPLICATION_KIND_VALUES = ['new_registration', 'renewal', 'add_rooms', 'delete_rooms', 'cancel_certificate'] as const;
+export const APPLICATION_KIND_VALUES = ['new_registration', 'renewal', 'add_rooms', 'delete_rooms', 'cancel_certificate', 'change_category'] as const;
 export type ApplicationKind = typeof APPLICATION_KIND_VALUES[number];
 export const applicationKindEnum = z.enum(APPLICATION_KIND_VALUES);
 
@@ -100,6 +100,58 @@ export type WaterSportsApplicationData = {
     date: string;
     amount: number;
   };
+};
+// Adventure Sports Application Data (stored in JSONB when applicationType = 'adventure_sports')
+export type AdventureSportsApplicationData = {
+  // Activity Selection
+  activityCategory: 'water_sports' | 'air_adventure' | 'land_adventure';
+  activityType: 'non_motorized' | 'motorized' | 'river_adventure' | 'air_adventure' | 'land_adventure';
+  activity: string; // Specific activity ID (e.g., 'paddle_boat', 'jet_ski', 'paragliding')
+
+  // Operator & Area Details
+  operatorType: 'individual' | 'company' | 'society';
+  operatorName: string;
+  localOfficeAddress: string;
+  district: string;
+  waterBodyId?: string; // Optional: For water sports
+  waterBodyName: string; // Required: Name of location/water body/site
+  areaOfOperation: string; // Specific area description
+
+  // Equipment / Unit Details
+  equipment: Array<{
+    type: string; // Activity ID or Unit Type
+    manufacturer: string;
+    identificationNo: string;
+    yearOfManufacture: string;
+    // Generic safety/details object that can vary by activity
+    safetyEquipment: {
+      lifeJackets?: number;
+      lifebuoys?: number;
+      firstAidKit: boolean;
+      helmet?: boolean;
+      harness?: boolean;
+      reserveParachute?: boolean;
+      communicationDevice?: boolean;
+      insuranceValid?: boolean;
+      fitnessCertificate?: boolean;
+      [key: string]: any; // Allow for extensibility
+    };
+  }>;
+
+  // Manpower / Staff Details
+  manpower: Array<{
+    role: string; // 'boatman', 'motor_boat_driver', 'pilot', 'guide', 'instructor'
+    name: string;
+    dob: string;
+    registrationNo?: string; // License/Certificate number
+    firstAidCertified: boolean;
+    technicalQualification?: string; // e.g., 'P2 License', 'Mountaineering Course'
+    experienceYears?: number;
+  }>;
+
+  // Future phases will add:
+  // - Insurance details (Phase 1C+)
+  // - Emergency protocols (Phase 2)
 };
 
 // Users Table
@@ -251,10 +303,14 @@ export const homestayApplications = pgTable("homestay_applications", {
   serviceRequestedAt: timestamp("service_requested_at"),
 
   // Multi-Activity Support (v0.7+)
-  applicationType: varchar("application_type", { length: 50 }).default('homestay'), // 'homestay' | 'water_sports'
+  applicationType: varchar("application_type", { length: 50 }).default('homestay'), // 'homestay' | 'water_sports' | 'adventure_sports'
 
   // Water Sports Specific Data (when applicationType = 'water_sports')
   waterSportsData: jsonb("water_sports_data").$type<WaterSportsApplicationData>(),
+
+  // Adventure Sports Specific Data (when applicationType = 'adventure_sports')
+  adventureSportsData: jsonb("adventure_sports_data").$type<AdventureSportsApplicationData>(),
+
 
   // Property Details (ANNEXURE-I)
   propertyName: varchar("property_name", { length: 255 }).notNull(),

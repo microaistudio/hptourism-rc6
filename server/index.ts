@@ -37,7 +37,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-app.use(globalRateLimiter);
+// app.use(globalRateLimiter);
 
 app.use(httpLogger);
 

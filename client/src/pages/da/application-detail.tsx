@@ -612,6 +612,10 @@ export default function DAApplicationDetail() {
       return false;
     }
     if (totalDocs === 0) {
+      // Cancellation requests don't require documents
+      if (application.applicationKind === 'cancel_certificate') {
+        return true;
+      }
       toast({
         title: "Documents required",
         description: "Required documents must be uploaded and reviewed before forwarding to DTDO.",
@@ -629,7 +633,10 @@ export default function DAApplicationDetail() {
     }
     return true;
   };
-  const canForward = legacyForwardAllowed && totalDocs > 0 && completedDocs === totalDocs;
+  const canForward = legacyForwardAllowed && (
+    (application.applicationKind === 'cancel_certificate') ||
+    (totalDocs > 0 && completedDocs === totalDocs)
+  );
   const requireRemarks = () => {
     if (remarks.trim().length === 0) {
       toast({

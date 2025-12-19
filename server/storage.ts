@@ -24,6 +24,7 @@ export interface IStorage {
   getAllApplications(): Promise<HomestayApplication[]>;
   createApplication(app: InsertHomestayApplication, options?: { trusted?: boolean }): Promise<HomestayApplication>;
   updateApplication(id: string, app: Partial<HomestayApplication>): Promise<HomestayApplication | undefined>;
+  deleteApplication(id: string): Promise<void>;
 
   // Document methods
   createDocument(doc: InsertDocument): Promise<Document>;
@@ -45,6 +46,7 @@ export interface IStorage {
   // Application Action methods
   createApplicationAction(action: InsertApplicationAction): Promise<ApplicationAction>;
   getApplicationActions(applicationId: string): Promise<ApplicationAction[]>;
+  deleteApplicationActions(applicationId: string): Promise<void>;
 
   // Production Stats methods
   saveProductionStats(stats: { totalApplications: number; approvedApplications: number; rejectedApplications: number; pendingApplications: number; sourceUrl: string }): Promise<void>;
@@ -267,6 +269,13 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
+  async deleteApplication(id: string): Promise<void> {
+    this.applications.delete(id);
+    // Cleanup related data
+    await this.deleteDocumentsByApplication(id);
+    await this.deleteApplicationActions(id);
+  }
+
   // Document methods
   async createDocument(insertDoc: InsertDocument): Promise<Document> {
     const id = randomUUID();
@@ -423,6 +432,14 @@ export class MemStorage implements IStorage {
     return Array.from(this.applicationActions.values())
       .filter(action => action.applicationId === applicationId)
       .sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0));
+  }
+
+  async deleteApplicationActions(applicationId: string): Promise<void> {
+    for (const [key, action] of this.applicationActions.entries()) {
+      if (action.applicationId === applicationId) {
+        this.applicationActions.delete(key);
+      }
+    }
   }
 
   // Production Stats methods (stub for MemStorage - not used in production)

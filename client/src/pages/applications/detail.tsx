@@ -334,18 +334,7 @@ export default function ApplicationDetail() {
     }
     setIsGeneratingCertificate(true);
     try {
-      let inspectionSummary = null;
-      if (applicationId) {
-        try {
-          inspectionSummary = await fetchInspectionReportSummary(applicationId);
-        } catch (error) {
-          console.warn("[certificate] Failed to fetch inspection reference", error);
-        }
-      }
-
-      generateCertificatePDF(app, certificateFormat, {
-        inspectionReport: inspectionSummary ?? undefined,
-      });
+      generateCertificatePDF(app, certificateFormat);
     } catch (error) {
       toast({
         title: "Download failed",

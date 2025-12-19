@@ -868,6 +868,79 @@ export function createDtdoRouter() {
             res.status(500).json({ message: "Failed to raise objections" });
         }
     });
+    // DTDO approve cancellation request
+    router.post("/applications/:id/approve-cancellation", requireRole('district_tourism_officer', 'district_officer'), async (req, res) => {
+        try {
+            const { remarks } = req.body;
+            const userId = req.session.userId!;
+            const user = await storage.getUser(userId);
+
+            const application = await storage.getApplication(req.params.id);
+            if (!application) {
+                return res.status(404).json({ message: "Application not found" });
+            }
+
+            // Verify application is from DTDO's district
+            if (user?.district && !districtsMatch(user.district, application.district)) {
+                return res.status(403).json({ message: "You can only process applications from your district" });
+            }
+
+            // Verify it is a cancellation request
+            if (application.applicationKind !== 'cancel_certificate') {
+                return res.status(400).json({ message: "This action is only for cancellation requests" });
+            }
+
+            // Update cancellation request status
+            await storage.updateApplication(req.params.id, {
+                status: 'certificate_cancelled',
+                districtNotes: remarks || 'Cancellation approved. Certificate revoked.',
+                districtOfficerId: userId,
+                districtReviewDate: new Date(),
+                approvedAt: new Date(),
+                certificateExpiryDate: new Date(), // Expire immediately
+            });
+
+            await logApplicationAction({
+                applicationId: req.params.id,
+                actorId: userId,
+                action: "cancellation_approved",
+                previousStatus: application.status,
+                newStatus: "certificate_cancelled",
+                feedback: remarks || 'Cancellation approved',
+            });
+
+            // If there is a parent application, cancel it too (Revoke Certificate)
+            if (application.parentApplicationId) {
+                await storage.updateApplication(application.parentApplicationId, {
+                    status: 'certificate_cancelled', // Revoked
+                    districtNotes: `Certificate revoked via cancellation request #${application.applicationNumber}. Remarks: ${remarks || 'N/A'}`,
+                    certificateExpiryDate: new Date(), // Expire immediately
+                });
+
+                await logApplicationAction({
+                    applicationId: application.parentApplicationId,
+                    actorId: userId,
+                    action: "certificate_revoked",
+                    previousStatus: "approved", // Assuming it was approved
+                    newStatus: "certificate_cancelled",
+                    feedback: `Revoked via request #${application.applicationNumber}`,
+                });
+            }
+
+            const owner = await storage.getUser(application.userId);
+            queueNotification("application_approved", {
+                application: { ...application, status: 'certificate_cancelled' } as HomestayApplication,
+                owner: owner ?? null,
+                extras: { REMARKS: "Your request to cancel the Homestay Certificate has been approved. The certificate is now revoked." }
+            });
+
+            res.json({ message: "Cancellation request approved. Certificate revoked." });
+        } catch (error) {
+            routeLog.error("[dtdo] Failed to approve cancellation:", error);
+            res.status(500).json({ message: "Failed to approve cancellation" });
+        }
+    });
+
 
     // Profile and Password Management
     router.patch("/profile", requireRole('district_tourism_officer', 'district_officer'), handleStaffProfileUpdate);

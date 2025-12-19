@@ -311,12 +311,20 @@ const draftSchema = z
     certificateValidityYears: z.coerce.number().optional(),
     isPangiSubDivision: z.boolean().optional(),
     ownerGender: z.enum(["male", "female", "other"]).optional(),
-    latitude: z.string().optional(),
-    longitude: z.string().optional(),
-    currentPage: z.coerce.number().optional(),
     documents: z.array(z.any()).optional(),
   })
   .passthrough();
+
+// Extended schema for service requests
+const serviceRequestDraftSchema = draftSchema.extend({
+  applicationKind: z.enum(['new_registration', 'add_rooms', 'delete_rooms', 'cancel_certificate', 'change_category']).optional(),
+  parentApplicationId: z.string().uuid().optional(),
+  serviceContext: z.object({
+    requestedRooms: z.any().optional(),
+    requestedDeletions: z.any().optional(),
+    note: z.string().optional(),
+  }).optional(),
+});
 
 const ownerSubmittableSchema = z.object({
   propertyName: z.string(),
@@ -569,19 +577,113 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
   router.post("/draft", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
+      const body = serviceRequestDraftSchema.parse(req.body);
+      const applicationKind = body.applicationKind || "new_registration";
 
+      // Fetch all existing applications for this user
       const existingApps = await storage.getApplicationsByUser(userId);
-      if (existingApps.length > 0) {
-        const existing = existingApps[0];
-        if (existing.status === "draft") {
-          return res.json({ application: existing, message: "Existing draft loaded" });
+
+      let parentApp: HomestayApplication | undefined;
+      let draftData = { ...body };
+
+      if (applicationKind === "new_registration") {
+        // ORIGINAL LOGIC: One active application check
+        if (existingApps.length > 0) {
+          const existing = existingApps[0];
+          // If the *only* existing app is a draft, we can return it (or user should resume it)
+          // But strict rule: "Only one homestay application... permitted" including history often implies one *active* flow.
+          // RC5 Logic: If existing is draft, return it. If approved/submitted, block new registration.
+          if (existing.status === "draft") {
+            return res.json({ application: existing, message: "Existing draft loaded" });
+          }
+
+          return res.status(409).json({
+            message: "Only one homestay application is permitted per owner account. Please maintain your existing property.",
+            existingApplicationId: existing.id,
+            status: existing.status,
+          });
         }
-        return res.status(409).json({
-          message:
-            "Only one homestay application is permitted per owner account (HP Tourism Rules 2025). Please continue the existing application.",
-          existingApplicationId: existing.id,
-          status: existing.status,
-        });
+      } else {
+        // SERVICE REQUEST LOGIC (Add/Delete Rooms, Cancel, etc.)
+
+        // 1. Must have an APPROVED parent application
+        // We look for the main registration or the latest approved state
+        parentApp = existingApps.find(app => app.status === 'approved' && (!app.applicationKind || app.applicationKind === 'new_registration' || app.applicationKind === 'renewal'));
+
+        if (!parentApp) {
+          return res.status(400).json({
+            message: "You must have an approved Homestay Registration before applying for amendments or cancellation."
+          });
+        }
+
+        // 2. Check for pending service requests
+        // (Prevent starting "Add Rooms" if "timely_renewal" is already open, etc.)
+        const openServiceRequest = existingApps.find(app =>
+          app.status !== 'approved' &&
+          app.status !== 'rejected' &&
+          app.applicationKind !== 'new_registration'
+        );
+
+        if (openServiceRequest) {
+          return res.status(409).json({
+            message: `You already have a pending service request (${openServiceRequest.applicationKind.replace('_', ' ')}). Please complete it first.`,
+            existingApplicationId: openServiceRequest.id
+          });
+        }
+
+        // 3. Populate Draft with Parent Data
+        // We copy property/owner details so the user starts with the current state
+        draftData = {
+          ...draftData,
+          // Core Identity
+          propertyName: parentApp.propertyName ?? undefined,
+          ownerName: parentApp.ownerName ?? undefined,
+          ownerMobile: parentApp.ownerMobile ?? undefined,
+          ownerEmail: parentApp.ownerEmail ?? undefined,
+          ownerAadhaar: parentApp.ownerAadhaar ?? undefined,
+
+          // Address (Usually invariant)
+          district: parentApp.district ?? undefined,
+          tehsil: parentApp.tehsil ?? undefined,
+          tehsilOther: parentApp.tehsilOther ?? undefined,
+          block: parentApp.block ?? undefined,
+          blockOther: parentApp.blockOther ?? undefined,
+          gramPanchayat: parentApp.gramPanchayat ?? undefined,
+          gramPanchayatOther: parentApp.gramPanchayatOther ?? undefined,
+          urbanBody: parentApp.urbanBody ?? undefined,
+          urbanBodyOther: parentApp.urbanBodyOther ?? undefined,
+          ward: parentApp.ward ?? undefined,
+          address: parentApp.address ?? undefined,
+          pincode: parentApp.pincode ?? undefined,
+          locationType: (parentApp.locationType ?? undefined) as any,
+
+          // Property Specs (Current State)
+          category: (parentApp.category ?? undefined) as any,
+          selectedCategory: (parentApp.category ?? undefined) as any, // Start with current
+          totalRooms: parentApp.totalRooms ?? undefined,
+          propertyArea: parentApp.propertyArea ? Number(parentApp.propertyArea) : undefined,
+
+          // Room Configs
+          singleBedRooms: parentApp.singleBedRooms ?? 0,
+          singleBedBeds: parentApp.singleBedBeds ?? 1,
+          singleBedRoomRate: parentApp.singleBedRoomRate ? Number(parentApp.singleBedRoomRate) : undefined,
+
+          doubleBedRooms: parentApp.doubleBedRooms ?? 0,
+          doubleBedBeds: parentApp.doubleBedBeds ?? 2,
+          doubleBedRoomRate: parentApp.doubleBedRoomRate ? Number(parentApp.doubleBedRoomRate) : undefined,
+
+          familySuites: parentApp.familySuites ?? 0,
+          familySuiteBeds: parentApp.familySuiteBeds ?? 4,
+          familySuiteRate: parentApp.familySuiteRate ? Number(parentApp.familySuiteRate) : undefined,
+
+          attachedWashrooms: parentApp.attachedWashrooms ?? undefined,
+
+          // Linkage
+          applicationKind: applicationKind,
+          parentApplicationId: parentApp.id,
+          parentApplicationNumber: parentApp.applicationNumber ?? undefined,
+          parentCertificateNumber: parentApp.certificateNumber ?? undefined,
+        };
       }
 
       const user = await storage.getUser(userId);
@@ -589,8 +691,19 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const validatedData = draftSchema.parse(req.body);
+      // 4. Validate and Save
+      // We use the draftSchema validation but applied to our merged data
+      const validatedData = serviceRequestDraftSchema.parse(draftData);
       const sanitizedDraft = sanitizeDraftForPersistence(validatedData, user);
+
+      // Ensure required linkage fields are preserved after sanitation
+      if (applicationKind !== 'new_registration') {
+        (sanitizedDraft as any).applicationKind = applicationKind;
+        (sanitizedDraft as any).parentApplicationId = parentApp?.id;
+        (sanitizedDraft as any).parentApplicationNumber = parentApp?.applicationNumber;
+        (sanitizedDraft as any).parentCertificateNumber = parentApp?.certificateNumber;
+      }
+
       const policy = await getUploadPolicy();
       const draftDocsError = validateDocumentsAgainstPolicy(
         sanitizedDraft.documents as NormalizedDocumentRecord[] | undefined,
@@ -608,7 +721,9 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
 
       res.json({
         application,
-        message: "Draft saved successfully. You can continue editing anytime.",
+        message: applicationKind === 'new_registration'
+          ? "Draft saved successfully."
+          : `${applicationKind.replace('_', ' ')} request initiated.`
       });
     } catch (error) {
       ownerLog.error({ err: error }, "[draft:create] Failed to save draft");
@@ -1227,6 +1342,49 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
       }
       ownerLog.error({ err: error }, "[applications:update] Failed to update application");
       res.status(500).json({ message: "Failed to update application" });
+    }
+  });
+
+
+
+  router.delete("/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.session.userId!;
+
+      const application = await storage.getApplication(id);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      if (application.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to access this application" });
+      }
+
+      if (application.status !== "draft") {
+        return res.status(400).json({
+          message:
+            "Only draft applications can be deleted. Please contact support if you need to withdraw a submitted application.",
+        });
+      }
+
+      await storage.deleteApplication(id);
+
+      ownerLog.info(
+        { applicationId: id, userId },
+        "[applications:delete] Draft application deleted by owner"
+      );
+
+      res.json({
+        success: true,
+        message: "Draft deleted successfully",
+      });
+    } catch (error) {
+      ownerLog.error(
+        { err: error, applicationId: req.params.id },
+        "[applications:delete] Failed to delete draft",
+      );
+      res.status(500).json({ message: "Failed to delete draft" });
     }
   });
 

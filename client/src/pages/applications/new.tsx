@@ -89,6 +89,7 @@ import { Step3RoomsCategory } from "@/components/applications/form-sections/Step
 import { Step4DistancesAreas } from "@/components/applications/form-sections/Step4DistancesAreas";
 import { Step5Documents } from "@/components/applications/form-sections/Step5Documents";
 import { Step6AmenitiesFees } from "@/components/applications/form-sections/Step6AmenitiesFees";
+import { Step6CancellationReview } from "@/components/applications/form-sections/Step6CancellationReview";
 import { applicationSchema, type ApplicationForm } from "@/lib/application-schema";
 
 const HP_STATE = DEFAULT_STATE;
@@ -838,6 +839,8 @@ export default function NewApplication() {
     staleTime: 30_000,
   });
 
+  const [cancellationConfirmed, setCancellationConfirmed] = useState(false);
+
   useEffect(() => {
     if (isCorrectionMode) {
       return;
@@ -971,8 +974,27 @@ export default function NewApplication() {
       setMaxStepReached(5);
       return;
     }
+
+    // Service Request (Add Rooms): Auto-navigate to Step 3 (Rooms & Category)
+    // The user skips property/owner details as they are inherited.
+    if (activeDraftApplication && !isCorrectionMode && activeApplicationKind === 'add_rooms' && !hasAutoNavigatedToDocuments.current) {
+      hasAutoNavigatedToDocuments.current = true;
+      setStep(3);
+      setMaxStepReached(3);
+      return;
+    }
+
+    // Cancellation: Auto-navigate to Step 6 (Review)
+    if (activeDraftApplication && !isCorrectionMode && activeApplicationKind === 'cancel_certificate' && !hasAutoNavigatedToDocuments.current) {
+      hasAutoNavigatedToDocuments.current = true;
+      setStep(6);
+      setMaxStepReached(6);
+      return;
+    }
+
     // Draft/submitted without documents: go to documents step so owner can upload
-    if (activeDraftApplication && !isCorrectionMode && step === 1 && !hasAutoNavigatedToDocuments.current) {
+    // (Note: We skip this for add_rooms and cancellation above to ensure they land on the correct step)
+    if (activeDraftApplication && !isCorrectionMode && step === 1 && !hasAutoNavigatedToDocuments.current && activeApplicationKind !== 'cancel_certificate') {
       const docs = activeDraftApplication.documents as unknown[] | null;
       const hasDocuments = Array.isArray(docs) && docs.length > 0;
       if (!hasDocuments) {
@@ -981,7 +1003,7 @@ export default function NewApplication() {
         setMaxStepReached(5);
       }
     }
-  }, [isCorrectionMode, activeCorrectionApplication, activeDraftApplication, step]);
+  }, [isCorrectionMode, activeCorrectionApplication, activeDraftApplication, step, activeApplicationKind]);
 
   useEffect(() => {
     if (!activeDraftApplication) {
@@ -2933,7 +2955,14 @@ export default function NewApplication() {
             }
 
             {
-              step === 6 && (
+              step === 6 && activeApplicationKind === 'cancel_certificate' ? (
+                <Step6CancellationReview
+                  form={form}
+                  cancellationConfirmed={cancellationConfirmed}
+                  setCancellationConfirmed={setCancellationConfirmed}
+                  activeDraftApplication={activeDraftApplication}
+                />
+              ) : step === 6 ? (
                 <Step6AmenitiesFees
                   form={form}
                   selectedAmenities={selectedAmenities}
@@ -2951,7 +2980,7 @@ export default function NewApplication() {
                   correctionId={correctionId}
                   selectedAmenitiesCount={selectedAmenitiesCount}
                 />
-              )
+              ) : null
             }
 
             <div className="flex flex-wrap justify-between gap-4">
@@ -2979,7 +3008,7 @@ export default function NewApplication() {
               )}
 
               {/* Preview button - only on final page */}
-              {step === totalSteps && (
+              {step === totalSteps && activeApplicationKind !== 'cancel_certificate' && (
                 <Button
                   type="button"
                   variant="outline"
@@ -2987,7 +3016,20 @@ export default function NewApplication() {
                   data-testid="button-preview"
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  Preview
+                  Preview Application
+                </Button>
+              )}
+
+              {/* Cancellation Submit Button */}
+              {step === totalSteps && activeApplicationKind === 'cancel_certificate' && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={!cancellationConfirmed || submitApplicationMutation.isPending}
+                  onClick={() => submitApplicationMutation.mutate()}
+                  data-testid="button-submit-cancellation"
+                >
+                  {submitApplicationMutation.isPending ? "Submitting..." : "Submit Cancellation Request"}
                 </Button>
               )}
 

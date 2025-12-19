@@ -80,17 +80,7 @@ export default function AdminRcApplicationCertificate() {
     }
     setIsGenerating(true);
     try {
-      let inspectionSummary = null;
-      if (applicationId) {
-        try {
-          inspectionSummary = await fetchInspectionReportSummary(applicationId);
-        } catch (error) {
-          console.warn("[admin rc] Failed to fetch inspection reference", error);
-        }
-      }
-      generateCertificatePDF(application, certificateFormat, {
-        inspectionReport: inspectionSummary ?? undefined,
-      });
+      generateCertificatePDF(application, certificateFormat);
       if (!application.certificateNumber) {
         toast({
           title: "Blank certificate downloaded",

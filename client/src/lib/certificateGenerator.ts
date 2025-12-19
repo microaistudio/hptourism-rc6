@@ -685,9 +685,21 @@ function getRelationPrefix(gender?: string | null) {
 // Format room rate as currency
 function formatRoomRate(rate?: string | number | null): string {
   if (rate === null || rate === undefined) return "—";
-  const numericRate = typeof rate === "string" ? parseFloat(rate) : rate;
-  if (!Number.isFinite(numericRate) || numericRate <= 0) return "—";
-  return `₹${numericRate.toLocaleString("en-IN")}/-`;
+
+  // Clean the input: remove any non-numeric characters except decimal point
+  let cleanRate: number;
+  if (typeof rate === "string") {
+    const cleaned = rate.replace(/[^\d.]/g, "");
+    cleanRate = parseFloat(cleaned);
+  } else {
+    cleanRate = rate;
+  }
+
+  if (!Number.isFinite(cleanRate) || cleanRate <= 0) return "—";
+
+  // Format without locale to avoid any special characters
+  const formatted = Math.round(cleanRate).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `₹${formatted}/-`;
 }
 
 function formatCategoryLabel(category?: string | null) {
