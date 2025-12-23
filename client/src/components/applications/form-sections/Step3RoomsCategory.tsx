@@ -126,18 +126,18 @@ export function Step3RoomsCategory({
 
     return (
         <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Rooms & Category Selection</CardTitle>
-                    <CardDescription>
+            <Card className="shadow-lg border-0 overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                    <CardTitle className="text-white">Rooms & Category Selection</CardTitle>
+                    <CardDescription className="text-white/70">
                         Configure your rooms and select a homestay category.
                         <br />
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-white/60">
                             Max {MAX_ROOMS_ALLOWED} rooms and {MAX_BEDS_ALLOWED} beds allowed.
                         </span>
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 p-6">
                     {/* Summary Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border">
                         <div>

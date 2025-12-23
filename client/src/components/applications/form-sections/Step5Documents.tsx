@@ -41,15 +41,15 @@ export function Step5Documents({
 }: Step5DocumentsProps) {
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-5 h-5 text-primary" />
-                    <CardTitle>Upload Documents (ANNEXURE-II)</CardTitle>
+        <Card className="shadow-lg border-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                <div className="flex items-center gap-2 mb-1">
+                    <FileText className="w-5 h-5" />
+                    <CardTitle className="text-white">Upload Documents (ANNEXURE-II)</CardTitle>
                 </div>
-                <CardDescription>Upload required documents as per 2025 Homestay Rules</CardDescription>
+                <CardDescription className="text-white/70">Upload required documents as per 2025 Homestay Rules</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 p-6">
                 {/* Correction Mode Banner */}
                 {isCorrection && (
                     <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">

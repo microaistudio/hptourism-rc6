@@ -29,32 +29,36 @@ export function Step2OwnerInfo({
     renderProfileManagedDescription,
 }: Step2OwnerInfoProps) {
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-2 mb-2">
-                    <UserIcon className="w-5 h-5 text-primary" />
-                    <CardTitle>Owner Information</CardTitle>
+        <Card className="shadow-lg border-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                <div className="flex items-center gap-2 mb-1">
+                    <UserIcon className="w-5 h-5" />
+                    <CardTitle className="text-white">Owner Information</CardTitle>
                 </div>
-                <CardDescription>Details of the property owner</CardDescription>
+                <CardDescription className="text-white/70">Details of the property owner</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <Alert className="bg-muted/60 border-dashed border-muted">
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Profile-managed details</AlertTitle>
-                    <AlertDescription className="flex flex-wrap items-center gap-2">
-                        Name, contact and Aadhaar information come from your verified profile. Update them via
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-3"
-                            onClick={goToProfile}
-                        >
-                            My Profile
-                        </Button>
-                        before starting the application.
-                    </AlertDescription>
-                </Alert>
+            <CardContent className="space-y-4 p-6">
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                        <div>
+                            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Profile-managed details</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                                Name, contact and Aadhaar information come from your verified profile. Update them via{" "}
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto p-0 text-blue-700 dark:text-blue-200 font-semibold underline"
+                                    onClick={goToProfile}
+                                >
+                                    My Profile
+                                </Button>{" "}
+                                before starting the application.
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField

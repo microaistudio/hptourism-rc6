@@ -59,14 +59,14 @@ interface Step4DistancesAreasProps {
 
 export function Step4DistancesAreas({ form, selectedAttractions, setSelectedAttractions }: Step4DistancesAreasProps) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Distances & Nearby Attractions</CardTitle>
-                <CardDescription>Location details and nearby tourist attractions (all fields optional)</CardDescription>
+        <Card className="shadow-lg border-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                <CardTitle className="text-white">Distances & Nearby Attractions</CardTitle>
+                <CardDescription className="text-white/70">Location details and nearby tourist attractions (all fields optional)</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 p-6">
                 <div className="space-y-4">
-                    <h4 className="font-medium">Distances from Key Locations (in km)</h4>
+                    <h4 className="font-semibold text-slate-700">Distances from Key Locations (in km)</h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
