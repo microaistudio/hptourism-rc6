@@ -7,10 +7,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Mountain, Loader2 } from "lucide-react";
-import { NavigationHeader } from "@/components/navigation-header";
+import { ArrowLeft, Loader2, User, Phone, Mail, Lock, FileText, ArrowRight } from "lucide-react";
+import heroImagePine from "@assets/stock_images/beautiful_himachal_p_50139e3f.jpg";
+
+const COLORS = {
+  primary: "#00d09c",
+  primaryDark: "#00b386",
+  text: "#44475b",
+  background: "#ffffff",
+};
 
 const registerSchema = z
   .object({
@@ -80,63 +86,111 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <NavigationHeader
-        title="HP Tourism Portal"
-        showBack={false}
-        showHome={true}
-      />
-      <div className="flex items-center justify-center p-4 pt-8">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                <Mountain className="w-7 h-7 text-primary-foreground" />
+    <div className="min-h-screen flex bg-white font-sans text-gray-800">
+
+      {/* 1. LEFT COLUMN: Visual & Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-900">
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] hover:scale-105"
+          style={{ backgroundImage: `url(${heroImagePine})` }}
+        ></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full h-full text-white">
+          <div className="flex items-center gap-3" onClick={() => setLocation("/")}>
+            <div className="bg-white/10 backdrop-blur-md p-2 rounded-lg cursor-pointer hover:bg-white/20 transition">
+              <ArrowLeft className="w-6 h-6" />
+            </div>
+            <span className="font-semibold tracking-wide cursor-pointer">Back to Home</span>
+          </div>
+
+          <div className="space-y-6 max-w-lg">
+            <h1 className="text-5xl font-bold leading-tight">
+              Join the <br />
+              <span style={{ color: COLORS.primary }}>HP Tourism Family</span>
+            </h1>
+            <p className="text-lg text-gray-200 leading-relaxed opacity-90">
+              Register your homestay today and start welcoming guests from around the world.
+              Simple, fast, and fully digital.
+            </p>
+
+            <div className="flex flex-col gap-4 pt-4">
+              <div className="flex items-center gap-3 text-white/90">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="font-bold">1</span>
+                </div>
+                <span>Create your account in 2 minutes</span>
+              </div>
+              <div className="flex items-center gap-3 text-white/90">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="font-bold">2</span>
+                </div>
+                <span>Register your property online</span>
+              </div>
+              <div className="flex items-center gap-3 text-white/90">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="font-bold">3</span>
+                </div>
+                <span>Start hosting and earning</span>
               </div>
             </div>
-            <CardTitle className="text-2xl">Property Owner Registration</CardTitle>
-            <CardDescription>
-              Create an account to register and manage your homestay properties
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          </div>
+
+          <div className="text-xs text-white/40">
+            © 2025 HP Tourism. Beautiful Himachal.
+          </div>
+        </div>
+      </div>
+
+      {/* 2. RIGHT COLUMN: Content */}
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 relative overflow-y-auto">
+        <div className="max-w-[650px] w-full space-y-8 my-auto">
+
+          <div className="lg:hidden flex items-center gap-2 mb-6 text-gray-500" onClick={() => setLocation("/")}>
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Back</span>
+          </div>
+
+          <div className="text-center space-y-3">
+            <h2 className="text-4xl font-bold text-gray-900">Create Account</h2>
+            <p className="text-xl text-gray-500">
+              Enter your details to register as a Property Owner
+            </p>
+          </div>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
+              {/* Personal Info Group */}
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">First Name</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Enter first name"
-                            data-testid="input-firstname"
-                            characterRestriction="alpha-space"
-                            maxLength={50}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <div className="absolute left-3 top-3.5 text-gray-400"><User className="w-5 h-5" /></div>
+                            <Input placeholder="First Name" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Last Name</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Enter last name"
-                            data-testid="input-lastname"
-                            characterRestriction="alpha-space"
-                            maxLength={50}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <div className="absolute left-3 top-3.5 text-gray-400"><User className="w-5 h-5" /></div>
+                            <Input placeholder="Last Name" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -144,62 +198,34 @@ export default function Register() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="mobile"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Mobile Number</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Mobile Number</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="10-digit mobile number"
-                            data-testid="input-mobile"
-                            characterRestriction="numeric"
-                            maxLength={10}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <div className="absolute left-3 top-3.5 text-gray-400"><Phone className="w-5 h-5" /></div>
+                            <Input placeholder="10-digit number" {...field} maxLength={10} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email (Optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="your@email.com"
-                            data-testid="input-email"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={form.control}
                     name="aadhaarNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Aadhaar Number</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Aadhaar Number</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="12-digit Aadhaar number"
-                            data-testid="input-aadhaar"
-                            characterRestriction="numeric"
-                            maxLength={12}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <div className="absolute left-3 top-3.5 text-gray-400"><FileText className="w-5 h-5" /></div>
+                            <Input placeholder="12-digit Aadhaar" {...field} maxLength={12} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -207,77 +233,89 @@ export default function Register() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 font-medium text-lg">Email Address (Optional)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <div className="absolute left-3 top-3.5 text-gray-400"><Mail className="w-5 h-5" /></div>
+                          <Input type="email" placeholder="your@email.com" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Min 6 characters"
-                            data-testid="input-password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <div className="absolute left-3 top-3.5 text-gray-400"><Lock className="w-5 h-5" /></div>
+                            <Input type="password" placeholder="Min 6 characters" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Confirm Password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Re-enter password"
-                            data-testid="input-confirm-password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <div className="absolute left-3 top-3.5 text-gray-400"><Lock className="w-5 h-5" /></div>
+                            <Input type="password" placeholder="Re-enter password" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+              </div>
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={registerMutation.isPending}
-                  data-testid="button-register"
+              <Button
+                type="submit"
+                className="w-full h-14 text-lg font-bold shadow-lg hover:shadow-xl transition-all rounded-lg text-white mt-8"
+                style={{ backgroundColor: COLORS.primary }}
+                disabled={registerMutation.isPending}
+              >
+                {registerMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>Create Account <ArrowRight className="w-5 h-5 ml-2" /></>
+                )}
+              </Button>
+
+              <div className="text-center pt-2">
+                <span className="text-gray-500 text-lg">Already have an account? </span>
+                <button
+                  type="button"
+                  className="font-bold text-lg hover:underline transition-colors"
+                  style={{ color: COLORS.primary }}
+                  onClick={() => setLocation("/login")}
                 >
-                  {registerMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-
-                <div className="text-center text-sm">
-                  <span className="text-muted-foreground">Already have an account? </span>
-                  <button
-                    type="button"
-                    className="text-primary hover:underline"
-                    onClick={() => setLocation("/login")}
-                    data-testid="link-login"
-                  >
-                    Sign in
-                  </button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                  Sign in
+                </button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </div>
     </div>
   );

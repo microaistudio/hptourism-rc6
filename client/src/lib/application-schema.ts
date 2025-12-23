@@ -213,6 +213,7 @@ export const applicationSchema = z.object({
     ownerLastName: z.string().min(1, "Last name is required").regex(/^[A-Za-z\s'-]+$/, "Last name can only contain letters"),
     ownerGender: z.enum(["male", "female", "other"]),
     ownerAadhaar: z.string().min(1, "Aadhaar is required").regex(/^\d{12}$/, "Aadhaar must be 12 digits"),
+    guardianName: z.string().min(3, "Father's/Husband's name is required"),
     propertyOwnership: z.enum(["owned", "leased"]),
 
     // Category & room rate
@@ -434,6 +435,7 @@ export const draftSchema = z.object({
     ownerLastName: z.string().optional(),
     ownerGender: z.enum(["male", "female", "other"]).optional(),
     ownerAadhaar: z.string().optional(),
+    guardianName: z.string().optional(),
     propertyOwnership: z.enum(["owned", "leased"]).optional(),
     category: z.enum(["diamond", "gold", "silver"]).optional(),
     proposedRoomRate: z.number().optional(),

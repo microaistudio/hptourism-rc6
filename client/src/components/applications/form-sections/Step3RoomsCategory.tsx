@@ -339,11 +339,11 @@ export function Step3RoomsCategory({
                                 return (
                                     <div
                                         key={row.id}
-                                        className="relative grid grid-cols-1 md:grid-cols-12 gap-4 p-4 rounded-lg border transition-all bg-card hover:border-primary/30"
+                                        className="relative grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-lg border transition-all bg-card hover:border-primary/30"
                                     >
                                         {/* Room Type */}
-                                        <div className="md:col-span-3">
-                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1">
+                                        <div className="md:col-span-2 min-w-0">
+                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                                                 Room Type
                                             </label>
                                             <Select
@@ -364,10 +364,10 @@ export function Step3RoomsCategory({
                                         </div>
 
                                         {/* Quantity & Beds */}
-                                        <div className="md:col-span-3 grid grid-cols-2 gap-2">
+                                        <div className="md:col-span-4 grid grid-cols-2 gap-2 min-w-0">
                                             <div>
-                                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1">
-                                                    Count
+                                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                                                    No. of Rooms
                                                 </label>
                                                 <Select
                                                     value={String(row.quantity)}
@@ -405,7 +405,7 @@ export function Step3RoomsCategory({
                                                 </Select>
                                             </div>
                                             <div>
-                                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1">
+                                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                                                     Beds/Rm
                                                 </label>
                                                 <Select
@@ -438,8 +438,8 @@ export function Step3RoomsCategory({
                                         </div>
 
                                         {/* Tariff / Rate */}
-                                        <div className="md:col-span-3">
-                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1">
+                                        <div className="md:col-span-2 min-w-0">
+                                            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                                                 {roomCalcMode === "direct" ? "Nightly Rate" : "Tariff Range"}
                                             </label>
 
@@ -500,27 +500,27 @@ export function Step3RoomsCategory({
                                         </div>
 
                                         {/* Area */}
-                                        <div className="md:col-span-2">
-                                            <div className="flex gap-1">
-                                                <div className="flex flex-col">
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1">Qty</label>
+                                        <div className="md:col-span-3 min-w-0">
+                                            <div className="flex gap-2">
+                                                <div className="flex flex-col flex-1">
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Area</label>
                                                     <Input
                                                         type="number"
                                                         min={0}
                                                         step="0.01"
                                                         value={row.area ?? ""}
                                                         placeholder="0"
-                                                        className="h-9 w-20"
+                                                        className="h-9"
                                                         onChange={(e) => updateType2Row(row.id, { area: e.target.value === "" ? "" : Number(e.target.value) })}
                                                     />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1">Unit (Area)</label>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Units</label>
                                                     <Select
                                                         value={row.areaUnit || "sqm"}
                                                         onValueChange={(val) => updateType2Row(row.id, { areaUnit: val })}
                                                     >
-                                                        <SelectTrigger className="h-9 w-[78px]">
+                                                        <SelectTrigger className="h-9 w-[85px] shrink-0">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>

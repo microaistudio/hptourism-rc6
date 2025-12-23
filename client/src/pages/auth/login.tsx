@@ -9,60 +9,26 @@ import { getDefaultRouteForRole } from "@/config/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Mountain, Loader2, RefreshCw, CheckCircle2, ShieldCheck, Home, Sparkles } from "lucide-react";
-import { NavigationHeader } from "@/components/navigation-header";
-import type { User } from "@shared/schema";
+import { ArrowLeft, User, Building2, Lock, Phone, ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import heroImagePine from "@assets/stock_images/beautiful_himachal_p_50139e3f.jpg";
+import hpsedcLogo from "@/assets/logos/hpsedc.svg";
+import type { User as UserType } from "@shared/schema";
+
+// --- Configuration & Types ---
+
+const COLORS = {
+  primary: "#00d09c",
+  primaryDark: "#00b386",
+  text: "#44475b",
+  background: "#ffffff",
+};
 
 type LoginAuthMode = "password" | "otp";
 type OtpChannel = "sms" | "email";
 type LoginAudience = "user" | "office";
-
-const audienceContent: Record<
-  LoginAudience,
-  {
-    label: string;
-    badge: string;
-    heroTitle: string;
-    heroSubtitle: string;
-    cardTitle: string;
-    cardDescription: string;
-    bullets: string[];
-    identifierPlaceholder: string;
-    helperNote: string;
-    secondaryNote: string;
-    showRegisterLink: boolean;
-  }
-> = {
-  user: {
-    label: "User Login",
-    badge: "For applicants and property owners",
-    heroTitle: "User login",
-    heroSubtitle: "Sign in with the mobile or email you registered earlier.",
-    cardTitle: "User login",
-    cardDescription: "Apply, upload documents, and track your approvals.",
-    bullets: ["Use your registered mobile/email to sign in.", "New here? Create your user account."],
-    identifierPlaceholder: "e.g., 9876543210 or user@example.com",
-    helperNote: "Use the same mobile/email you used on this portal.",
-    secondaryNote: "Need a user account? Tap Register below to create one.",
-    showRegisterLink: true,
-  },
-  office: {
-    label: "Office Login",
-    badge: "For DA / DTDO / Admin / Super Admin",
-    heroTitle: "Office login",
-    heroSubtitle: "Use the office username shared with you.",
-    cardTitle: "Office login",
-    cardDescription: "District/state office accounts",
-    bullets: ["Use your assigned office username (e.g., da.shimla, admin.rc).", "Need access? Contact your admin."],
-    identifierPlaceholder: "e.g., da.shimla or admin.rc",
-    helperNote: "Office accounts are managed by Admin/Super Admin.",
-    secondaryNote: "If you can’t sign in, ask your admin to reset your office account.",
-    showRegisterLink: false,
-  },
-};
 
 const loginSchema = z
   .object({
@@ -103,16 +69,8 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      identifier: "",
-      password: "",
-      captchaAnswer: "",
-      authMode: "password",
-      otpChannel: "sms",
-    },
-  });
+  // State
+  const [audience, setAudience] = useState<LoginAudience>("user");
   const [captchaQuestion, setCaptchaQuestion] = useState<string>("");
   const [captchaLoading, setCaptchaLoading] = useState<boolean>(false);
   const [captchaEnabled, setCaptchaEnabled] = useState<boolean>(true);
@@ -123,25 +81,23 @@ export default function Login() {
   const [otpChannels, setOtpChannels] = useState<{ sms: boolean; email: boolean }>({ sms: true, email: true });
   const [loginOptionsLoaded, setLoginOptionsLoaded] = useState(false);
   const [otpRequired, setOtpRequired] = useState(false);
-  const [audience, setAudience] = useState<LoginAudience>("user");
-  const authMode = form.watch("authMode");
-  const selectedAudience = audienceContent[audience];
-  const oppositeAudience: LoginAudience = audience === "user" ? "office" : "user";
 
-  // Helper function to get redirect route with multi-service hub check
-  const getRedirectRoute = async (user: User): Promise<string> => {
-    // Only check multi-service for property owners
-    if (user.role === 'property_owner') {
-      try {
-        const response = await apiRequest("GET", "/api/portal/multi-service-enabled");
-        const data = await response.json();
-        if (data?.enabled) {
-          return "/services";
-        }
-      } catch (error) {
-        console.warn("[auth] Failed to check multi-service setting, using default route");
-      }
-    }
+  const form = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      identifier: "",
+      password: "",
+      captchaAnswer: "",
+      authMode: "password",
+      otpChannel: "sms",
+    },
+  });
+
+  const authMode = form.watch("authMode");
+
+  // --- Helpers ---
+
+  const getRedirectRoute = (user: UserType): string => {
     return getDefaultRouteForRole(user.role);
   };
 
@@ -163,9 +119,7 @@ export default function Login() {
   };
 
   const handleAuthModeChange = (mode: LoginAuthMode) => {
-    if (authMode === mode) {
-      return;
-    }
+    if (authMode === mode) return;
     setOtpChallenge(null);
     setOtpValue("");
     setOtpError(null);
@@ -201,6 +155,8 @@ export default function Login() {
       setCaptchaLoading(false);
     }
   }, [form, toast]);
+
+  // --- Effects ---
 
   useEffect(() => {
     void refreshCaptcha();
@@ -246,20 +202,20 @@ export default function Login() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     ensureValidOtpChannel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otpChannels.sms, otpChannels.email]);
+
+  // --- Mutations ---
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response.json();
     },
-    onSuccess: (data: { user?: User; otpRequired?: boolean; challengeId?: string; expiresAt?: string; maskedMobile?: string; maskedEmail?: string; channel?: OtpChannel }) => {
+    onSuccess: (data: { user?: UserType; otpRequired?: boolean; challengeId?: string; expiresAt?: string; maskedMobile?: string; maskedEmail?: string; channel?: OtpChannel }) => {
       if (data?.otpRequired && data.challengeId && data.expiresAt) {
         setOtpChallenge({
           id: data.challengeId,
@@ -288,8 +244,7 @@ export default function Login() {
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-      // Use async redirect with multi-service hub check
-      getRedirectRoute(data.user).then((route) => setLocation(route));
+      setLocation(getRedirectRoute(data.user));
     },
     onError: (error: any) => {
       toast({
@@ -299,6 +254,7 @@ export default function Login() {
       });
     },
   });
+
   const verifyOtpMutation = useMutation({
     mutationFn: async ({ otp }: { otp: string }) => {
       const response = await apiRequest("POST", "/api/auth/login/verify-otp", {
@@ -307,23 +263,22 @@ export default function Login() {
       });
       return response.json();
     },
-    onSuccess: (data: { user: User }) => {
+    onSuccess: (data: { user: UserType }) => {
       toast({
         title: "Welcome back!",
         description: "OTP verified successfully.",
       });
-      // Use async redirect with multi-service hub check
-      getRedirectRoute(data.user).then((route) => setLocation(route));
+      setLocation(getRedirectRoute(data.user));
     },
     onError: (error: any) => {
       setOtpError(error?.message || "OTP verification failed");
     },
   });
 
+  // --- Handlers ---
+
   const onSubmit = (data: LoginForm) => {
-    if (otpChallenge) {
-      return;
-    }
+    if (otpChallenge) return;
     if (captchaEnabled && !data.captchaAnswer?.trim()) {
       form.setError("captchaAnswer", { message: "Please solve the security check" });
       return;
@@ -336,11 +291,10 @@ export default function Login() {
       },
     });
   };
+
   const handleOtpSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!otpChallenge) {
-      return;
-    }
+    if (!otpChallenge) return;
     if (otpValue.trim().length !== 6) {
       setOtpError("Enter the 6-digit code sent to your phone.");
       return;
@@ -348,6 +302,7 @@ export default function Login() {
     setOtpError(null);
     verifyOtpMutation.mutate({ otp: otpValue });
   };
+
   const handleOtpReset = () => {
     setOtpChallenge(null);
     setOtpValue("");
@@ -357,332 +312,356 @@ export default function Login() {
 
   const otpExpiresAt = otpChallenge ? new Date(otpChallenge.expiresAt) : null;
 
+  // --- Visuals ---
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-sky-50">
-      <NavigationHeader
-        title="HP Tourism Portal"
-        subtitle="Homestay & B&B Registration"
-        showBack={false}
-        showHome={true}
-      />
-      <div className="mx-auto grid max-w-6xl items-start gap-8 px-4 pb-12 pt-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Sparkles className="h-4 w-4" />
-            <span>{selectedAudience.badge}</span>
+    <div className="min-h-screen flex bg-white font-sans text-gray-800">
+
+      {/* 1. LEFT COLUMN: Visual & Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-900">
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] hover:scale-105"
+          style={{ backgroundImage: `url(${heroImagePine})` }}
+        ></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full h-full text-white">
+          <div className="flex items-center gap-3" onClick={() => setLocation("/")}>
+            <div className="bg-white/10 backdrop-blur-md p-2 rounded-lg cursor-pointer hover:bg-white/20 transition">
+              <ArrowLeft className="w-6 h-6" />
+            </div>
+            <span className="font-semibold tracking-wide cursor-pointer">Back to Home</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <span>Not the right portal?</span>
-            <button
-              type="button"
-              className="font-semibold text-primary hover:underline"
-              onClick={() => {
-                setAudience(oppositeAudience);
-                setLocation(`/login?audience=${oppositeAudience}`);
-              }}
-            >
-              Switch to {oppositeAudience === "user" ? "Applicant" : "Officer"} login
-            </button>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold text-slate-900">{selectedAudience.cardTitle}</h1>
-            <p className="text-base text-slate-600">{selectedAudience.heroSubtitle}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                {audience === "user" ? <Home className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+
+          <div className="space-y-6 max-w-lg">
+            <h1 className="text-5xl font-bold leading-tight">
+              Start your <br />
+              <span style={{ color: COLORS.primary }}>Homestay Journey</span>
+            </h1>
+            <p className="text-lg text-gray-200 leading-relaxed opacity-90">
+              Join thousands of hosts in Himachal Pradesh. Register your property,
+              manage bookings, and grow your business with the official government portal.
+            </p>
+
+            <div className="flex gap-4 pt-4">
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold">19k+</span>
+                <span className="text-xs uppercase tracking-wider opacity-70">Properties</span>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-slate-900">{selectedAudience.heroTitle}</p>
-                <p className="text-sm text-slate-600">{selectedAudience.heroSubtitle}</p>
+              <div className="w-px bg-white/30 h-10"></div>
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold">60 Days</span>
+                <span className="text-xs uppercase tracking-wider opacity-70">Approval SLA</span>
               </div>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {selectedAudience.bullets.map((item) => (
-                <div key={item} className="flex items-start gap-2 text-sm text-slate-700">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
+          </div>
+
+          <div className="text-xs text-white/40">
+            © 2025 HP Tourism. Beautiful Himachal.
           </div>
         </div>
+      </div>
 
-        <Card className="w-full border-slate-200/80 bg-white/90 shadow-xl backdrop-blur">
-          <CardHeader className="space-y-3 text-center">
-            <div className="flex justify-center">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                <Mountain className="w-7 h-7 text-primary-foreground" />
+      {/* 2. RIGHT COLUMN: Content */}
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 relative">
+        <div className="max-w-[550px] w-full space-y-8">
+
+          <div className="lg:hidden flex items-center gap-2 mb-6 text-gray-500" onClick={() => setLocation("/")}>
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Back</span>
+          </div>
+
+          <div className="text-center space-y-3">
+            <h2 className="text-4xl font-bold text-gray-900">
+              {otpChallenge ? "Verify OTP" : "Welcome back"}
+            </h2>
+            <p className="text-xl text-gray-500">
+              {otpChallenge
+                ? "Please enter the verification code sent to your registered contact."
+                : "Please enter your details to access your dashboard."
+              }
+            </p>
+          </div>
+
+          {/* Logic Branch: OTP Challenge vs Login Form */}
+          {otpChallenge ? (
+            <form onSubmit={handleOtpSubmit} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex justify-center py-4">
+                <InputOTP
+                  maxLength={6}
+                  value={otpValue}
+                  onChange={(value) => {
+                    setOtpValue(value.replace(/\D/g, ""));
+                    setOtpError(null);
+                  }}
+                  autoFocus
+                >
+                  <InputOTPGroup>
+                    {[0, 1, 2, 3, 4, 5].map((slot) => (
+                      <InputOTPSlot key={`otp-slot-${slot}`} index={slot} className="h-12 w-12 border-gray-300 text-lg" />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
-            </div>
-            <CardTitle className="text-2xl">{selectedAudience.cardTitle}</CardTitle>
-            <CardDescription>{selectedAudience.cardDescription}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {otpChallenge ? (
-              <form onSubmit={handleOtpSubmit} className="space-y-4">
-                <div className="text-center text-sm text-muted-foreground">
-                  Enter the 6-digit code sent to{" "}
-                  <span className="font-medium text-foreground">
-                    {otpChallenge.maskedMobile ?? otpChallenge.maskedEmail ?? "your registered contact"}
-                  </span>
-                  .
-                </div>
-                <div className="flex justify-center">
-                  <InputOTP
-                    maxLength={6}
-                    value={otpValue}
-                    onChange={(value) => {
-                      setOtpValue(value.replace(/\D/g, ""));
-                      setOtpError(null);
-                    }}
-                    autoFocus
-                  >
-                    <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5].map((slot) => (
-                        <InputOTPSlot key={`otp-slot-${slot}`} index={slot} />
-                      ))}
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                {otpExpiresAt && (
-                  <p className="text-xs text-center text-muted-foreground">
-                    Expires at {otpExpiresAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                )}
-                {otpError && <p className="text-sm text-center text-destructive">{otpError}</p>}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={verifyOtpMutation.isPending || otpValue.length !== 6}
+
+              {otpExpiresAt && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Code expires at {otpExpiresAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              )}
+
+              {otpError && <p className="text-sm text-center text-red-600 font-medium bg-red-50 p-2 rounded">{otpError}</p>}
+
+              <Button
+                type="submit"
+                className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all rounded-lg text-white"
+                style={{ backgroundColor: COLORS.primary }}
+                disabled={verifyOtpMutation.isPending || otpValue.length !== 6}
+              >
+                {verifyOtpMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : "Verify & Sign In"}
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-gray-600 hover:text-green-700 hover:bg-green-50 transition-all font-semibold"
+                onClick={handleOtpReset}
+              >
+                Use a different account
+              </Button>
+            </form>
+          ) : (
+            /* STANDARD LOGIN FORM */
+            <Tabs
+              value={audience}
+              onValueChange={(v) => {
+                setAudience(v as LoginAudience);
+                setLocation(`/login?audience=${v}`);
+                handleAuthModeChange("password");
+              }}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1 h-14 rounded-xl mb-8">
+                <TabsTrigger
+                  value="user"
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-green-600 data-[state=active]:shadow-sm text-gray-600 font-medium transition-all"
                 >
-                  {verifyOtpMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify OTP"
-                  )}
-                </Button>
-                <button
-                  type="button"
-                  className="w-full text-center text-sm text-muted-foreground hover:underline"
-                  onClick={handleOtpReset}
+                  <User className="w-4 h-4 mr-2" />
+                  Citizen / Owner
+                </TabsTrigger>
+                <TabsTrigger
+                  value="office"
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-gray-600 font-medium transition-all"
                 >
-                  Use a different account
-                </button>
-              </form>
-            ) : (
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Department
+                </TabsTrigger>
+              </TabsList>
+
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  {otpOptionEnabled && loginOptionsLoaded && (
-                    <div className="flex items-center justify-center">
-                      <div className="flex rounded-full border bg-muted/40 p-1 text-xs font-medium">
-                        <Button
-                          type="button"
-                          variant={authMode === "password" ? "default" : "ghost"}
-                          size="sm"
-                          className={`rounded-full px-4 ${authMode === "password" ? "" : "!text-muted-foreground"}`}
-                          onClick={() => handleAuthModeChange("password")}
-                        >
-                          Password
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={authMode === "otp" ? "default" : "ghost"}
-                          size="sm"
-                          className={`rounded-full px-4 ${authMode === "otp" ? "" : "!text-muted-foreground"}`}
-                          onClick={() => handleAuthModeChange("otp")}
-                          disabled={!otpOptionEnabled}
-                        >
-                          OTP
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  <FormField
-                    control={form.control}
-                    name="authMode"
-                    render={({ field }) => <input type="hidden" {...field} />}
-                  />
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
+
+                  {/* Identifier Field */}
                   <FormField
                     control={form.control}
                     name="identifier"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username, Mobile Number, or Email</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">
+                          {audience === 'user' ? "Mobile Number or Email" : "Username"}
+                        </FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder={selectedAudience.identifierPlaceholder}
-                            data-testid="input-identifier"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <div className="absolute left-3 top-3.5 text-gray-400">
+                              {audience === 'user' ? <Phone className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                            </div>
+                            <Input
+                              {...field}
+                              className="pl-10 h-14 bg-gray-50 border-gray-200 focus-visible:ring-green-500 focus-visible:border-green-500 transition-all rounded-lg text-lg"
+                              placeholder={audience === 'user' ? "e.g. 9876543210" : "Enter official username"}
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  {otpOptionEnabled && authMode === "otp" && (
-                    <FormField
-                      control={form.control}
-                      name="otpChannel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Send OTP via</FormLabel>
-                          <div className="grid grid-cols-2 gap-2">
-                            {(["sms", "email"] as const).map((option) => (
-                              <Button
-                                type="button"
-                                key={option}
-                                variant={field.value === option ? "default" : "outline"}
-                                className="w-full"
-                                onClick={() => otpChannels[option] && field.onChange(option)}
-                                disabled={!otpChannels[option]}
-                              >
-                                {option === "sms" ? "SMS" : "Email"}
-                              </Button>
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
 
-                  {authMode === "password" ? (
+                  {/* Auth Mode Switcher */}
+                  <input type="hidden" {...form.register("authMode")} />
+
+                  {/* Password Mode */}
+                  {authMode === "password" && (
                     <FormField
                       control={form.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <div className="flex justify-between items-center">
+                            <FormLabel className="text-gray-700 font-medium text-lg">Password</FormLabel>
+                            {audience === 'user' && otpOptionEnabled && (
+                              <button
+                                type="button"
+                                onClick={() => handleAuthModeChange("otp")}
+                                className="text-sm font-bold text-green-600 hover:text-green-700 hover:underline"
+                              >
+                                Login via OTP
+                              </button>
+                            )}
+                          </div>
                           <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Enter password"
-                              data-testid="input-password"
-                              {...field}
-                            />
+                            <div className="relative">
+                              <div className="absolute left-3 top-3.5 text-gray-400">
+                                <Lock className="w-5 h-5" />
+                              </div>
+                              <Input
+                                type="password"
+                                {...field}
+                                className="pl-10 h-14 bg-gray-50 border-gray-200 focus-visible:ring-green-500 focus-visible:border-green-500 transition-all rounded-lg text-lg"
+                                placeholder="••••••••"
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  ) : (
-                    <div className="rounded-lg bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                      We will send a one-time password to your selected contact after you solve the captcha.
+                  )}
+
+                  {/* OTP Mode - Channel Selection */}
+                  {authMode === "otp" && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                      <div className="flex justify-between items-center">
+                        <FormLabel className="text-gray-700 font-medium">Authentication Method</FormLabel>
+                        <button
+                          type="button"
+                          onClick={() => handleAuthModeChange("password")}
+                          className="text-xs font-bold text-gray-500 hover:text-gray-700 hover:underline"
+                        >
+                          Back to Password
+                        </button>
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="otpChannel"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="grid grid-cols-2 gap-3">
+                              {(["sms", "email"] as const).map((option) => (
+                                <Button
+                                  type="button"
+                                  key={option}
+                                  variant="outline"
+                                  className={`h-10 ${field.value === option ? 'border-green-500 bg-green-50 text-green-700' : 'text-gray-600'}`}
+                                  onClick={() => otpChannels[option] && field.onChange(option)}
+                                  disabled={!otpChannels[option]}
+                                >
+                                  {option === "sms" ? "Send SMS" : "Send Email"}
+                                </Button>
+                              ))}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="text-xs text-gray-500">
+                        We will send a one-time password to your selected contact method.
+                      </div>
                     </div>
                   )}
 
+                  {/* CAPTCHA Section */}
                   {captchaEnabled ? (
                     <FormField
                       control={form.control}
                       name="captchaAnswer"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Security Check</FormLabel>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1">
-                              <div className="mb-2 rounded border bg-muted/40 px-3 py-2 text-center text-base font-semibold">
-                                {captchaQuestion ? (
-                                  <>
-                                    {captchaQuestion} <span className="text-sm font-normal text-muted-foreground">(solve)</span>
-                                  </>
-                                ) : (
-                                  "Loading..."
-                                )}
-                              </div>
-                              <FormControl>
-                                <Input
-                                  placeholder="Enter the answer"
-                                  inputMode="numeric"
-                                  disabled={captchaLoading || !captchaQuestion}
-                                  {...field}
-                                />
-                              </FormControl>
-                            </div>
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex items-center gap-3">
+                          <div className="h-10 px-3 min-w-[100px] bg-white border border-gray-200 rounded flex items-center justify-center relative overflow-hidden select-none">
+                            <span className="font-mono text-lg font-bold tracking-widest text-gray-600">
+                              {captchaQuestion || "..."}
+                            </span>
                             <Button
                               type="button"
-                              variant="outline"
+                              variant="ghost"
                               size="icon"
+                              className="h-6 w-6 absolute right-0 top-0.5 text-gray-400 hover:text-gray-600"
                               onClick={() => void refreshCaptcha()}
                               disabled={captchaLoading}
-                              aria-label="Refresh captcha"
                             >
-                              {captchaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                              <RefreshCw className={`h-3 w-3 ${captchaLoading ? 'animate-spin' : ''}`} />
                             </Button>
                           </div>
-                          <FormMessage />
-                        </FormItem>
+                          <Input
+                            {...field}
+                            className="h-10 border-gray-300 focus-visible:ring-green-500 bg-white"
+                            placeholder="Solve Captcha"
+                            inputMode="numeric"
+                          />
+                        </div>
                       )}
                     />
                   ) : (
-                    <div className="rounded border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                      Captcha has been temporarily disabled for this environment.
+                    <div className="text-xs text-center text-gray-400 border border-dashed border-gray-200 p-2 rounded">
+                      Captcha disabled for this environment
                     </div>
                   )}
 
-                  <div className="rounded-lg border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                    {selectedAudience.helperNote}
-                    {otpRequired && (
-                      <span className="ml-2 font-semibold text-foreground">OTP is required for this account.</span>
-                    )}
-                  </div>
-
                   <Button
                     type="submit"
-                    className="w-full"
+                    className={`w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all rounded-lg text-white ${audience === 'office' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' :
+                      'shadow-green-100 hover:bg-[#00b386]'
+                      }`}
+                    style={audience === 'user' ? { backgroundColor: COLORS.primary } : {}}
                     disabled={loginMutation.isPending || (captchaEnabled && !captchaQuestion)}
-                    data-testid="button-login"
                   >
                     {loginMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
+                        {authMode === 'otp' ? 'Sending...' : 'Signing In...'}
                       </>
-                    ) : authMode === "otp" ? (
-                      "Send OTP"
+                    ) : authMode === 'otp' ? (
+                      'Get Verification Code'
                     ) : (
-                      "Sign In"
+                      <>Sign In <ArrowRight className="w-5 h-5 ml-2 opacity-90" /></>
                     )}
                   </Button>
 
-                  <div className="text-center text-sm text-muted-foreground">
-                    Forgot your password?{" "}
-                    <button
-                      type="button"
-                      className="font-semibold text-primary hover:underline"
-                      onClick={() => setLocation("/password-reset")}
-                    >
-                      Reset it here
-                    </button>
+                  <div className="block text-center">
+                    {authMode === 'password' && (
+                      <a href="/password-reset" className="text-xs text-gray-400 hover:text-gray-600">Forgot Password?</a>
+                    )}
                   </div>
 
-                  {selectedAudience.showRegisterLink ? (
-                    <div className="text-center text-sm">
-                      <span className="text-muted-foreground">New user? </span>
-                      <button
-                        type="button"
-                        className="text-primary hover:underline"
-                        onClick={() => setLocation("/register")}
-                        data-testid="link-register"
-                      >
-                        Create your account
-                      </button>
-                      <p className="mt-1 text-xs text-muted-foreground">{selectedAudience.secondaryNote}</p>
-                    </div>
-                  ) : (
-                    <div className="text-center text-sm text-muted-foreground">
-                      {selectedAudience.secondaryNote}
-                    </div>
-                  )}
                 </form>
               </Form>
-            )}
-          </CardContent>
-        </Card>
+            </Tabs>
+          )}
+
+          {/* Registration Footer */}
+          {!otpChallenge && audience === 'user' && (
+            <div className="pt-4 text-center border-t border-gray-100">
+              <Button
+                variant="ghost"
+                className="w-full text-gray-600 hover:text-green-700 hover:bg-green-50 transition-all font-semibold"
+                onClick={() => setLocation("/register")}
+              >
+                Don't have an account? <span className="underline ml-1">Create one</span>
+              </Button>
+            </div>
+          )}
+
+          <div className="flex justify-center pt-8 opacity-60">
+            <img src={hpsedcLogo} alt="HPSEDC" className="h-8 grayscale" />
+          </div>
+
+        </div>
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ export interface NavItem {
   url: string;
   icon: LucideIcon;
   badge?: string;
+  badgeVariant?: "default" | "success" | "warning";
 }
 
 export interface NavSection {
@@ -37,31 +38,43 @@ export interface NavSection {
   items: NavItem[];
 }
 
-// Property Owner Navigation Menu
+// Property Owner Navigation Menu - 4 Sections per R1.0 Architecture
 export const ownerNavigation: NavSection[] = [
   {
-    title: "New Registration",
+    title: "Home",
     items: [
       {
         title: "Dashboard",
         url: "/dashboard",
         icon: Home,
       },
+    ],
+  },
+  {
+    title: "Applications",
+    items: [
       {
         title: "New Application",
         url: "/applications/new",
         icon: ClipboardList,
       },
-    ],
-  },
-  {
-    title: "Current Homestay/B&B License Holders",
-    items: [
       {
         title: "Existing RC Registration",
         url: "/existing-owner",
         icon: FileText,
       },
+      // Adventure Sports and other services will be added here
+    ],
+  },
+  {
+    title: "Support",
+    items: [
+      {
+        title: "Help & FAQ",
+        url: "/help",
+        icon: MessageSquare,
+      },
+      // Grievance system will be added in Phase 4
     ],
   },
   {
@@ -71,6 +84,11 @@ export const ownerNavigation: NavSection[] = [
         title: "My Profile",
         url: "/profile",
         icon: User,
+      },
+      {
+        title: "My Services",
+        url: "/service-settings",
+        icon: Settings,
       },
       {
         title: "Download RC",
@@ -186,26 +204,48 @@ export const superAdminNavigation: NavSection[] = [
   },
 ];
 
-// Dealing Assistant Navigation Menu
+// Dealing Assistant Navigation Menu - 5 Sections per R1.0 Architecture
 export const daNavigation: NavSection[] = [
   {
-    title: "Main Workflow",
+    title: "Home",
     items: [
       {
         title: "Dashboard",
         url: "/da/dashboard",
         icon: Home,
       },
+    ],
+  },
+  {
+    title: "Work Queues",
+    items: [
       {
-        title: "Inspections",
-        url: "/da/inspections",
-        icon: ClipboardCheck,
+        title: "New Applications",
+        url: "/da/dashboard",
+        icon: ClipboardList,
       },
       {
-        title: "Search Application",
-        url: "/da/search",
-        icon: Search,
+        title: "Existing RC",
+        url: "/da/legacy",
+        icon: FileText,
       },
+      // Adventure Sports will be added here in Phase 3
+    ],
+  },
+  {
+    title: "Grievances",
+    items: [
+      {
+        title: "Open Tickets",
+        url: "/da/grievances",
+        icon: MessageSquare,
+      },
+      // More grievance items in Phase 4
+    ],
+  },
+  {
+    title: "Insights",
+    items: [
       {
         title: "Analytics",
         url: "/analytics",
@@ -215,6 +255,21 @@ export const daNavigation: NavSection[] = [
         title: "Workflow Monitor",
         url: "/workflow-monitoring",
         icon: Activity,
+      },
+    ],
+  },
+  {
+    title: "Tools",
+    items: [
+      {
+        title: "Search",
+        url: "/da/search",
+        icon: Search,
+      },
+      {
+        title: "Inspections",
+        url: "/da/inspections",
+        icon: ClipboardCheck,
       },
       {
         title: "My Profile",
@@ -223,28 +278,50 @@ export const daNavigation: NavSection[] = [
       },
     ],
   },
-  {
-    title: "Current Homestay/B&B License Holders",
-    items: [
-      {
-        title: "Existing RC Registration",
-        url: "/da/legacy",
-        icon: FileText,
-      },
-    ],
-  },
 ];
 
-// DTDO Navigation Menu
+// DTDO Navigation Menu - 5 Sections per R1.0 Architecture
 export const dtdoNavigation: NavSection[] = [
   {
-    title: "Main Workflow",
+    title: "Home",
     items: [
       {
         title: "Dashboard",
         url: "/dtdo/dashboard",
         icon: Home,
       },
+    ],
+  },
+  {
+    title: "Work Queues",
+    items: [
+      {
+        title: "New Applications",
+        url: "/dtdo/dashboard",
+        icon: ClipboardList,
+      },
+      {
+        title: "Existing RC Queue",
+        url: "/dtdo/dashboard?view=legacy",
+        icon: FileText,
+      },
+      // Adventure Sports will be added here in Phase 3
+    ],
+  },
+  {
+    title: "Grievances",
+    items: [
+      {
+        title: "Open Tickets",
+        url: "/dtdo/grievances",
+        icon: MessageSquare,
+      },
+      // More grievance items in Phase 4
+    ],
+  },
+  {
+    title: "Insights",
+    items: [
       {
         title: "Analytics",
         url: "/analytics",
@@ -255,8 +332,13 @@ export const dtdoNavigation: NavSection[] = [
         url: "/workflow-monitoring",
         icon: Activity,
       },
+    ],
+  },
+  {
+    title: "Tools",
+    items: [
       {
-        title: "Search Application",
+        title: "Search",
         url: "/dtdo/search",
         icon: Search,
       },
@@ -264,16 +346,6 @@ export const dtdoNavigation: NavSection[] = [
         title: "My Profile",
         url: "/dtdo/profile",
         icon: User,
-      },
-    ],
-  },
-  {
-    title: "Current Homestay/B&B License Holders",
-    items: [
-      {
-        title: "Existing RC Queue",
-        url: "/dtdo/dashboard?view=legacy",
-        icon: FileText,
       },
     ],
   },

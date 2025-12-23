@@ -154,10 +154,9 @@ export const ACTION_META: Record<
 
 export const formatStatusLabel = (value?: string | null) => {
   if (!value) return null;
-  return value
-    .split("_")
-    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
-    .join(" ");
+  // Use consolidated status mapping from workflow.ts
+  const { getStatusLabel } = require("@/constants/workflow");
+  return getStatusLabel(value);
 };
 
 export const formatActorLabel = (actor: TimelineActor | null) => {
@@ -220,13 +219,13 @@ export function ApplicationTimelineCard({
     queryFn: async () => {
       const endpoints = preferDtdoEndpoint
         ? [
-            `/api/dtdo/applications/${applicationId}/timeline`,
-            `/api/applications/${applicationId}/timeline`,
-          ]
+          `/api/dtdo/applications/${applicationId}/timeline`,
+          `/api/applications/${applicationId}/timeline`,
+        ]
         : [
-            `/api/applications/${applicationId}/timeline`,
-            `/api/dtdo/applications/${applicationId}/timeline`,
-          ];
+          `/api/applications/${applicationId}/timeline`,
+          `/api/dtdo/applications/${applicationId}/timeline`,
+        ];
 
       let lastError: unknown;
       for (const endpoint of endpoints) {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertTriangle, FileEdit } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
 import {
   Plus, FileText, Clock, CheckCircle2, XCircle, AlertCircle, RefreshCw,
   CreditCard, Download, Copy, Mountain, Home, Camera, FileCheck, ScrollText,
-  Building2, MapPin, ClipboardCheck
+  Building2, MapPin, ClipboardCheck, Zap
 } from "lucide-react";
 import type { User, HomestayApplication } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -218,6 +219,8 @@ export default function Dashboard() {
         return applications.filter(a => ['submitted', 'district_review'].includes(a.status || ''));
       case 'approved':
         return applications.filter(a => a.status === 'approved');
+      case 'sent_back':
+        return applications.filter(a => ['sent_back_for_corrections', 'reverted_to_applicant', 'reverted_by_dtdo'].includes(a.status || ''));
       case 'all':
       default:
         return applications;
@@ -231,9 +234,13 @@ export default function Dashboard() {
     draft: applications.filter(a => a.status === 'draft').length,
     submitted: applications.filter(a => a.status === 'submitted').length,
     approved: applications.filter(a => a.status === 'approved').length,
+    rejected: applications.filter(a => a.status === 'rejected').length,
     paymentPending: applications.filter(a => a.status === 'payment_pending' || a.status === 'verified_for_payment').length,
     inspectionScheduled: applications.filter(a => a.status === 'inspection_scheduled').length,
-    sentBack: applications.filter(a => a.status === 'sent_back_for_corrections' || a.status === 'reverted_to_applicant' || a.status === 'reverted_by_dtdo').length
+    sentBack: applications.filter(a => a.status === 'sent_back_for_corrections' || a.status === 'reverted_to_applicant' || a.status === 'reverted_by_dtdo').length,
+    underProcess: applications.filter(a => ['under_scrutiny', 'forwarded_to_dtdo', 'inspection_scheduled', 'inspection_completed'].includes(a.status || '')).length,
+    newApps: applications.filter(a => ['draft', 'paid_pending_submit', 'submitted'].includes(a.status || '')).length,
+    resubmitted: applications.filter(a => a.status === 'submitted' && a.resubmittedCount && a.resubmittedCount > 0).length
   };
 
   const getStatusBadge = (status: string) => {
@@ -313,7 +320,7 @@ export default function Dashboard() {
               </Button>
             )}
             {user.role === 'property_owner' && (
-              <Button onClick={() => setShowServiceSelection(true)}>
+              <Button onClick={() => setShowReadinessDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" /> New Application
               </Button>
             )}
@@ -333,23 +340,65 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className={cn("cursor-pointer hover:shadow-md transition", activeFilter === 'all' && "ring-2 ring-primary")} onClick={() => setActiveFilter('all')}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Applications</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
+        {/* Stats Cards - New Design with Color-Coded Borders */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card
+            className={cn(
+              "cursor-pointer hover:shadow-md transition shadow-sm border-l-4 border-l-emerald-500",
+              activeFilter === 'new_applications' && "ring-2 ring-emerald-500"
+            )}
+            onClick={() => setActiveFilter('new_applications')}
+          >
+            <CardContent className="p-4">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">New Applications</div>
+              <div className="text-3xl font-bold text-foreground">{stats.newApps}</div>
+              <div className="text-xs text-muted-foreground mt-1">Drafts: {stats.draft} • Submitted: {stats.submitted}</div>
+            </CardContent>
           </Card>
-          <Card className={cn("cursor-pointer hover:shadow-md transition", activeFilter === 'homestay' && "ring-2 ring-emerald-500")} onClick={() => setActiveFilter('homestay')}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-emerald-700">Homestays</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-emerald-700">{stats.homestay}</div></CardContent>
+
+          <Card
+            className={cn(
+              "cursor-pointer hover:shadow-md transition shadow-sm border-l-4 border-l-blue-500",
+              activeFilter === 'under_process' && "ring-2 ring-blue-500"
+            )}
+            onClick={() => setActiveFilter('under_process')}
+          >
+            <CardContent className="p-4">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Under Process</div>
+              <div className="text-3xl font-bold text-foreground">{stats.underProcess}</div>
+              <div className="text-xs text-muted-foreground mt-1">Inspections: {stats.inspectionScheduled} • Payment pending: {stats.paymentPending}</div>
+            </CardContent>
           </Card>
-          <Card className={cn("cursor-pointer hover:shadow-md transition", activeFilter === 'adventure_sports' && "ring-2 ring-blue-500")} onClick={() => setActiveFilter('adventure_sports')}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-blue-700">Adventure Sports</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-blue-700">{stats.adventure}</div></CardContent>
+
+          <Card
+            className={cn(
+              "cursor-pointer hover:shadow-md transition shadow-sm border-l-4 border-l-orange-500 bg-orange-50/30",
+              activeFilter === 'sent_back' && "ring-2 ring-orange-500"
+            )}
+            onClick={() => setActiveFilter('sent_back')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-xs font-semibold text-orange-700 uppercase tracking-wider">Pending / Corrections</div>
+                {stats.sentBack > 0 && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+              </div>
+              <div className="text-3xl font-bold text-orange-900">{stats.sentBack}</div>
+              <div className="text-xs text-orange-700/70 mt-1">Sent back: {stats.sentBack} • Resubmitted: {stats.resubmitted}</div>
+            </CardContent>
           </Card>
-          <Card className={cn("cursor-pointer hover:shadow-md transition", activeFilter === 'draft' && "ring-2 ring-orange-500")} onClick={() => setActiveFilter('draft')}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-orange-700">Drafts</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-orange-700">{stats.draft}</div></CardContent>
+
+          <Card
+            className={cn(
+              "cursor-pointer hover:shadow-md transition shadow-sm border-l-4 border-l-gray-300",
+              activeFilter === 'completed' && "ring-2 ring-gray-400"
+            )}
+            onClick={() => setActiveFilter('completed')}
+          >
+            <CardContent className="p-4">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Completed</div>
+              <div className="text-3xl font-bold text-foreground">{stats.approved + stats.rejected}</div>
+              <div className="text-xs text-muted-foreground mt-1">Approved: {stats.approved} • Rejected: {stats.rejected}</div>
+            </CardContent>
           </Card>
         </div>
 
@@ -577,118 +626,144 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* Document Readiness Check Dialog (Homestay only for now) */}
+        {/* Document Readiness Check Dialog - Enhanced Version */}
         <Dialog open={showReadinessDialog} onOpenChange={setShowReadinessDialog}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <ClipboardCheck className="w-6 h-6 text-emerald-600" />
-                Before You Begin
-              </DialogTitle>
-              <DialogDescription>
-                Please ensure you have all required documents ready before starting your homestay registration.
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
+            {/* Header with gradient background */}
+            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white p-6 rounded-t-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3 text-2xl text-white">
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <ClipboardCheck className="w-5 h-5" />
+                  </div>
+                  Before You Begin
+                </DialogTitle>
+                <DialogDescription className="text-emerald-100 text-base mt-2">
+                  Please ensure you have all required documents ready before starting your homestay registration.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
 
-            <div className="space-y-6 py-4">
-              {/* Photo Requirements */}
-              <div className="p-4 rounded-lg border bg-amber-50 dark:bg-amber-950/20 border-amber-200">
-                <div className="flex items-start gap-3">
-                  <Camera className="w-6 h-6 text-amber-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-amber-900 dark:text-amber-200">Property Photographs</h3>
-                    <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
-                      Upload <span className="font-bold">minimum 2</span> and up to <span className="font-bold">10 best photographs</span> of your property.
+            <div className="p-6 space-y-6">
+              {/* Quick Tip */}
+              <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-900 text-sm">Pro Tip</p>
+                  <p className="text-sm text-blue-700">
+                    Having all documents ready will help you complete the application in one session (approx. 15-20 minutes).
+                  </p>
+                </div>
+              </div>
+
+              {/* Photo Requirements - Prominent */}
+              <div className="p-5 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <Camera className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg text-amber-900">Property Photographs</h3>
+                    <p className="text-amber-800 mt-1">
+                      Upload <span className="font-bold text-amber-950">minimum 2</span> and up to <span className="font-bold text-amber-950">10 best photographs</span> of your property.
                     </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
-                      Include: External views, rooms, common areas, bathrooms, surroundings
-                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {['External views', 'Rooms', 'Bathrooms', 'Common areas', 'Surroundings'].map((tag) => (
+                        <span key={tag} className="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Required Documents by Category */}
-              <div className="space-y-4">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <ScrollText className="w-5 h-5 text-slate-600" />
-                  Required Documents (All Categories)
+              {/* Required Documents - Clean List */}
+              <div>
+                <h3 className="font-bold text-base text-foreground flex items-center gap-2 mb-4">
+                  <ScrollText className="w-5 h-5 text-muted-foreground" />
+                  Required Documents
+                  <span className="text-xs font-normal text-muted-foreground">(All Categories)</span>
                 </h3>
 
-                <div className="grid gap-3">
-                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900">
-                    <FileCheck className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="font-medium text-sm">Revenue Papers / Property Documents</p>
-                      <p className="text-xs text-muted-foreground">Proof of ownership</p>
+                <div className="space-y-3">
+                  {[
+                    { title: "Revenue Papers / Property Documents", desc: "Ownership proof (Jamabandi, Registry, etc.)" },
+                    { title: "Affidavit (Section 29)", desc: "Self-declaration as per tourism rules" },
+                    { title: "Undertaking (Form-C)", desc: "Compliance declaration form" }
+                  ].map((doc, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                        <FileCheck className="w-5 h-5 text-emerald-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground">{doc.title}</p>
+                        <p className="text-sm text-muted-foreground">{doc.desc}</p>
+                      </div>
+                      <CheckCircle2 className="w-5 h-5 text-muted-foreground/30" />
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900">
-                    <FileCheck className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="font-medium text-sm">Affidavit (Section 29)</p>
-                      <p className="text-xs text-muted-foreground">Self-declaration affidavit as per rules</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900">
-                    <FileCheck className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="font-medium text-sm">Undertaking (Form-C)</p>
-                      <p className="text-xs text-muted-foreground">Declaration of compliance with regulations</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Category-specific */}
-              <div className="space-y-4">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-slate-600" />
-                  Additional for Gold & Diamond Category
-                </h3>
-
-                <div className="grid gap-3">
-                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200">
-                    <CreditCard className="w-5 h-5 text-yellow-600" />
-                    <div>
-                      <p className="font-medium text-sm">Commercial Electricity Bill</p>
-                      <p className="text-xs text-muted-foreground">Recent utility bill under commercial connection</p>
+              {/* Gold/Diamond Category - Required for those categories */}
+              <div className="border rounded-xl overflow-hidden">
+                <div className="px-5 py-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-100">
+                  <h3 className="font-bold text-base text-yellow-900 flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Additional for Gold & Diamond Category
+                    <span className="ml-2 px-2 py-0.5 bg-amber-500 text-white text-xs font-medium rounded">Required</span>
+                  </h3>
+                  <p className="text-sm text-yellow-700 mt-1">These documents are mandatory if applying for Gold or Diamond category.</p>
+                </div>
+                <div className="p-4 space-y-3 bg-yellow-50/30">
+                  {[
+                    { title: "Commercial Electricity Bill", desc: "Recent utility bill under commercial connection" },
+                    { title: "Commercial Water Bill", desc: "Recent water connection bill" }
+                  ].map((doc, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-white border border-yellow-100">
+                      <div className="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center shrink-0">
+                        <FileCheck className="w-4 h-4 text-yellow-700" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-foreground">{doc.title}</p>
+                        <p className="text-xs text-muted-foreground">{doc.desc}</p>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200">
-                    <CreditCard className="w-5 h-5 text-yellow-600" />
-                    <div>
-                      <p className="font-medium text-sm">Commercial Water Bill</p>
-                      <p className="text-xs text-muted-foreground">Recent water utility bill</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Other Information */}
-              <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-950/20 border-blue-200">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-6 h-6 text-blue-600 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-200">Property Details Needed</h3>
-                    <ul className="text-sm text-blue-800 dark:text-blue-300 mt-2 space-y-1">
-                      <li>• Exact property address with PIN code</li>
-                      <li>• Number of rooms and their rates</li>
-                      <li>• Owner Aadhaar number (for verification)</li>
-                      <li>• GPS location coordinates (if available)</li>
-                    </ul>
-                  </div>
+              {/* Property Details Info */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <h4 className="font-semibold text-sm text-slate-700 flex items-center gap-2 mb-3">
+                  <MapPin className="w-4 h-4" />
+                  You'll also need to provide:
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    "Property address with PIN",
+                    "Owner Aadhaar number",
+                    "Number of rooms & rates",
+                    "GPS coordinates (optional)"
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                      {item}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="flex-col sm:flex-row gap-3">
+            {/* Footer */}
+            <div className="p-6 pt-4 border-t bg-muted/30 flex flex-col sm:flex-row gap-3">
               <Button
                 variant="outline"
                 onClick={() => setShowReadinessDialog(false)}
-                className="w-full sm:w-auto"
+                className="flex-1 h-12 text-base"
               >
                 I'll Come Back Later
               </Button>
@@ -697,12 +772,12 @@ export default function Dashboard() {
                   setShowReadinessDialog(false);
                   setLocation("/applications/new");
                 }}
-                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+                className="flex-1 h-12 text-base bg-emerald-600 hover:bg-emerald-700"
               >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Yes, I Have All Documents Ready
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+                I Have All Documents Ready
               </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
 

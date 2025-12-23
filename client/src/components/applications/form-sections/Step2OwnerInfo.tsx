@@ -114,27 +114,55 @@ export function Step2OwnerInfo({
                     />
                 </div>
 
-                <FormField
-                    control={form.control}
-                    name="ownerName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Owner Full Name (auto-filled)</FormLabel>
-                            <FormControl>
-                                <Input
-                                    ref={field.ref}
-                                    name={field.name}
-                                    value={field.value ?? ""}
-                                    readOnly
-                                    data-testid="input-owner-name"
-                                    className="bg-muted cursor-not-allowed"
-                                />
-                            </FormControl>
-                            <FormDescription>Generated from first and last name for application records.</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="ownerName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Owner Full Name (auto-filled)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        ref={field.ref}
+                                        name={field.name}
+                                        value={field.value ?? ""}
+                                        readOnly
+                                        data-testid="input-owner-name"
+                                        className="bg-muted cursor-not-allowed"
+                                    />
+                                </FormControl>
+                                <FormDescription>Generated from first and last name.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="guardianName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>
+                                    Father's / Husband's Name <span className="text-destructive">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        ref={field.ref}
+                                        name={field.name}
+                                        value={field.value ?? ""}
+                                        onChange={field.onChange}
+                                        onBlur={field.onBlur}
+                                        placeholder="As per Aadhaar card"
+                                        autoCapitalize="words"
+                                        data-testid="input-guardian-name"
+                                    />
+                                </FormControl>
+                                <FormDescription>Required for registration certificate.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField

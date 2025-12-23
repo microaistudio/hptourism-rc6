@@ -551,6 +551,42 @@ export function createAuthRouter() {
     res.json({ user: userResponse });
   });
 
+  // Update user's enabled services
+  router.patch("/users/me/services", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { enabledServices } = req.body;
+
+      // Validate enabledServices is an array of strings
+      if (!Array.isArray(enabledServices) || !enabledServices.every(s => typeof s === "string")) {
+        return res.status(400).json({ message: "enabledServices must be an array of strings" });
+      }
+
+      // Ensure at least one service is enabled
+      if (enabledServices.length === 0) {
+        return res.status(400).json({ message: "At least one service must be enabled" });
+      }
+
+      // Valid service IDs
+      const validServices = ["homestay", "adventure_sports", "rafting", "camping", "paragliding", "hotel", "tour_operator", "trekking"];
+      const invalidServices = enabledServices.filter(s => !validServices.includes(s));
+      if (invalidServices.length > 0) {
+        return res.status(400).json({ message: `Invalid services: ${invalidServices.join(", ")}` });
+      }
+
+      // Update user
+      await db
+        .update(users)
+        .set({ enabledServices, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+      res.json({ message: "Service preferences updated", enabledServices });
+    } catch (error) {
+      authLog.error("[auth] Failed to update service preferences:", error);
+      res.status(500).json({ message: "Failed to update service preferences" });
+    }
+  });
+
   return router;
 }
 

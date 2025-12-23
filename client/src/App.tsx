@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 // DevConsole removed - dangerous in production
 import { ThemeProvider } from "@/contexts/theme-context";
+import { ServiceProvider } from "@/contexts/service-context";
 import { AuthLayout } from "@/components/auth-layout";
 import { getDefaultRouteForRole } from "@/config/navigation";
 import NotFound from "@/pages/not-found";
@@ -54,12 +55,25 @@ import TestAPI from "@/pages/test-api";
 import HimKoshTest from "@/pages/himkosh-test";
 import ExistingOwnerOnboarding from "@/pages/existing-owner-onboarding";
 import SandboxLandingPage from "@/pages/sandbox/landing";
+import LandingPageV1 from "@/pages/sandbox/landing-v1";
+import LandingPageV2 from "@/pages/sandbox/landing-v2";
+import LoginV2 from "@/pages/sandbox/login-v2";
 import SandboxLoginExperiment from "@/pages/sandbox/login-experiment";
+import DashboardPreview from "@/pages/sandbox/dashboard-preview";
+import BeforeYouBeginPreview from "@/pages/sandbox/before-you-begin-preview";
+import FormCleanupPreview from "@/pages/sandbox/form-cleanup-preview";
+import RoomsCategoryPreview from "@/pages/sandbox/rooms-category-preview";
+import Step1PropertyPreview from "@/pages/sandbox/step1-property-preview";
+import Step2OwnerPreview from "@/pages/sandbox/step2-owner-preview";
+import Step4DistancesPreview from "@/pages/sandbox/step4-distances-preview";
+import Step5DocumentsPreview from "@/pages/sandbox/step5-documents-preview";
 import ContactPage from "@/pages/contact";
 import TrackApplicationPage from "@/pages/track-application";
 import VerifyCertificatePage from "@/pages/verify-certificate";
 import AdventureSportsRegistration from "@/pages/adventure-sports/registration";
 import ServiceSelection from "@/pages/services";
+import ServiceSettings from "@/pages/service-settings";
+import { GrievancesUnderConstruction, HelpUnderConstruction } from "@/pages/under-construction";
 import type { User } from "@shared/schema";
 
 interface ProtectedRouteProps {
@@ -125,7 +139,20 @@ function Router() {
         {() => <VerifyCertificatePage />}
       </Route>
       <Route path="/sandbox/landing" component={SandboxLandingPage} />
+      <Route path="/sandbox/landing-v1" component={LandingPageV1} />
+      <Route path="/sandbox/landing-v2" component={LandingPageV2} />
+      <Route path="/sandbox/login-v2" component={LoginV2} />
       <Route path="/sandbox/login-experiment" component={SandboxLoginExperiment} />
+      <Route path="/sandbox/dashboard-preview">
+        {() => <ProtectedRoute component={DashboardPreview} allowedRoles={['property_owner', 'admin', 'super_admin']} />}
+      </Route>
+      <Route path="/sandbox/before-you-begin" component={BeforeYouBeginPreview} />
+      <Route path="/sandbox/form-cleanup" component={FormCleanupPreview} />
+      <Route path="/sandbox/rooms-category" component={RoomsCategoryPreview} />
+      <Route path="/sandbox/step1-property" component={Step1PropertyPreview} />
+      <Route path="/sandbox/step2-owner" component={Step2OwnerPreview} />
+      <Route path="/sandbox/step4-distances" component={Step4DistancesPreview} />
+      <Route path="/sandbox/step5-documents" component={Step5DocumentsPreview} />
 
       {/* Protected Routes - All wrapped in AuthLayout */}
       {/* Service Selection Hub - Renders without sidebar (user selects service first) */}
@@ -143,6 +170,9 @@ function Router() {
       <Route path="/profile">
         {() => <ProtectedRoute component={ProfilePage} allowedRoles={['property_owner']} />}
       </Route>
+      <Route path="/service-settings">
+        {() => <ProtectedRoute component={ServiceSettings} allowedRoles={['property_owner']} />}
+      </Route>
       <Route path="/existing-owner">
         {() => <ProtectedRoute component={ExistingOwnerOnboarding} allowedRoles={['property_owner']} />}
       </Route>
@@ -151,6 +181,9 @@ function Router() {
       </Route>
       <Route path="/applications/new">
         {() => <ProtectedRoute component={NewApplication} allowedRoles={['property_owner']} />}
+      </Route>
+      <Route path="/help">
+        {() => <ProtectedRoute component={HelpUnderConstruction} allowedRoles={['property_owner']} />}
       </Route>
       {/* Adventure Sports - Separate pipeline without Homestay sidebar */}
       <Route path="/adventure-sports/register">
@@ -251,6 +284,9 @@ function Router() {
       <Route path="/da/search">
         {() => <ProtectedRoute component={OfficerApplicationSearch} allowedRoles={['dealing_assistant']} />}
       </Route>
+      <Route path="/da/grievances">
+        {() => <ProtectedRoute component={GrievancesUnderConstruction} allowedRoles={['dealing_assistant']} />}
+      </Route>
 
       {/* DTDO (District Tourism Development Officer) Routes */}
       <Route path="/dtdo/dashboard">
@@ -271,6 +307,9 @@ function Router() {
       <Route path="/dtdo/search">
         {() => <ProtectedRoute component={OfficerApplicationSearch} allowedRoles={['district_tourism_officer', 'district_officer']} />}
       </Route>
+      <Route path="/dtdo/grievances">
+        {() => <ProtectedRoute component={GrievancesUnderConstruction} allowedRoles={['district_tourism_officer', 'district_officer']} />}
+      </Route>
 
       <Route component={NotFound} />
     </Switch>
@@ -281,11 +320,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-          {/* DevConsole removed for production safety */}
-        </TooltipProvider>
+        <ServiceProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+            {/* DevConsole removed for production safety */}
+          </TooltipProvider>
+        </ServiceProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -182,6 +182,10 @@ export const users = pgTable("users", {
   ssoId: varchar("sso_id", { length: 50 }).unique(), // HP SSO integration ID
   district: varchar("district", { length: 100 }),
   password: text("password"), // For demo/testing, in production would use proper auth
+
+  // Owner service preferences - which services they offer
+  enabledServices: jsonb("enabled_services").$type<string[]>().default(sql`'["homestay"]'::jsonb`),
+
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

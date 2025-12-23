@@ -52,6 +52,7 @@ import {
   ChefHat,
   Sofa,
   AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import type { User, HomestayApplication, UserProfile, ApplicationServiceContext, ApplicationKind } from "@shared/schema";
 import { ObjectUploader, type UploadedFileMetadata } from "@/components/ObjectUploader";
@@ -402,6 +403,7 @@ const draftSchema = z.object({
   ownerLastName: z.string().optional(),
   ownerGender: z.enum(["male", "female", "other"]).optional(),
   ownerAadhaar: z.string().optional(),
+  guardianName: z.string().optional(),
   propertyOwnership: z.enum(["owned", "leased"]).optional(),
   category: z.enum(["diamond", "gold", "silver"]).optional(),
   proposedRoomRate: z.number().optional(),
@@ -590,6 +592,7 @@ const STEP_CONFIG = [
       "ownerEmail",
       "ownerAadhaar",
       "ownerGender",
+      "guardianName",
       "propertyOwnership",
     ],
   },
@@ -798,6 +801,7 @@ export default function NewApplication() {
       ownerFirstName: defaultOwnerNameParts.firstName,
       ownerLastName: defaultOwnerNameParts.lastName,
       ownerAadhaar: userData?.user?.aadhaarNumber || "",
+      guardianName: "",
       ownerGender: normalizeGender((userData?.user as any)?.gender) as "male" | "female" | "other",
       propertyOwnership: "owned",
       category: "silver",
@@ -966,6 +970,11 @@ export default function NewApplication() {
   const serviceNote = activeDraftApplication?.serviceNotes;
   const shouldLockPropertyDetails = isServiceDraft;
 
+  // Helper: Is this a Legacy RC application in correction mode?
+  // Legacy RC apps use simplified flow - only Documents step with supporting docs
+  const isLegacyRCCorrection = isCorrectionMode &&
+    (activeHydratedApplication?.applicationNumber?.startsWith('LG-HS-') ?? false);
+
   // Fetch parent application details if needed (e.g. for Change Category upgrades)
   const { data: parentApplication } = useQuery<{ application: HomestayApplication }, Error, HomestayApplication>({
     queryKey: [`/api/applications/${parentApplicationId}`],
@@ -976,9 +985,38 @@ export default function NewApplication() {
 
   // Auto-navigate to Documents (Step 5) for corrections OR if no documents uploaded
   const hasAutoNavigatedToDocuments = useRef(false);
+  const hasValidatedCorrectionStatus = useRef(false);
+
+  // Validate that application is actually in a correction-required status
+  const CORRECTION_REQUIRED_STATUSES = ['sent_back_for_corrections', 'reverted_to_applicant', 'reverted_by_dtdo', 'objection_raised'];
+
+  useEffect(() => {
+    if (!isCorrectionMode || !activeCorrectionApplication || hasValidatedCorrectionStatus.current) {
+      return;
+    }
+    hasValidatedCorrectionStatus.current = true;
+
+    const status = activeCorrectionApplication.status ?? '';
+    if (!CORRECTION_REQUIRED_STATUSES.includes(status)) {
+      // Application is not in a correction-required status - redirect to detail view
+      toast({
+        title: "Cannot edit this application",
+        description: "This application is not awaiting corrections.",
+        variant: "destructive",
+      });
+      navigate(`/applications/${activeCorrectionApplication.id}`);
+      return;
+    }
+  }, [isCorrectionMode, activeCorrectionApplication, navigate, toast]);
+
   useEffect(() => {
     // Corrections mode: always go to documents step when data loads
     if (isCorrectionMode && activeCorrectionApplication && !hasAutoNavigatedToDocuments.current) {
+      // Only navigate if status is valid for corrections
+      const status = activeCorrectionApplication.status ?? '';
+      if (!CORRECTION_REQUIRED_STATUSES.includes(status)) {
+        return;
+      }
       hasAutoNavigatedToDocuments.current = true;
       setStep(5);
       setMaxStepReached(5);
@@ -1478,6 +1516,7 @@ export default function NewApplication() {
         (source.ownerGender as "male" | "female" | "other") ?? defaults.ownerGender,
       ) as "male" | "female" | "other",
       ownerAadhaar: source.ownerAadhaar ?? defaults.ownerAadhaar ?? "",
+      guardianName: (source as any).guardianName ?? "",
       propertyOwnership: ((source as any).propertyOwnership as "owned" | "leased") ?? defaults.propertyOwnership ?? "owned",
       category: (source.category as "diamond" | "gold" | "silver") ?? defaults.category ?? "silver",
       proposedRoomRate: coerceNumber((source as any).proposedRoomRate, defaults.proposedRoomRate ?? 0) ?? 0,
@@ -2252,6 +2291,22 @@ export default function NewApplication() {
 
   const submitApplicationMutation = useMutation({
     mutationFn: async (formData: ApplicationForm) => {
+      // SPECIAL CASE: Legacy RC corrections have minimal requirements
+      // They only need supporting documents, no property/room validations
+      const isThisLegacyRC = activeHydratedApplication?.applicationNumber?.startsWith('LG-HS-') ?? false;
+
+      if (isCorrectionMode && isThisLegacyRC && correctionId) {
+        // Simplified submission for Legacy RC corrections
+        // Only send documents, the server will detect Legacy RC and route appropriately
+        const documentsPayload = buildDocumentsPayload();
+        const correctionPayload = {
+          documents: documentsPayload,
+        };
+
+        const response = await apiRequest("PATCH", `/api/applications/${correctionId}`, correctionPayload);
+        return response.json();
+      }
+
       const fees = calculateFee();
       const documentsPayload = buildDocumentsPayload();
       const totalDocumentBytes = documentsPayload.reduce(
@@ -2328,6 +2383,7 @@ export default function NewApplication() {
           ownerMobile: formData.ownerMobile,
           ownerEmail: normalizeOptionalString(formData.ownerEmail) ?? undefined,
           ownerAadhaar: formData.ownerAadhaar,
+          guardianName: normalizeOptionalString(formData.guardianName) ?? "",
           propertyOwnership: formData.propertyOwnership,
           category: formData.category,
           proposedRoomRate: formData.proposedRoomRate,
@@ -2621,6 +2677,21 @@ export default function NewApplication() {
 
     // Step 2: Validate Owner Information
     if (step === 2) {
+      // Manual validation for guardianName (since no Zod resolver is used)
+      const guardianNameValue = form.getValues("guardianName")?.trim() || "";
+      if (guardianNameValue.length < 3) {
+        form.setError("guardianName", {
+          type: "manual",
+          message: "Father's/Husband's name is required (min 3 characters)"
+        });
+        toast({
+          title: "Father's/Husband's Name Required",
+          description: "Please enter the father's or husband's name as per Aadhaar card",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const isValid = await form.trigger([
         "ownerFirstName",
         "ownerLastName",
@@ -2752,23 +2823,29 @@ export default function NewApplication() {
 
     // Step 5: Validate Documents (ANNEXURE-II)
     if (step === 5) {
-      const missingDocs = [];
-      if (uploadedDocuments.revenuePapers.length === 0) missingDocs.push("Revenue Papers");
-      if (uploadedDocuments.affidavitSection29.length === 0) missingDocs.push("Affidavit under Section 29");
-      if (uploadedDocuments.undertakingFormC.length === 0) missingDocs.push("Undertaking in Form-C");
-      if (requiresCommercialUtilityProof) {
-        if (uploadedDocuments.commercialElectricityBill.length === 0) missingDocs.push("Commercial electricity bill");
-        if (uploadedDocuments.commercialWaterBill.length === 0) missingDocs.push("Commercial water bill");
-      }
-      if (propertyPhotos.length < 2) missingDocs.push("Property Photos (minimum 2)");
+      // Skip document validation for Legacy RC applications (only need supporting docs) and delete_rooms
+      const isLegacyRC = activeHydratedApplication?.applicationNumber?.startsWith('LG-HS-') ?? false;
+      const skipDocValidation = activeApplicationKind === 'delete_rooms' || isLegacyRC;
 
-      if (missingDocs.length > 0) {
-        toast({
-          title: "Required ANNEXURE-II documents missing",
-          description: `Please upload: ${missingDocs.join(", ")}`,
-          variant: "destructive"
-        });
-        return;
+      if (!skipDocValidation) {
+        const missingDocs = [];
+        if (uploadedDocuments.revenuePapers.length === 0) missingDocs.push("Revenue Papers");
+        if (uploadedDocuments.affidavitSection29.length === 0) missingDocs.push("Affidavit under Section 29");
+        if (uploadedDocuments.undertakingFormC.length === 0) missingDocs.push("Undertaking in Form-C");
+        if (requiresCommercialUtilityProof) {
+          if (uploadedDocuments.commercialElectricityBill.length === 0) missingDocs.push("Commercial electricity bill");
+          if (uploadedDocuments.commercialWaterBill.length === 0) missingDocs.push("Commercial water bill");
+        }
+        if (propertyPhotos.length < 2) missingDocs.push("Property Photos (minimum 2)");
+
+        if (missingDocs.length > 0) {
+          toast({
+            title: "Required ANNEXURE-II documents missing",
+            description: `Please upload: ${missingDocs.join(", ")}`,
+            variant: "destructive"
+          });
+          return;
+        }
       }
     }
 
@@ -3041,6 +3118,7 @@ export default function NewApplication() {
                   isCorrection={isCorrectionMode}
                   correctionNotes={activeCorrectionApplication?.correctionNotes || undefined}
                   applicationKind={activeApplicationKind ?? undefined}
+                  isLegacyRC={activeHydratedApplication?.applicationNumber?.startsWith('LG-HS-') ?? false}
                 />
               )
             }
@@ -3144,6 +3222,43 @@ export default function NewApplication() {
                 </Button>
               )}
 
+              {/* Legacy RC Correction Submit - on Documents step (step 5) */}
+              {isLegacyRCCorrection && step === 5 && (
+                <div className="w-full space-y-4">
+                  <div className="rounded-lg border-2 border-green-300 bg-green-50 p-4 text-green-900 dark:border-green-900/40 dark:bg-green-950/20">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <p className="text-lg font-bold">Ready to Resubmit</p>
+                      </div>
+                      <p className="text-sm">
+                        Your Existing RC application is ready for resubmission. Any supporting documents uploaded will be reviewed by the verifying officer.
+                      </p>
+                      <div className="flex items-center gap-2 pt-2">
+                        <Checkbox
+                          id="legacy-rc-ack"
+                          checked={correctionAcknowledged}
+                          onCheckedChange={(checked) => setCorrectionAcknowledged(Boolean(checked))}
+                        />
+                        <label htmlFor="legacy-rc-ack" className="text-sm font-medium cursor-pointer">
+                          I confirm the corrections are complete and ready for review
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={!correctionAcknowledged || submitApplicationMutation.isPending}
+                    onClick={() => submitApplicationMutation.mutate(form.getValues())}
+                    data-testid="button-submit-legacy-rc"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    {submitApplicationMutation.isPending ? "Submitting..." : "Resubmit for Verification"}
+                  </Button>
+                </div>
+              )}
+
               {isCorrectionMode && step === totalSteps && (
                 <div className="w-full rounded-lg border-2 border-amber-300 bg-amber-50 p-5 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20">
                   <div className="flex flex-col gap-3">
@@ -3168,7 +3283,8 @@ export default function NewApplication() {
                 </div>
               )}
 
-              {step < totalSteps ? (
+              {/* Next button - hidden for Legacy RC on step 5 since they submit from there */}
+              {step < totalSteps && !(isLegacyRCCorrection && step === 5) ? (
                 <Button
                   type="button"
                   onClick={(e) => {
@@ -3181,7 +3297,7 @@ export default function NewApplication() {
                   Next
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              ) : activeApplicationKind !== 'cancel_certificate' && (
+              ) : activeApplicationKind !== 'cancel_certificate' && !isLegacyRCCorrection && step === totalSteps && (
                 <Button
                   type="submit"
 
