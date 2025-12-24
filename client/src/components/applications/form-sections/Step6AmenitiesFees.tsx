@@ -74,16 +74,22 @@ export function Step6AmenitiesFees({
     upgradeFeeInfo,
 }: Step6AmenitiesFeesProps) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Amenities, Facilities & Fee Summary</CardTitle>
-                <CardDescription>Final details and registration fee calculation</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {/* Amenities Section */}
-                <div className="space-y-4">
-                    <h4 className="font-medium">Property Amenities</h4>
-                    <p className="text-sm text-muted-foreground">
+        <div className="space-y-6">
+            {/* SECTION 1: Property Amenities */}
+            <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                            <span className="text-lg font-bold">1</span>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-semibold">Property Amenities</h2>
+                            <p className="text-slate-300 text-sm">Select available amenities at your property</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6">
+                    <p className="text-sm text-gray-500 mb-4">
                         CCTV surveillance and fire-safety equipment remain locked because you confirmed them in the safety checklist. Other amenities are optional.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -94,7 +100,12 @@ export function Step6AmenitiesFees({
                             return (
                                 <div
                                     key={amenity.id}
-                                    className={`flex items-center space-x-3 p-3 border rounded-lg hover-elevate ${isMandatory ? "opacity-90 border-dashed bg-muted/50 cursor-not-allowed" : ""}`}
+                                    className={`flex items-center space-x-3 p-3 border rounded-lg transition-all ${isMandatory
+                                        ? "opacity-90 border-dashed bg-muted/50 cursor-not-allowed"
+                                        : isChecked
+                                            ? "border-primary bg-primary/5 shadow-sm"
+                                            : "hover:border-gray-300 hover:shadow-sm cursor-pointer"
+                                        }`}
                                     data-testid={`checkbox-amenity-${amenity.id}`}
                                 >
                                     <Checkbox
@@ -124,11 +135,22 @@ export function Step6AmenitiesFees({
                         })}
                     </div>
                 </div>
+            </div>
 
-                {/* Additional Facilities Section */}
-                <div className="space-y-4 border-t pt-4">
-                    <h4 className="font-medium">Additional Facilities (Optional)</h4>
-
+            {/* SECTION 2: Additional Facilities */}
+            <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                            <span className="text-lg font-bold">2</span>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-semibold">Additional Facilities</h2>
+                            <p className="text-blue-100 text-sm">Optional details about eco-friendly features and nearby attractions</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
@@ -210,10 +232,22 @@ export function Step6AmenitiesFees({
                         />
                     </div>
                 </div>
+            </div>
 
-                {/* Certificate Validity Selection */}
-                <div className="border-t pt-6">
-                    <h4 className="font-medium mb-4">Certificate Validity Period</h4>
+            {/* SECTION 3: Certificate Validity */}
+            <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                            <span className="text-lg font-bold">3</span>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-semibold">Certificate Validity Period</h2>
+                            <p className="text-purple-100 text-sm">Choose your registration duration</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6">
                     <FormField
                         control={form.control}
                         name="certificateValidityYears"
@@ -256,11 +290,23 @@ export function Step6AmenitiesFees({
                         )}
                     />
                 </div>
+            </div>
 
-                {/* Fee Summary Section */}
-                <div className="border-t pt-6">
-                    <h4 className="font-medium mb-4">Registration Fee Summary</h4>
-                    <div className="bg-primary/5 p-6 rounded-lg border-2 border-primary/20">
+            {/* SECTION 4: Fee Summary */}
+            <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                            <span className="text-lg font-bold">4</span>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-semibold">Registration Fee Summary</h2>
+                            <p className="text-emerald-100 text-sm">Final fee calculation with applicable discounts</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6">
+                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-lg border border-emerald-200">
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Category</span>
@@ -353,7 +399,7 @@ export function Step6AmenitiesFees({
                     </div>
 
                     <ApplicationSummaryCard
-                        className="bg-muted/50 border-0 shadow-none"
+                        className="bg-muted/50 border-0 shadow-none mt-6"
                         highlightCategoryBadge={false}
                         application={{
                             applicationNumber: activeDraftApplication?.applicationNumber ?? correctionId ?? undefined,
@@ -378,7 +424,7 @@ export function Step6AmenitiesFees({
                         ]}
                     />
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
