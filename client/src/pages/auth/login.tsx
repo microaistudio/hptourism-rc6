@@ -20,10 +20,12 @@ import type { User as UserType } from "@shared/schema";
 // --- Configuration & Types ---
 
 const COLORS = {
-  primary: "#00d09c",
-  primaryDark: "#00b386",
+  primary: "#10b981", // Toned down emerald-500
+  primaryDark: "#059669", // emerald-600
   text: "#44475b",
   background: "#ffffff",
+  blue: "#3b82f6", // Toned down blue-500
+  blueDark: "#2563eb", // blue-600
 };
 
 type LoginAuthMode = "password" | "otp";
@@ -449,14 +451,14 @@ export default function Login() {
               <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1 h-14 rounded-xl mb-8">
                 <TabsTrigger
                   value="user"
-                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-green-600 data-[state=active]:shadow-sm text-gray-600 font-medium transition-all"
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:border data-[state=active]:border-emerald-500 data-[state=active]:shadow-sm text-gray-600 font-medium transition-all"
                 >
                   <User className="w-4 h-4 mr-2" />
                   Citizen / Owner
                 </TabsTrigger>
                 <TabsTrigger
                   value="office"
-                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm text-gray-600 font-medium transition-all"
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-500 data-[state=active]:border data-[state=active]:border-blue-400 data-[state=active]:shadow-sm text-gray-600 font-medium transition-all"
                 >
                   <Building2 className="w-4 h-4 mr-2" />
                   Department
@@ -615,10 +617,9 @@ export default function Login() {
 
                   <Button
                     type="submit"
-                    className={`w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all rounded-lg text-white ${audience === 'office' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' :
-                      'shadow-green-100 hover:bg-[#00b386]'
+                    className={`w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all rounded-lg text-white ${audience === 'office' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-100' :
+                      'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-100'
                       }`}
-                    style={audience === 'user' ? { backgroundColor: COLORS.primary } : {}}
                     disabled={loginMutation.isPending || (captchaEnabled && !captchaQuestion)}
                   >
                     {loginMutation.isPending ? (
