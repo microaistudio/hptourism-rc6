@@ -910,34 +910,36 @@ export default function DAApplicationDetail() {
                       </div>
 
                       {/* Document Viewer */}
-                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 min-h-[400px] flex items-center justify-center">
+                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900" style={{ height: 'calc(100vh - 320px)', minHeight: '500px' }}>
                         {selectedDocument.mimeType.startsWith('image/') ? (
-                          <img
-                            src={buildObjectViewUrl(selectedDocument.filePath, {
-                              mimeType: selectedDocument.mimeType,
-                              fileName: selectedDocument.fileName,
-                            })}
-                            alt={selectedDocument.fileName}
-                            className="w-full h-auto max-h-[600px] object-contain"
-                            data-testid="img-document-preview"
-                            onError={(e) => {
-                              console.error('Image failed to load:', selectedDocument.filePath);
-                              e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" fill="gray">Image failed to load</text></svg>';
-                            }}
-                            onLoad={() => console.log('Image loaded successfully:', selectedDocument.fileName)}
-                          />
+                          <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                            <img
+                              src={buildObjectViewUrl(selectedDocument.filePath, {
+                                mimeType: selectedDocument.mimeType,
+                                fileName: selectedDocument.fileName,
+                              })}
+                              alt={selectedDocument.fileName}
+                              className="max-w-full max-h-full object-contain"
+                              data-testid="img-document-preview"
+                              onError={(e) => {
+                                console.error('Image failed to load:', selectedDocument.filePath);
+                                e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" fill="gray">Image failed to load</text></svg>';
+                              }}
+                              onLoad={() => console.log('Image loaded successfully:', selectedDocument.fileName)}
+                            />
+                          </div>
                         ) : selectedDocument.mimeType === 'application/pdf' ? (
                           <iframe
                             src={buildObjectViewUrl(selectedDocument.filePath, {
                               mimeType: selectedDocument.mimeType,
                               fileName: selectedDocument.fileName,
                             })}
-                            className="w-full h-[600px]"
+                            className="w-full h-full"
                             title={selectedDocument.fileName}
                             data-testid="iframe-document-preview"
                           />
                         ) : (
-                          <div className="p-8 text-center">
+                          <div className="p-8 text-center h-full flex flex-col items-center justify-center">
                             <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
                             <p className="text-sm text-muted-foreground mb-4">
                               Preview not available for this file type
