@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { getStatusLabel } from "@/constants/workflow";
 import { fetcher } from "@/lib/queryClient";
 import {
   CalendarClock,
@@ -155,7 +156,6 @@ export const ACTION_META: Record<
 export const formatStatusLabel = (value?: string | null) => {
   if (!value) return null;
   // Use consolidated status mapping from workflow.ts
-  const { getStatusLabel } = require("@/constants/workflow");
   return getStatusLabel(value);
 };
 
