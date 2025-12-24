@@ -169,8 +169,8 @@ export default function ServiceSettings() {
             <NavigationHeader
                 title="My Services"
                 subtitle="Select which services you offer"
-                showBack={true}
-                backTo="/dashboard"
+                showBack={false}
+                showHome={false}
             />
 
             <div className="container max-w-3xl mx-auto px-4 py-8">
