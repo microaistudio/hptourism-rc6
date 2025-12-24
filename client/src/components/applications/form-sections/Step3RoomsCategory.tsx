@@ -126,163 +126,68 @@ export function Step3RoomsCategory({
 
     return (
         <>
-            <Card className="shadow-lg border-0 overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
-                    <CardTitle className="text-white">Rooms & Category Selection</CardTitle>
-                    <CardDescription className="text-white/70">
-                        Configure your rooms and select a homestay category.
-                        <br />
-                        <span className="text-xs text-white/60">
-                            Max {MAX_ROOMS_ALLOWED} rooms and {MAX_BEDS_ALLOWED} beds allowed.
-                        </span>
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 p-6">
-                    {/* Summary Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border">
-                        <div>
-                            <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Total Rooms Configured</div>
-                            <div className={`text-2xl font-semibold text-slate-900 ${totalRooms > MAX_ROOMS_ALLOWED ? "text-destructive" : ""}`}>
-                                {totalRooms}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Limit: {MAX_ROOMS_ALLOWED} rooms</div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Total Beds Planned</div>
-                            <div className={`text-2xl font-semibold text-slate-900 ${totalBeds > MAX_BEDS_ALLOWED ? "text-destructive" : ""}`}>
-                                {totalBeds}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Limit: {MAX_BEDS_ALLOWED} beds</div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Highest Tariff Range</div>
-                            <div className="text-base md:text-lg font-semibold text-foreground leading-snug">
-                                {highestTariffLabel}
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Selected Category</div>
-                            <div className="mt-1">
-                                <Badge variant={getCategoryBadge(category).variant} className="text-sm font-semibold">
-                                    {getCategoryBadge(category).label}
-                                </Badge>
-                            </div>
-                        </div>
+            {/* Summary Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Total Rooms</div>
+                    <div className={`text-3xl font-bold ${totalRooms > MAX_ROOMS_ALLOWED ? "text-red-500" : "text-gray-900"}`}>
+                        {totalRooms}
                     </div>
+                    <div className="text-xs text-emerald-600">Limit: {MAX_ROOMS_ALLOWED} rooms</div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Total Beds</div>
+                    <div className={`text-3xl font-bold ${totalBeds > MAX_BEDS_ALLOWED ? "text-red-500" : "text-gray-900"}`}>
+                        {totalBeds}
+                    </div>
+                    <div className="text-xs text-emerald-600">Limit: {MAX_BEDS_ALLOWED} beds</div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Highest Rate</div>
+                    <div className="text-3xl font-bold text-emerald-600">
+                        {highestRoomRate > 0 ? `₹${highestRoomRate.toLocaleString()}` : "—"}
+                    </div>
+                    <div className="text-xs text-gray-500">Per night</div>
+                </div>
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-4 shadow-sm">
+                    <div className="text-sm text-gray-500 mb-1">Category</div>
+                    <div className="mt-1">
+                        <Badge variant={getCategoryBadge(category).variant} className="text-sm font-semibold">
+                            {getCategoryBadge(category).label}
+                        </Badge>
+                    </div>
+                    <div className="text-xs text-emerald-600 mt-1">Auto-selected</div>
+                </div>
+            </div>
 
-                    {isUpgradeMode && currentCategory && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-                            <div className="text-sm text-blue-800 dark:text-blue-300 font-medium mb-1">
-                                Current Category
+            {/* SECTION 1: Room Configuration */}
+            <div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                <span className="text-lg font-bold">1</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant={getCategoryBadge(currentCategory).variant} className="text-sm">
-                                    {getCategoryBadge(currentCategory).label}
-                                </Badge>
-                                <span className="text-sm text-muted-foreground">
-                                    Select a higher category to upgrade your property.
-                                </span>
+                            <div>
+                                <h2 className="text-xl font-semibold">Room Configuration</h2>
+                                <p className="text-slate-300 text-sm">Add your rooms with beds per room and nightly rate</p>
                             </div>
                         </div>
-                    )}
-
-                    {/* Category Selection Cards */}
-                    <div className="space-y-3">
-                        <label className="text-sm font-medium">Select Category</label>
-                        {allowedCategories.length === 0 ? (
-                            <div className="text-center p-8 border-2 border-dashed rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                                <p className="text-muted-foreground">You are already at the highest category ({getCategoryBadge(currentCategory || 'diamond').label}).</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {allowedCategories.map((info) => {
-                                    const isSelected = category === info.value;
-                                    const isApplicable = suggestedCategory === info.value;
-                                    // Lock logic: disable if strict recommendation is ON, unless it's the target
-                                    // For upgrade, we might want to be freer, but respecting the rules is safer.
-                                    const isDisabled = lockToRecommendedCategory && !isApplicable;
-                                    const band = categoryRateBands[info.value];
-
-                                    // Metallic color schemes for each category
-                                    const categoryStyles = {
-                                        silver: {
-                                            background: isSelected
-                                                ? "bg-gradient-to-br from-slate-100 via-gray-200 to-slate-300 border-slate-400"
-                                                : "bg-gradient-to-br from-slate-50 to-gray-100 hover:from-slate-100 hover:to-gray-200",
-                                            text: "text-slate-700",
-                                            badge: "bg-slate-500 text-white"
-                                        },
-                                        gold: {
-                                            background: isSelected
-                                                ? "bg-gradient-to-br from-amber-100 via-yellow-200 to-amber-300 border-amber-500"
-                                                : "bg-gradient-to-br from-amber-50 to-yellow-100 hover:from-amber-100 hover:to-yellow-200",
-                                            text: "text-amber-800",
-                                            badge: "bg-amber-500 text-white"
-                                        },
-                                        diamond: {
-                                            background: isSelected
-                                                ? "bg-gradient-to-br from-cyan-100 via-purple-100 to-pink-100 border-purple-400"
-                                                : "bg-gradient-to-br from-cyan-50 to-purple-50 hover:from-cyan-100 hover:to-purple-100",
-                                            text: "text-purple-800",
-                                            badge: "bg-gradient-to-r from-cyan-500 to-purple-500 text-white"
-                                        }
-                                    };
-
-                                    const styles = categoryStyles[info.value as keyof typeof categoryStyles] || categoryStyles.silver;
-
-                                    return (
-                                        <div
-                                            key={info.value}
-                                            onClick={() => {
-                                                if (!isDisabled) {
-                                                    form.setValue("category", info.value);
-                                                }
-                                            }}
-                                            className={`
-                          relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all hover-elevate
-                          ${styles.background}
-                          ${isSelected ? "shadow-lg ring-2 ring-primary/50" : "hover:shadow-md"}
-                          ${isDisabled ? "opacity-50 cursor-not-allowed grayscale" : ""}
-                        `}
-                                        >
-                                            {isApplicable && (
-                                                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${styles.badge} text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm`}>
-                                                    Applicable
-                                                </div>
-                                            )}
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h3 className={`font-semibold ${styles.text}`}>{info.title}</h3>
-                                                {isSelected && <Check className="w-4 h-4 text-primary" />}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground mb-3 flex-1">
-                                                {info.description}
-                                            </p>
-                                            <div className="mt-auto pt-3 border-t border-current/10 text-xs font-medium text-muted-foreground">
-                                                Tariff Range: <span className={`${styles.text} font-semibold`}>{formatBandLabel(band)}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={addType2Row}
+                            disabled={totalRooms >= MAX_ROOMS_ALLOWED}
+                            className="gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Room Type
+                        </Button>
                     </div>
+                </div>
+                <div className="bg-white p-4 space-y-4">
 
-                    {/* Room Calculation Mode Display */}
-                    <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-100 dark:border-blue-900">
-                        <div className="flex items-center gap-2">
-                            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                                {roomCalcMode === "direct"
-                                    ? "Using direct tariff rates (Admin Mode)"
-                                    : "Using standard tariff buckets"}
-                            </span>
-                        </div>
-                        {roomCalcMode === "direct" && (
-                            <Badge variant="outline" className="bg-white dark:bg-black">
-                                Exact Rates
-                            </Badge>
-                        )}
-                    </div>
 
 
                     {/* Dynamic Room Configuration */}
@@ -625,8 +530,114 @@ export function Step3RoomsCategory({
                             />
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
+
+            {/* SECTION 2: Category Selection */}
+            <div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                            <span className="text-lg font-bold">2</span>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-semibold">Category Selection</h2>
+                            <p className="text-emerald-100 text-sm">Category is automatically selected based on your highest room rate</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6">
+                    {isUpgradeMode && currentCategory && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <div className="text-sm text-blue-800 font-medium mb-1">
+                                Current Category
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Badge variant={getCategoryBadge(currentCategory).variant} className="text-sm">
+                                    {getCategoryBadge(currentCategory).label}
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                    Select a higher category to upgrade your property.
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {allowedCategories.length === 0 ? (
+                        <div className="text-center p-8 border-2 border-dashed rounded-xl bg-slate-50">
+                            <p className="text-muted-foreground">You are already at the highest category ({getCategoryBadge(currentCategory || 'diamond').label}).</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {allowedCategories.map((info) => {
+                                const isSelected = category === info.value;
+                                const isApplicable = suggestedCategory === info.value;
+                                const isDisabled = lockToRecommendedCategory && !isApplicable;
+                                const band = categoryRateBands[info.value];
+
+                                const categoryStyles = {
+                                    silver: {
+                                        background: isSelected
+                                            ? "bg-gradient-to-br from-slate-100 via-gray-200 to-slate-300 border-slate-400"
+                                            : "bg-gradient-to-br from-slate-50 to-gray-100 hover:from-slate-100 hover:to-gray-200",
+                                        text: "text-slate-700",
+                                        badge: "bg-slate-500 text-white"
+                                    },
+                                    gold: {
+                                        background: isSelected
+                                            ? "bg-gradient-to-br from-amber-100 via-yellow-200 to-amber-300 border-amber-500"
+                                            : "bg-gradient-to-br from-amber-50 to-yellow-100 hover:from-amber-100 hover:to-yellow-200",
+                                        text: "text-amber-800",
+                                        badge: "bg-amber-500 text-white"
+                                    },
+                                    diamond: {
+                                        background: isSelected
+                                            ? "bg-gradient-to-br from-cyan-100 via-purple-100 to-pink-100 border-purple-400"
+                                            : "bg-gradient-to-br from-cyan-50 to-purple-50 hover:from-cyan-100 hover:to-purple-100",
+                                        text: "text-purple-800",
+                                        badge: "bg-gradient-to-r from-cyan-500 to-purple-500 text-white"
+                                    }
+                                };
+
+                                const styles = categoryStyles[info.value as keyof typeof categoryStyles] || categoryStyles.silver;
+
+                                return (
+                                    <div
+                                        key={info.value}
+                                        onClick={() => {
+                                            if (!isDisabled) {
+                                                form.setValue("category", info.value);
+                                            }
+                                        }}
+                                        className={`
+                                            relative flex flex-col p-5 rounded-xl border-2 cursor-pointer transition-all
+                                            ${styles.background}
+                                            ${isSelected ? "shadow-lg ring-2 ring-primary/50" : "hover:shadow-md"}
+                                            ${isDisabled ? "opacity-50 cursor-not-allowed grayscale" : ""}
+                                        `}
+                                    >
+                                        {isApplicable && (
+                                            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-3 py-1 shadow-lg">
+                                                Applicable
+                                            </Badge>
+                                        )}
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className={`font-semibold text-lg ${styles.text}`}>{info.title}</h3>
+                                            {isSelected && <Check className="w-5 h-5 text-primary" />}
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mb-3 flex-1">
+                                            {info.description}
+                                        </p>
+                                        <div className="mt-auto pt-3 border-t border-current/10 text-sm font-medium text-muted-foreground">
+                                            Tariff Range: <span className={`${styles.text} font-semibold`}>{formatBandLabel(band)}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* Safety Checklist Card */}
             <Card className="border-l-4 border-l-blue-500">
