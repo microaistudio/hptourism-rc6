@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, BedDouble, Check, CheckCircle2, Crown, Flame, Gem, Info, Plus, ShieldCheck, Sparkles, Star, Trash2, Video } from "lucide-react";
+import { AlertTriangle, ArrowRight, BedDouble, Check, CheckCircle2, Crown, Flame, Gem, Info, Plus, ShieldCheck, Sparkles, Star, Trash2, TrendingUp, Video } from "lucide-react";
 import {
     CATEGORY_CARD_INFO,
     ROOM_TYPE_OPTIONS,
@@ -459,17 +459,25 @@ export function Step3RoomsCategory({
                             })}
                         </div>
 
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-full border-dashed"
-                            onClick={addType2Row}
-                            disabled={totalRooms >= MAX_ROOMS_ALLOWED}
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Another Room Type
-                        </Button>
+                        {/* Compact Summary Bar */}
+                        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                    <BedDouble className="w-4 h-4 text-emerald-600" />
+                                    <span className="font-medium">{totalRooms} rooms, {totalBeds} beds configured</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                                    <span>Highest rate: <strong className="text-emerald-700">₹{highestRoomRate.toLocaleString()}/night</strong></span>
+                                </div>
+                            </div>
+                            {suggestedCategory && (
+                                <div className="flex items-center gap-2 text-sm text-emerald-700">
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>Qualifies for <strong>{getCategoryBadge(suggestedCategory).label}</strong> category</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Attached Washrooms */}
