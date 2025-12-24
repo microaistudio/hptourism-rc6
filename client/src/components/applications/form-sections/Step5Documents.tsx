@@ -126,8 +126,11 @@ export function Step5Documents({
                                     <Paperclip className="w-4 h-4 text-gray-500" />
                                     <label className="text-sm font-medium">Supporting Documents (Up to 5 files)</label>
                                 </div>
-                                <p className="text-xs text-gray-500 mb-2">
+                                <p className="text-xs text-gray-500 mb-1">
                                     Upload any supporting documents such as NOC, fire safety certificate, water quality report, or any other relevant documents.
+                                </p>
+                                <p className="text-xs text-gray-400 mb-2">
+                                    Allowed formats: PDF, PNG, JPG, JPEG
                                 </p>
                                 <ObjectUploader
                                     label="Upload Supporting Documents"
@@ -135,7 +138,7 @@ export function Step5Documents({
                                     maxFiles={5}
                                     fileType="additional-document"
                                     category="documents"
-                                    accept=".pdf,.jpg,.jpeg"
+                                    accept=".pdf,.png,.jpg,.jpeg"
                                     onUploadComplete={(paths) => setAdditionalDocuments(paths)}
                                     existingFiles={additionalDocuments}
                                 />
@@ -151,6 +154,7 @@ export function Step5Documents({
                                             Revenue Papers (Jamabandi & Tatima) <span className="text-red-500">*</span>
                                         </h3>
                                         <p className="text-sm text-gray-500 mt-1">Land revenue records showing ownership</p>
+                                        <p className="text-xs text-gray-400 mt-1">Allowed format: PDF only</p>
                                     </div>
                                     <span className="text-xs text-gray-400">{uploadedDocuments.revenuePapers.length}/2 files</span>
                                 </div>
@@ -158,6 +162,7 @@ export function Step5Documents({
                                     label="Upload Revenue Papers"
                                     maxFiles={2}
                                     fileType="revenue-papers"
+                                    accept=".pdf"
                                     onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, revenuePapers: paths }))}
                                     existingFiles={uploadedDocuments.revenuePapers}
                                     isMissing={!isDeleteRooms && uploadedDocuments.revenuePapers.length === 0}
@@ -172,6 +177,7 @@ export function Step5Documents({
                                             Affidavit under Section 29 <span className="text-red-500">*</span>
                                         </h3>
                                         <p className="text-sm text-gray-500 mt-1">Sworn statement as per homestay regulations</p>
+                                        <p className="text-xs text-gray-400 mt-1">Allowed format: PDF only</p>
                                     </div>
                                     <span className="text-xs text-gray-400">{uploadedDocuments.affidavitSection29.length}/1 files</span>
                                 </div>
@@ -179,6 +185,7 @@ export function Step5Documents({
                                     label="Upload Affidavit"
                                     maxFiles={1}
                                     fileType="affidavit-section29"
+                                    accept=".pdf"
                                     onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, affidavitSection29: paths }))}
                                     existingFiles={uploadedDocuments.affidavitSection29}
                                     isMissing={!isDeleteRooms && uploadedDocuments.affidavitSection29.length === 0}
@@ -193,6 +200,7 @@ export function Step5Documents({
                                             Undertaking in Form-C <span className="text-red-500">*</span>
                                         </h3>
                                         <p className="text-sm text-gray-500 mt-1">Signed undertaking form as per prescribed format</p>
+                                        <p className="text-xs text-gray-400 mt-1">Allowed format: PDF only</p>
                                     </div>
                                     <span className="text-xs text-gray-400">{uploadedDocuments.undertakingFormC.length}/1 files</span>
                                 </div>
@@ -200,6 +208,7 @@ export function Step5Documents({
                                     label="Upload Form-C"
                                     maxFiles={1}
                                     fileType="undertaking-form-c"
+                                    accept=".pdf"
                                     onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, undertakingFormC: paths }))}
                                     existingFiles={uploadedDocuments.undertakingFormC}
                                     isMissing={!isDeleteRooms && uploadedDocuments.undertakingFormC.length === 0}
@@ -216,6 +225,7 @@ export function Step5Documents({
                                                     Proof of Commercial Electricity Bill <span className="text-red-500">*</span>
                                                 </h3>
                                                 <p className="text-sm text-gray-500 mt-1">Latest electricity bill showing commercial tariff</p>
+                                                <p className="text-xs text-gray-400 mt-1">Allowed format: PDF only</p>
                                             </div>
                                             <span className="text-xs text-gray-400">{uploadedDocuments.commercialElectricityBill.length}/1 files</span>
                                         </div>
@@ -223,6 +233,7 @@ export function Step5Documents({
                                             label="Upload Electricity Bill"
                                             maxFiles={1}
                                             fileType="commercial-electricity-bill"
+                                            accept=".pdf"
                                             onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, commercialElectricityBill: paths }))}
                                             existingFiles={uploadedDocuments.commercialElectricityBill}
                                             isMissing={!isDeleteRooms && uploadedDocuments.commercialElectricityBill.length === 0}
@@ -236,6 +247,7 @@ export function Step5Documents({
                                                     Proof of Commercial Water Bill <span className="text-red-500">*</span>
                                                 </h3>
                                                 <p className="text-sm text-gray-500 mt-1">Commercial water connection bill for the homestay</p>
+                                                <p className="text-xs text-gray-400 mt-1">Allowed format: PDF only</p>
                                             </div>
                                             <span className="text-xs text-gray-400">{uploadedDocuments.commercialWaterBill.length}/1 files</span>
                                         </div>
@@ -243,6 +255,7 @@ export function Step5Documents({
                                             label="Upload Water Bill"
                                             maxFiles={1}
                                             fileType="commercial-water-bill"
+                                            accept=".pdf"
                                             onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, commercialWaterBill: paths }))}
                                             existingFiles={uploadedDocuments.commercialWaterBill}
                                             isMissing={!isDeleteRooms && uploadedDocuments.commercialWaterBill.length === 0}
@@ -261,6 +274,7 @@ export function Step5Documents({
                                                 Property Photographs <span className="text-red-500">*</span>
                                             </h3>
                                             <p className="text-sm text-gray-500 mt-1">Clear photos of property exterior, rooms, and facilities (Min: 2)</p>
+                                            <p className="text-xs text-gray-400 mt-1">Allowed formats: PNG, JPG, JPEG only</p>
                                         </div>
                                     </div>
                                     <span className="text-xs text-gray-400">{propertyPhotos.length}/10 files</span>
@@ -271,6 +285,7 @@ export function Step5Documents({
                                     maxFiles={10}
                                     fileType="property-photo"
                                     category="photos"
+                                    accept=".png,.jpg,.jpeg"
                                     onUploadComplete={(paths) => setPropertyPhotos(paths)}
                                     existingFiles={propertyPhotos}
                                     isMissing={!isDeleteRooms && propertyPhotos.length < 2}
@@ -285,6 +300,7 @@ export function Step5Documents({
                                         <div>
                                             <h3 className="font-medium text-gray-900">Additional/Supporting Documents</h3>
                                             <p className="text-sm text-gray-500 mt-1">NOC, fire safety certificate, water quality report, etc. (Optional)</p>
+                                            <p className="text-xs text-gray-400 mt-1">Allowed formats: PDF, PNG, JPG, JPEG</p>
                                         </div>
                                     </div>
                                     <span className="text-xs text-gray-400">{additionalDocuments.length}/5 files</span>
@@ -295,6 +311,7 @@ export function Step5Documents({
                                     maxFiles={5}
                                     fileType="additional-document"
                                     category="documents"
+                                    accept=".pdf,.png,.jpg,.jpeg"
                                     onUploadComplete={(paths) => setAdditionalDocuments(paths)}
                                     existingFiles={additionalDocuments}
                                 />
