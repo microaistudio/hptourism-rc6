@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { NavigationHeader } from "@/components/navigation-header";
 import { IconStyleToggle } from "@/components/icon-style-toggle";
-import { 
-  Mountain, MapPin, Bed, Star, Search, Filter, 
+import {
+  Mountain, MapPin, Bed, Star, Search, Filter,
   Wifi, Car, AirVent, Eye, UtensilsCrossed, Droplet,
   Trees, Tv, Coffee, Wind, Sparkles
 } from "lucide-react";
@@ -27,7 +27,7 @@ const AMENITIES = [
   { id: "parking", label: "Parking", emoji: "🚗", icon: Car, colorClass: "amenity-parking" },
   { id: "ac", label: "Air Conditioning", emoji: "❄️", icon: AirVent, colorClass: "amenity-ac" },
   { id: "mountainView", label: "Mountain View", emoji: "👁️", icon: Eye, colorClass: "amenity-view" },
-  { id: "restaurant", label: "Restaurant", emoji: "🍽️", icon: UtensilsCrossed, colorClass: "amenity-restaurant" },
+  { id: "restaurant", label: "Dining Area", emoji: "🍽️", icon: UtensilsCrossed, colorClass: "amenity-restaurant" },
   { id: "hotWater", label: "Hot Water 24/7", emoji: "💧", icon: Droplet, colorClass: "amenity-water" },
   { id: "garden", label: "Garden", emoji: "🌳", icon: Trees, colorClass: "amenity-garden" },
   { id: "tv", label: "Television", emoji: "📺", icon: Tv, colorClass: "amenity-tv" },
@@ -53,27 +53,27 @@ export default function PublicProperties() {
   // Filter properties
   const filteredProperties = properties.filter((property) => {
     // Search filter
-    const matchesSearch = searchQuery === "" || 
+    const matchesSearch = searchQuery === "" ||
       property.propertyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       property.address.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     // District filter
-    const matchesDistrict = selectedDistrict === "All Districts" || 
+    const matchesDistrict = selectedDistrict === "All Districts" ||
       property.district === selectedDistrict;
-    
+
     // Category filter
-    const matchesCategory = selectedCategory === "All Categories" || 
+    const matchesCategory = selectedCategory === "All Categories" ||
       property.category === selectedCategory.toLowerCase();
-    
+
     // Amenities filter
     const selectedAmenitiesList = Object.keys(selectedAmenities).filter(
       key => selectedAmenities[key]
     );
-    const matchesAmenities = selectedAmenitiesList.length === 0 || 
-      selectedAmenitiesList.every(amenity => 
+    const matchesAmenities = selectedAmenitiesList.length === 0 ||
+      selectedAmenitiesList.every(amenity =>
         property.amenities && (property.amenities as any)[amenity]
       );
-    
+
     return matchesSearch && matchesDistrict && matchesCategory && matchesAmenities;
   });
 
@@ -95,7 +95,7 @@ export default function PublicProperties() {
 
   return (
     <div className="bg-background">
-      <NavigationHeader 
+      <NavigationHeader
         title="Discover Himachal Pradesh"
         showBack={false}
         showHome={true}
@@ -182,8 +182,8 @@ export default function PublicProperties() {
                     {AMENITIES.map(amenity => {
                       const Icon = amenity.icon;
                       return (
-                        <div 
-                          key={amenity.id} 
+                        <div
+                          key={amenity.id}
                           className="flex items-center space-x-2 p-2 rounded-md hover-elevate cursor-pointer"
                           onClick={() => toggleAmenity(amenity.id)}
                         >
@@ -249,14 +249,14 @@ export default function PublicProperties() {
             {filteredProperties.map((property) => {
               const categoryBadge = getCategoryBadge(property.category);
               const CategoryIcon = categoryBadge.icon;
-              
+
               // Get available amenities with icons
-              const availableAmenities = property.amenities 
+              const availableAmenities = property.amenities
                 ? Object.entries(property.amenities as any)
-                    .filter(([, value]) => value)
-                    .map(([key]) => AMENITIES.find(a => a.id === key))
-                    .filter(Boolean)
-                    .slice(0, 6)
+                  .filter(([, value]) => value)
+                  .map(([key]) => AMENITIES.find(a => a.id === key))
+                  .filter(Boolean)
+                  .slice(0, 6)
                 : [];
 
               return (
@@ -287,7 +287,7 @@ export default function PublicProperties() {
                         <Bed className="w-4 h-4 text-muted-foreground" />
                         <span>{property.totalRooms} {property.totalRooms === 1 ? 'room' : 'rooms'}</span>
                       </div>
-                      
+
                       {/* Amenities with icons */}
                       {availableAmenities.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-2 border-t">
@@ -295,7 +295,7 @@ export default function PublicProperties() {
                             if (!amenity) return null;
                             const AmenityIcon = amenity.icon;
                             return (
-                              <div 
+                              <div
                                 key={amenity.id}
                                 className={`property-amenity-icon ${amenity.colorClass}`}
                                 title={amenity.label}
@@ -307,7 +307,7 @@ export default function PublicProperties() {
                           })}
                         </div>
                       )}
-                      
+
                       <Button className="w-full" variant="outline" size="sm">
                         View Details
                       </Button>

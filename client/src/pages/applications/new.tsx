@@ -537,7 +537,7 @@ const AMENITIES = [
   { id: "ac", label: "Air Conditioning", icon: Wind },
   { id: "wifi", label: "WiFi", icon: Wifi },
   { id: "parking", label: "Parking", icon: ParkingCircle },
-  { id: "restaurant", label: "Restaurant", icon: UtensilsCrossed },
+  { id: "restaurant", label: "Dining Area", icon: UtensilsCrossed },
   { id: "hotWater", label: "Hot Water 24/7", icon: Droplets },
   { id: "tv", label: "Television", icon: Tv },
   { id: "laundry", label: "Laundry Service", icon: Shirt },

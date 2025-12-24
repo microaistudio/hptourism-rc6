@@ -490,7 +490,7 @@ export default function ApplicationDetail() {
     ac: "Air Conditioning",
     wifi: "WiFi",
     parking: "Parking",
-    restaurant: "Restaurant",
+    restaurant: "Dining Area",
     hotWater: "Hot Water",
     tv: "Television",
     laundry: "Laundry Service",
