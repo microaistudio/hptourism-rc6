@@ -132,13 +132,26 @@ export function Step1PropertyDetails({
                                     )}
                                 />
                             </div>
+                        </div>
+                    </div>
 
-                            {/* LGD Hierarchical Address - State, District & Tehsil */}
+                    {/* Section 2: Location Hierarchy */}
+                    <div className="border-b">
+                        <div className="bg-gradient-to-r from-slate-700 to-slate-600 text-white px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">2</div>
+                                <div>
+                                    <h2 className="font-semibold">Location Hierarchy</h2>
+                                    <p className="text-sm text-white/70">State, District, and Tehsil selection</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <FormLabel>State</FormLabel>
-                                    <Input value={HP_STATE} readOnly disabled className="bg-muted/60" aria-readonly />
-                                    <p className="text-xs text-muted-foreground">Portal currently supports Himachal Pradesh only.</p>
+                                    <label className="text-xs text-gray-500">State</label>
+                                    <Input value={HP_STATE} readOnly className="h-11 bg-gray-50" />
+                                    <p className="text-xs text-gray-400">Portal supports HP only</p>
                                 </div>
 
                                 <FormField
@@ -296,44 +309,49 @@ export function Step1PropertyDetails({
                                 />
                             </div>
 
+                            {/* Location Type Cards */}
                             <FormField
                                 control={form.control}
                                 name="locationType"
                                 rules={{ required: "Location type is required" }}
-                                render={({ field, fieldState }) => (
+                                render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            Location Type (affects registration fee) <span className="text-destructive">*</span>
-                                        </FormLabel>
-                                        <Select
-                                            onValueChange={(value) => {
-                                                field.onChange(value);
-                                                if (value === "gp") {
-                                                    form.setValue("urbanBody", "", { shouldDirty: false, shouldValidate: step >= 1 });
-                                                    form.setValue("ward", "", { shouldDirty: false, shouldValidate: step >= 1 });
-                                                    form.clearErrors("ward");
-                                                }
-                                            }}
-                                            value={field.value || undefined}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger
-                                                    data-testid="select-location-type"
-                                                    className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : ""}
-                                                    aria-invalid={fieldState.invalid}
+                                        <label className="text-xs text-gray-500">Location Type <span className="text-red-500">*</span></label>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            {LOCATION_TYPES.map((type) => (
+                                                <div
+                                                    key={type.value}
+                                                    onClick={() => {
+                                                        field.onChange(type.value);
+                                                        if (type.value === "gp") {
+                                                            form.setValue("urbanBody", "", { shouldDirty: false, shouldValidate: step >= 1 });
+                                                            form.setValue("ward", "", { shouldDirty: false, shouldValidate: step >= 1 });
+                                                            form.clearErrors("ward");
+                                                        }
+                                                    }}
+                                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${field.value === type.value
+                                                            ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                                            : "border-gray-200 hover:border-gray-300"
+                                                        }`}
                                                 >
-                                                    <SelectValue placeholder="Select location type" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {LOCATION_TYPES.map((type) => (
-                                                    <SelectItem key={type.value} value={type.value}>
-                                                        {type.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormDescription>Rural (GP) or Urban (MC/TCP) - Required for fee calculation</FormDescription>
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <p className="font-medium text-sm">{type.label}</p>
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                {type.value === "gp" ? "Lower registration fees" :
+                                                                    type.value === "mc" ? "Higher registration fees" :
+                                                                        "Standard fees apply"}
+                                                            </p>
+                                                        </div>
+                                                        {field.value === type.value && (
+                                                            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -426,16 +444,28 @@ export function Step1PropertyDetails({
                                     />
                                 </div>
                             )}
+                        </div>
+                    </div>
 
+                    {/* Section 3: Address Details */}
+                    <div>
+                        <div className="bg-gradient-to-r from-slate-600 to-slate-500 text-white px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">3</div>
+                                <div>
+                                    <h2 className="font-semibold">Address Details</h2>
+                                    <p className="text-sm text-white/70">Complete postal address and PIN code</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-4">
                             <FormField
                                 control={form.control}
                                 name="address"
                                 rules={{ required: "Address is required" }}
                                 render={({ field, fieldState }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            House/Building Number, Street & Locality <span className="text-destructive">*</span>
-                                        </FormLabel>
+                                        <label className="text-xs text-gray-500">House/Building Number, Street & Locality <span className="text-red-500">*</span></label>
                                         <FormControl>
                                             <Textarea
                                                 placeholder="e.g., House No. 123, Main Road, Near Post Office"
@@ -445,7 +475,7 @@ export function Step1PropertyDetails({
                                                 {...field}
                                             />
                                         </FormControl>
-                                        <FormDescription>Specific address details with landmarks</FormDescription>
+                                        <p className="text-xs text-gray-400">Specific address details with landmarks</p>
                                         <FormMessage />
                                     </FormItem>
                                 )}
