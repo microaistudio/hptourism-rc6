@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, BedDouble, Check, Info, Plus, Trash2, ShieldCheck, Video, Flame } from "lucide-react";
+import { AlertTriangle, BedDouble, Check, CheckCircle2, Crown, Flame, Gem, Info, Plus, ShieldCheck, Sparkles, Star, Trash2, Video } from "lucide-react";
 import {
     CATEGORY_CARD_INFO,
     ROOM_TYPE_OPTIONS,
@@ -568,73 +568,109 @@ export function Step3RoomsCategory({
                             <p className="text-muted-foreground">You are already at the highest category ({getCategoryBadge(currentCategory || 'diamond').label}).</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {allowedCategories.map((info) => {
-                                const isSelected = category === info.value;
-                                const isApplicable = suggestedCategory === info.value;
-                                const isDisabled = lockToRecommendedCategory && !isApplicable;
-                                const band = categoryRateBands[info.value];
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                {allowedCategories.map((info) => {
+                                    const isSelected = category === info.value;
+                                    const isApplicable = suggestedCategory === info.value;
+                                    const isDisabled = lockToRecommendedCategory && !isApplicable;
+                                    const band = categoryRateBands[info.value];
 
-                                const categoryStyles = {
-                                    silver: {
-                                        background: isSelected
-                                            ? "bg-gradient-to-br from-slate-100 via-gray-200 to-slate-300 border-slate-400"
-                                            : "bg-gradient-to-br from-slate-50 to-gray-100 hover:from-slate-100 hover:to-gray-200",
-                                        text: "text-slate-700",
-                                        badge: "bg-slate-500 text-white"
-                                    },
-                                    gold: {
-                                        background: isSelected
-                                            ? "bg-gradient-to-br from-amber-100 via-yellow-200 to-amber-300 border-amber-500"
-                                            : "bg-gradient-to-br from-amber-50 to-yellow-100 hover:from-amber-100 hover:to-yellow-200",
-                                        text: "text-amber-800",
-                                        badge: "bg-amber-500 text-white"
-                                    },
-                                    diamond: {
-                                        background: isSelected
-                                            ? "bg-gradient-to-br from-cyan-100 via-purple-100 to-pink-100 border-purple-400"
-                                            : "bg-gradient-to-br from-cyan-50 to-purple-50 hover:from-cyan-100 hover:to-purple-100",
-                                        text: "text-purple-800",
-                                        badge: "bg-gradient-to-r from-cyan-500 to-purple-500 text-white"
-                                    }
-                                };
+                                    // Icons for each category
+                                    const categoryIcons = {
+                                        silver: <Star className="w-6 h-6 text-slate-500" />,
+                                        gold: <Crown className="w-6 h-6 text-amber-500" />,
+                                        diamond: <Gem className="w-6 h-6 text-purple-500" />
+                                    };
 
-                                const styles = categoryStyles[info.value as keyof typeof categoryStyles] || categoryStyles.silver;
+                                    const categoryStyles = {
+                                        silver: {
+                                            border: isSelected ? "border-slate-400 ring-2 ring-slate-300" : "border-gray-200",
+                                            bg: isSelected ? "bg-gradient-to-br from-slate-50 to-gray-100" : "bg-white",
+                                            iconBg: "bg-slate-100",
+                                            text: "text-slate-700"
+                                        },
+                                        gold: {
+                                            border: isSelected ? "border-amber-400 ring-2 ring-amber-300" : "border-gray-200",
+                                            bg: isSelected ? "bg-gradient-to-br from-amber-50 to-yellow-50" : "bg-white",
+                                            iconBg: "bg-amber-100",
+                                            text: "text-amber-700"
+                                        },
+                                        diamond: {
+                                            border: isSelected ? "border-purple-400 ring-2 ring-purple-300" : "border-gray-200",
+                                            bg: isSelected ? "bg-gradient-to-br from-cyan-50 via-purple-50 to-pink-50" : "bg-white",
+                                            iconBg: "bg-gradient-to-r from-cyan-100 to-purple-100",
+                                            text: "text-purple-700"
+                                        }
+                                    };
 
-                                return (
-                                    <div
-                                        key={info.value}
-                                        onClick={() => {
-                                            if (!isDisabled) {
-                                                form.setValue("category", info.value);
-                                            }
-                                        }}
-                                        className={`
-                                            relative flex flex-col p-5 rounded-xl border-2 cursor-pointer transition-all
-                                            ${styles.background}
-                                            ${isSelected ? "shadow-lg ring-2 ring-primary/50" : "hover:shadow-md"}
-                                            ${isDisabled ? "opacity-50 cursor-not-allowed grayscale" : ""}
-                                        `}
-                                    >
-                                        {isApplicable && (
-                                            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-3 py-1 shadow-lg">
-                                                Applicable
-                                            </Badge>
-                                        )}
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className={`font-semibold text-lg ${styles.text}`}>{info.title}</h3>
-                                            {isSelected && <Check className="w-5 h-5 text-primary" />}
+                                    const styles = categoryStyles[info.value as keyof typeof categoryStyles] || categoryStyles.silver;
+                                    const Icon = categoryIcons[info.value as keyof typeof categoryIcons];
+
+                                    return (
+                                        <div
+                                            key={info.value}
+                                            onClick={() => {
+                                                if (!isDisabled) {
+                                                    form.setValue("category", info.value);
+                                                }
+                                            }}
+                                            className={`
+                                                relative p-5 rounded-xl border-2 cursor-pointer transition-all
+                                                ${styles.border} ${styles.bg}
+                                                ${!isSelected && !isApplicable ? "opacity-60" : ""}
+                                                ${isDisabled ? "opacity-50 cursor-not-allowed grayscale" : "hover:shadow-md"}
+                                            `}
+                                        >
+                                            {isApplicable && (
+                                                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-3 py-1 shadow-lg">
+                                                    <Sparkles className="w-3 h-3 mr-1" />
+                                                    APPLICABLE
+                                                </Badge>
+                                            )}
+
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${styles.iconBg}`}>
+                                                    {Icon}
+                                                </div>
+                                                {isSelected && (
+                                                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                                                )}
+                                            </div>
+
+                                            <h3 className={`text-xl font-bold mb-1 ${isSelected || isApplicable ? "text-gray-900" : "text-gray-500"}`}>
+                                                {info.title}
+                                            </h3>
+
+                                            <p className={`text-sm mb-3 ${isSelected || isApplicable ? "text-gray-600" : "text-gray-400"}`}>
+                                                {info.description}
+                                            </p>
+
+                                            <div className={`text-sm font-medium ${isSelected || isApplicable ? styles.text : "text-gray-400"}`}>
+                                                Tariff Range: {formatBandLabel(band)}
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-muted-foreground mb-3 flex-1">
-                                            {info.description}
-                                        </p>
-                                        <div className="mt-auto pt-3 border-t border-current/10 text-sm font-medium text-muted-foreground">
-                                            Tariff Range: <span className={`${styles.text} font-semibold`}>{formatBandLabel(band)}</span>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Confirmation message */}
+                            {suggestedCategory && (
+                                <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+                                        <div>
+                                            <p className="font-medium text-emerald-800">
+                                                Your property qualifies for the <strong>{getCategoryBadge(suggestedCategory).label.toUpperCase()}</strong> category
+                                            </p>
+                                            <p className="text-sm text-emerald-600">
+                                                Based on your highest room rate of ₹{highestRoomRate.toLocaleString()}/night
+                                            </p>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
