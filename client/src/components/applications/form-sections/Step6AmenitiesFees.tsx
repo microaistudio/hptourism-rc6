@@ -139,14 +139,14 @@ export function Step6AmenitiesFees({
 
             {/* SECTION 2: Additional Facilities */}
             <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4">
+                <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                             <span className="text-lg font-bold">2</span>
                         </div>
                         <div>
                             <h2 className="text-xl font-semibold">Additional Facilities</h2>
-                            <p className="text-blue-100 text-sm">Optional details about eco-friendly features and nearby attractions</p>
+                            <p className="text-slate-200 text-sm">Optional details about eco-friendly features and nearby attractions</p>
                         </div>
                     </div>
                 </div>
@@ -236,14 +236,14 @@ export function Step6AmenitiesFees({
 
             {/* SECTION 3: Certificate Validity */}
             <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
-                <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4">
+                <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                             <span className="text-lg font-bold">3</span>
                         </div>
                         <div>
                             <h2 className="text-xl font-semibold">Certificate Validity Period</h2>
-                            <p className="text-purple-100 text-sm">Choose your registration duration</p>
+                            <p className="text-slate-200 text-sm">Choose your registration duration</p>
                         </div>
                     </div>
                 </div>
