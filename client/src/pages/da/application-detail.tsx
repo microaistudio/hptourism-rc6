@@ -887,19 +887,19 @@ export default function DAApplicationDetail() {
         <TabsContent value="documents" className="space-y-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Side - Document Preview */}
-            <div ref={previewRef} className="lg:sticky lg:top-24 self-start">
+            <div ref={previewRef}>
               <Card>
-                <CardHeader>
-                  <CardTitle>Document Preview</CardTitle>
-                  <CardDescription>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-base">Document Preview</CardTitle>
+                  <CardDescription className="text-sm">
                     {selectedDocument ? selectedDocument.fileName : "Select a document to preview"}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   {selectedDocument ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Document Info */}
-                      <div className="p-4 bg-muted rounded-lg space-y-2">
+                      <div className="p-3 bg-muted rounded-lg space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">{selectedDocument.documentType}</span>
                           {getStatusBadge(verifications[selectedDocument.id]?.status || 'pending')}
@@ -910,7 +910,7 @@ export default function DAApplicationDetail() {
                       </div>
 
                       {/* Document Viewer */}
-                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900" style={{ height: 'calc(100vh - 320px)', minHeight: '500px' }}>
+                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900" style={{ height: 'calc(100vh - 280px)', minHeight: '450px' }}>
                         {selectedDocument.mimeType.startsWith('image/') ? (
                           <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
                             <img
