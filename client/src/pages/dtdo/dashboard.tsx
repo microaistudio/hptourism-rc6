@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * ⚠️  LEGACY LAYOUT - OLD DTDO DASHBOARD
+ * ============================================================================
+ * 
+ * Route: /dtdo/dashboard
+ * Status: LEGACY (kept for backward compatibility)
+ * 
+ * This is the ORIGINAL DTDO dashboard with stage-based pipeline view.
+ * 
+ * NEW LAYOUT: See /dtdo/queue → pages/dtdo/queue.tsx
+ * The new unified queue layout is the future direction.
+ * 
+ * DO NOT add new features here. All new development should go to:
+ *   - /dtdo/queue (Unified Applications Queue)
+ *   - /dtdo/inspections (Inspections - shared)
+ *   - /dtdo/grievances (Grievances - new module)
+ * 
+ * This file will be deprecated once the new layout is stable.
+ * ============================================================================
+ */
+
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -296,7 +318,7 @@ export default function DTDODashboard() {
     () => [
       {
         key: "new-queue",
-        title: "New Applications",
+        title: "Incoming Queue",
         description: "DA forwards and DTDO reviews ready to start.",
         icon: FileText,
         actionCount: sortedForwarded.length + sortedUnderReview.length,
@@ -372,7 +394,7 @@ export default function DTDODashboard() {
       },
       {
         key: "corrections",
-        title: "Pending / Corrections",
+        title: "Awaiting Response",
         description: "Files reverted to owners for clarifications.",
         icon: AlertCircle,
         actionCount: sortedOwnerResubmitted.length,

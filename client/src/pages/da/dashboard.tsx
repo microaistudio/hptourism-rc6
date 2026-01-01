@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * ⚠️  LEGACY LAYOUT - OLD DA DASHBOARD
+ * ============================================================================
+ * 
+ * Route: /da/dashboard
+ * Status: LEGACY (kept for backward compatibility)
+ * 
+ * This is the ORIGINAL DA dashboard with stage-based pipeline view.
+ * 
+ * NEW LAYOUT: See /da/queue → pages/da/queue.tsx
+ * The new unified queue layout is the future direction.
+ * 
+ * DO NOT add new features here. All new development should go to:
+ *   - /da/queue (Unified Applications Queue)
+ *   - /da/inspections (Inspections - shared)
+ *   - /da/grievances (Grievances - new module)
+ * 
+ * This file will be deprecated once the new layout is stable.
+ * ============================================================================
+ */
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { isThisMonth, differenceInCalendarDays } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -63,6 +85,7 @@ export default function DADashboard() {
   const [activePill, setActivePill] = useState("new-queue-new");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [completedRange, setCompletedRange] = useState<"month" | "30d">("month");
+  const [amendmentSubType, setAmendmentSubType] = useState<"all" | "add_room" | "delete_room" | "upgrade_category">("all");
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const handleRefresh = () => {
@@ -201,6 +224,25 @@ export default function DADashboard() {
     return value.includes("amend") || value.includes("add_room") || value.includes("delete_room");
   }, []);
 
+  // Individual amendment type filters
+  const isAddRoomKind = useCallback((app: ApplicationWithOwner) => {
+    const kind = (app.applicationKind || (app as any).application_kind) as string | undefined;
+    const value = kind?.toLowerCase() || "";
+    return value === "add_rooms" || value.includes("add_room");
+  }, []);
+
+  const isDeleteRoomKind = useCallback((app: ApplicationWithOwner) => {
+    const kind = (app.applicationKind || (app as any).application_kind) as string | undefined;
+    const value = kind?.toLowerCase() || "";
+    return value === "delete_rooms" || value.includes("delete_room");
+  }, []);
+
+  const isUpgradeCategoryKind = useCallback((app: ApplicationWithOwner) => {
+    const kind = (app.applicationKind || (app as any).application_kind) as string | undefined;
+    const value = kind?.toLowerCase() || "";
+    return value === "change_category" || value.includes("upgrade");
+  }, []);
+
   const submittedNew = useMemo(
     () =>
       sortApplications(
@@ -218,6 +260,19 @@ export default function DADashboard() {
         submittedApplications.filter((app) => isAmendmentKind(app)),
       ),
     [submittedApplications, sortApplications, isAmendmentKind],
+  );
+  // Individual amendment type arrays
+  const submittedAddRoom = useMemo(
+    () => sortApplications(submittedApplications.filter((app) => isAddRoomKind(app))),
+    [submittedApplications, sortApplications, isAddRoomKind],
+  );
+  const submittedDeleteRoom = useMemo(
+    () => sortApplications(submittedApplications.filter((app) => isDeleteRoomKind(app))),
+    [submittedApplications, sortApplications, isDeleteRoomKind],
+  );
+  const submittedUpgradeCategory = useMemo(
+    () => sortApplications(submittedApplications.filter((app) => isUpgradeCategoryKind(app))),
+    [submittedApplications, sortApplications, isUpgradeCategoryKind],
   );
   const submittedModifications = useMemo(
     () =>
@@ -399,11 +454,11 @@ export default function DADashboard() {
   );
   const stageSummaries = useMemo(
     () => ({
-      new: `New ${submittedNew.length} · Amend ${submittedAmendments.length} · Mods ${submittedModifications.length}`,
+      new: `New Reg ${submittedNew.length} · Renewals 0 · Amend ${submittedAmendments.length} · Cancel ${submittedModifications.length}`,
       process: `Screening ${sortedUnderScrutiny.length} · Forwarded ${sortedForwarded.length}`,
       corrections: `Sent back ${sortedAwaitingOwners.length} · Resubmitted ${sortedResubmitted.length}`,
       inspections: `Scheduled ${scheduledInspections.length} · Reports ${completedInspectionsThisMonth.length}`,
-      completed: `Approved ${approvedCompleted.length} · RC Verified ${legacyRCVerified.length} · Rejected ${rejectedCompleted.length}`,
+      completed: `Approved ${approvedCompleted.length} · Rejected ${rejectedCompleted.length}`,
     }),
     [
       submittedNew.length,
@@ -425,14 +480,14 @@ export default function DADashboard() {
     () => [
       {
         key: "new-queue",
-        title: "New Applications",
-        description: "Fresh submissions waiting for you to start scrutiny.",
+        title: "Incoming Queue",
+        description: "New submissions ready for scrutiny.",
         icon: FileText,
         summary: stageSummaries.new,
         pills: [
           {
             value: "new-queue-new",
-            label: "New Application",
+            label: "New Registration",
             count: submittedNew.length,
             description: "Brand-new properties seeking recognition.",
             applications: submittedNew,
@@ -441,10 +496,20 @@ export default function DADashboard() {
             emptyDescription: "Every new application has been triaged.",
           },
           {
+            value: "new-queue-renewal",
+            label: "Renewals",
+            count: 0,
+            description: "RC renewals from existing registrations.",
+            applications: [],
+            actionLabel: "Start scrutiny",
+            emptyTitle: "No renewals pending",
+            emptyDescription: "Renewals will appear here 90 days before expiry.",
+          },
+          {
             value: "new-queue-amend",
             label: "Amendments",
             count: submittedAmendments.length,
-            description: "Add/remove room requests waiting to be reviewed.",
+            description: "Add/remove room and category upgrade requests.",
             applications: submittedAmendments,
             actionLabel: "Start scrutiny",
             emptyTitle: "No amendments",
@@ -493,8 +558,8 @@ export default function DADashboard() {
       },
       {
         key: "corrections",
-        title: "Pending / Corrections",
-        description: "Owner clarifications and resubmissions that need follow-up.",
+        title: "Awaiting Response",
+        description: "Sent back for corrections or awaiting resubmission.",
         icon: AlertCircle,
         summary: stageSummaries.corrections,
         pills: [
@@ -566,15 +631,7 @@ export default function DADashboard() {
             emptyTitle: "No approvals yet",
             emptyDescription: "Complete scrutiny + inspection to unlock approvals.",
           },
-          {
-            value: "completed-legacy-rc",
-            label: "Existing RC Verified",
-            count: legacyRCVerified.length,
-            description: "Existing RC registrations verified and onboarded.",
-            applications: legacyRCVerified,
-            emptyTitle: "No RC verifications yet",
-            emptyDescription: "Verified Existing RC registrations will appear here.",
-          },
+
           {
             value: "completed-rejected",
             label: "Rejected",
@@ -856,6 +913,61 @@ export default function DADashboard() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Amendment Sub-Pills Row - appears when Amendments tab is selected */}
+      {activePill === "new-queue-amend" && (
+        <div className="flex flex-wrap gap-2 bg-muted/20 p-2 rounded-xl mb-4 items-center ml-4 mr-4 border border-dashed border-border">
+          <span className="text-xs text-muted-foreground mr-2">Filter by:</span>
+          <button
+            type="button"
+            className={cn(
+              "px-3 py-1 rounded-full border text-xs font-medium transition-colors",
+              amendmentSubType === "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-white text-foreground border-border hover:bg-muted"
+            )}
+            onClick={() => setAmendmentSubType("all")}
+          >
+            All ({submittedAmendments.length})
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-3 py-1 rounded-full border text-xs font-medium transition-colors",
+              amendmentSubType === "add_room"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-white text-foreground border-border hover:bg-muted"
+            )}
+            onClick={() => setAmendmentSubType("add_room")}
+          >
+            Add Room ({submittedAddRoom.length})
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-3 py-1 rounded-full border text-xs font-medium transition-colors",
+              amendmentSubType === "delete_room"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-white text-foreground border-border hover:bg-muted"
+            )}
+            onClick={() => setAmendmentSubType("delete_room")}
+          >
+            Delete Room ({submittedDeleteRoom.length})
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-3 py-1 rounded-full border text-xs font-medium transition-colors",
+              amendmentSubType === "upgrade_category"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-white text-foreground border-border hover:bg-muted"
+            )}
+            onClick={() => setAmendmentSubType("upgrade_category")}
+          >
+            Upgrade Category ({submittedUpgradeCategory.length})
+          </button>
         </div>
       )}
 

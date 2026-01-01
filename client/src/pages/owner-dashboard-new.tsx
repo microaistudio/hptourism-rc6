@@ -18,6 +18,7 @@ import {
     Clock,
     CheckCircle2,
     AlertCircle,
+    AlertTriangle,
     RefreshCw,
     Plus,
     ChevronRight,
@@ -34,7 +35,9 @@ import type { User, HomestayApplication } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { isCorrectionRequiredStatus } from "@/constants/workflow";
-
+import { Trash2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 // Progress milestones for New Registration (full pipeline)
 const newRegistrationMilestones = [
     { id: "da_review", label: "With Dealing Assistant", short: "DA Review" },
@@ -150,6 +153,28 @@ export default function OwnerDashboardNew() {
     const [location, setLocation] = useLocation();
     const queryClient = useQueryClient();
     const [showReadinessDialog, setShowReadinessDialog] = useState(false);
+    const { toast } = useToast();
+
+    const handleDeleteDraft = async (applicationId: string) => {
+        if (!confirm("Are you sure you want to discard this draft? This action cannot be undone.")) {
+            return;
+        }
+        try {
+            await apiRequest("DELETE", `/api/applications/${applicationId}`);
+            toast({
+                title: "Draft discarded",
+                description: "Your draft application has been deleted.",
+            });
+            handleRefresh();
+        } catch (error) {
+            console.error("Failed to delete draft:", error);
+            toast({
+                title: "Error",
+                description: "Failed to discard draft. Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
 
     const handleRefresh = () => {
         queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
@@ -424,38 +449,79 @@ export default function OwnerDashboardNew() {
                                 </CardTitle>
                                 <CardDescription>Track your latest homestay application.</CardDescription>
                             </div>
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    if (primaryApplication.status === "draft") {
-                                        setLocation(`/applications/new?draft=${primaryApplication.id}`);
-                                    } else if (
-                                        primaryApplication.status === "sent_back_for_corrections" ||
-                                        primaryApplication.status === "reverted_to_applicant" ||
-                                        primaryApplication.status === "reverted_by_dtdo"
-                                    ) {
-                                        setLocation(`/applications/new?application=${primaryApplication.id}`);
-                                    } else {
-                                        setLocation(`/applications/${primaryApplication.id}`);
-                                    }
-                                }}
-                            >
-                                {primaryApplication.status === "draft" ? (
-                                    <>
-                                        <FileText className="w-4 h-4 mr-2" />
-                                        Resume Editing
-                                    </>
-                                ) : (
-                                    <>
-                                        View Details
-                                        <ChevronRight className="w-4 h-4 ml-2" />
-                                    </>
+                            <div className="flex gap-2">
+                                {primaryApplication.status === "draft" && (
+                                    <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        onClick={() => handleDeleteDraft(primaryApplication.id)}
+                                        title="Discard Draft"
+                                        className="bg-rose-100 text-rose-600 hover:bg-rose-200 border-rose-200 border shadow-none"
+                                        data-testid="button-discard-draft"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
                                 )}
-                            </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        if (primaryApplication.status === "draft") {
+                                            setLocation(`/applications/new?draft=${primaryApplication.id}`);
+                                        } else if (
+                                            primaryApplication.status === "sent_back_for_corrections" ||
+                                            primaryApplication.status === "reverted_to_applicant" ||
+                                            primaryApplication.status === "reverted_by_dtdo"
+                                        ) {
+                                            setLocation(`/applications/new?application=${primaryApplication.id}`);
+                                        } else {
+                                            setLocation(`/applications/${primaryApplication.id}`);
+                                        }
+                                    }}
+                                >
+                                    {primaryApplication.status === "draft" ? (
+                                        <>
+                                            <FileText className="w-4 h-4 mr-2" />
+                                            Resume Editing
+                                        </>
+                                    ) : (
+                                        <>
+                                            View Details
+                                            <ChevronRight className="w-4 h-4 ml-2" />
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
+                            {/* ACTION REQUIRED BANNER - Show when application needs corrections */}
+                            {(primaryApplication.status === "sent_back_for_corrections" ||
+                                primaryApplication.status === "reverted_to_applicant" ||
+                                primaryApplication.status === "reverted_by_dtdo") && (
+                                    <div className="flex items-start gap-3 rounded-lg border-2 border-orange-400 bg-orange-50 dark:bg-orange-900/20 p-4">
+                                        <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-orange-800 dark:text-orange-300">
+                                                Action Required
+                                            </h4>
+                                            <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
+                                                {primaryApplication.status === "reverted_by_dtdo"
+                                                    ? "The DTDO has requested revisions. Please review the remarks and make the necessary corrections."
+                                                    : "The Dealing Assistant has sent back your application for corrections. Please review and resubmit."}
+                                            </p>
+                                            <Button
+                                                className="mt-3 bg-orange-600 hover:bg-orange-700"
+                                                size="sm"
+                                                onClick={() => setLocation(`/applications/new?application=${primaryApplication.id}`)}
+                                            >
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                Review & Submit Corrections
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+
                             {/* Application Info */}
                             <div className="flex flex-wrap items-center gap-2">
                                 <h3 className="text-lg font-semibold">{primaryApplication.propertyName}</h3>
@@ -523,7 +589,8 @@ export default function OwnerDashboardNew() {
                         </div>
                     </CardContent>
                 </Card>
-            )}
+            )
+            }
 
             {/* Document Readiness Check Dialog */}
             <Dialog open={showReadinessDialog} onOpenChange={setShowReadinessDialog}>
@@ -531,10 +598,10 @@ export default function OwnerDashboardNew() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <ClipboardCheck className="w-6 h-6 text-emerald-600" />
-                            Before You Begin
+                            Documents Checklist
                         </DialogTitle>
                         <DialogDescription>
-                            Please ensure you have all required documents ready before starting your homestay registration.
+                            Keep these documents ready before you start your application. Having them ready will save time.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -564,27 +631,59 @@ export default function OwnerDashboardNew() {
 
                             <div className="grid gap-3">
                                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900">
-                                    <FileCheck className="w-5 h-5 text-emerald-600" />
-                                    <div>
-                                        <p className="font-medium text-sm">Revenue Papers / Property Documents</p>
-                                        <p className="text-xs text-muted-foreground">Proof of ownership</p>
+                                    <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="font-bold text-sm">Revenue Papers (Jamabandi/Tatima)</p>
+                                        <p className="text-xs text-muted-foreground">Land ownership proof from Tehsil office</p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900">
-                                    <FileCheck className="w-5 h-5 text-emerald-600" />
-                                    <div>
-                                        <p className="font-medium text-sm">Affidavit (Section 29)</p>
+                                    <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="font-bold text-sm">Affidavit (Section 29)</p>
                                         <p className="text-xs text-muted-foreground">Self-declaration affidavit as per rules</p>
                                     </div>
+                                    <a
+                                        href="/templates/affidavit-section-29.html"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded transition-colors shrink-0"
+                                    >
+                                        ↓ Format
+                                    </a>
                                 </div>
 
                                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900">
-                                    <FileCheck className="w-5 h-5 text-emerald-600" />
-                                    <div>
-                                        <p className="font-medium text-sm">Undertaking (Form-C)</p>
+                                    <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="font-bold text-sm">Undertaking (Form-C)</p>
                                         <p className="text-xs text-muted-foreground">Declaration of compliance with regulations</p>
                                     </div>
+                                    <a
+                                        href="/templates/form-c-undertaking.html"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded transition-colors shrink-0"
+                                    >
+                                        ↓ Format
+                                    </a>
+                                </div>
+
+                                <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed bg-slate-100 dark:bg-slate-800">
+                                    <FileCheck className="w-5 h-5 text-slate-500 shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="font-bold text-sm text-slate-700 dark:text-slate-300">Co-sharer Affidavit <span className="text-xs font-normal text-amber-600">(If joint ownership)</span></p>
+                                        <p className="text-xs text-muted-foreground">Required if property has multiple owners</p>
+                                    </div>
+                                    <a
+                                        href="/templates/co-sharer-affidavit.html"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 bg-slate-200 hover:bg-slate-300 rounded transition-colors shrink-0"
+                                    >
+                                        ↓ Format
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -600,7 +699,7 @@ export default function OwnerDashboardNew() {
                                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200">
                                     <CreditCard className="w-5 h-5 text-yellow-600" />
                                     <div>
-                                        <p className="font-medium text-sm">Commercial Electricity Bill</p>
+                                        <p className="font-bold text-sm">Commercial Electricity Bill</p>
                                         <p className="text-xs text-muted-foreground">Recent utility bill under commercial connection</p>
                                     </div>
                                 </div>
@@ -608,7 +707,7 @@ export default function OwnerDashboardNew() {
                                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200">
                                     <CreditCard className="w-5 h-5 text-yellow-600" />
                                     <div>
-                                        <p className="font-medium text-sm">Commercial Water Bill</p>
+                                        <p className="font-bold text-sm">Commercial Water Bill</p>
                                         <p className="text-xs text-muted-foreground">Recent water utility bill</p>
                                     </div>
                                 </div>
@@ -653,7 +752,7 @@ export default function OwnerDashboardNew() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }
 
