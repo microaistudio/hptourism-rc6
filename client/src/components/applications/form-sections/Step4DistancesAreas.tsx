@@ -268,7 +268,7 @@ export function Step4DistancesAreas({
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-6 space-y-6">
+                            <div className="p-6 space-y-6 bg-slate-50/50">
                                 {/* Inspection Notice */}
                                 <Alert className="bg-blue-50/50 border-blue-100">
                                     <Info className="h-4 w-4 text-blue-600" />
@@ -278,7 +278,7 @@ export function Step4DistancesAreas({
                                 </Alert>
 
                                 {/* Auto-verified items - Premium Card Layout */}
-                                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-5 border border-emerald-100">
+                                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-5 border border-emerald-200 shadow-sm">
                                     <h3 className="text-sm font-bold text-emerald-800 mb-4 flex items-center gap-2">
                                         <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
                                             <CheckCircle2 className="w-4 h-4 text-white" />
@@ -305,7 +305,7 @@ export function Step4DistancesAreas({
                                 </div>
 
                                 {/* Manual items - Premium Section */}
-                                <div className="bg-gradient-to-r from-slate-50 to-indigo-50/50 rounded-xl p-5 border border-indigo-100">
+                                <div className="bg-gradient-to-r from-slate-50 to-indigo-50/50 rounded-xl p-5 border border-indigo-200 shadow-sm">
                                     <div className="flex items-center justify-between mb-5">
                                         <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-3">
                                             <div className={`w-6 h-6 rounded-full flex items-center justify-center ${manualCheckedCount === manualItemsCount ? 'bg-emerald-500' : 'bg-indigo-500'}`}>

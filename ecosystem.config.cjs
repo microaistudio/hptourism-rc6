@@ -1,8 +1,10 @@
 module.exports = {
   apps: [
     {
-      name: "hptourism",
+      name: "hptourism-rc5dev1",
       script: "dist/index.js",
+      instances: 2,
+      exec_mode: "cluster",
       cwd: __dirname,
       node_args: "--enable-source-maps",
       env: {
@@ -38,8 +40,8 @@ module.exports = {
         LOG_FILE_ROTATE_INTERVAL: process.env.LOG_FILE_ROTATE_INTERVAL || "1d",
         LOG_TRACE_PAYMENTS: process.env.LOG_TRACE_PAYMENTS || "false",
       },
-      exec_mode: "fork",
-      instances: 1,
+      exec_mode: "cluster",
+      instances: "max",
       autorestart: true,
       watch: false,
       max_memory_restart: "512M",

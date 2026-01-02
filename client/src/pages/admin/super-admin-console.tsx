@@ -307,7 +307,9 @@ export default function SuperAdminConsole() {
   const [staffCsvName, setStaffCsvName] = useState("");
   const [staffCsvText, setStaffCsvText] = useState("");
   const [staffDryRun, setStaffDryRun] = useState(true);
+
   const [staffImportResult, setStaffImportResult] = useState<StaffImportResponse | null>(null);
+  const [hardDeleteLogs, setHardDeleteLogs] = useState(false);
 
   // Granular reset state
   const [granularResetDialog, setGranularResetDialog] = useState({
@@ -589,6 +591,36 @@ export default function SuperAdminConsole() {
         (source as any).allowFallback === undefined ? true : Boolean((source as any).allowFallback),
     });
   }, [himkoshGatewayData]);
+
+
+
+  const { data: systemStatus, refetch: refetchSystemStatus, isLoading: systemStatusLoading } = useQuery({
+    queryKey: ["/api/admin/system/status"],
+  });
+
+  const scaleSystemMutation = useMutation({
+    mutationFn: async (instances: number) => {
+      const response = await apiRequest("POST", "/api/admin/system/scale", { instances });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Scaling Initiated",
+        description: data.message,
+      });
+      refetchSystemStatus();
+      // Reload after delay to allow PM2 to restart processes
+      setTimeout(() => window.location.reload(), 2000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Scaling Failed",
+        description: error.message || "Failed to scale instances",
+        variant: "destructive",
+      });
+    },
+  });
+
   const latestTransactions = himkoshActivity?.transactions ?? [];
   const totalHimkoshTransactions = himkoshActivity?.total ?? 0;
   const selectedTransaction = transactionDialog.transaction;
@@ -805,6 +837,29 @@ export default function SuperAdminConsole() {
     onError: (error: any) => {
       toast({
         title: "Failed to update multi-service setting",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Clear HimKosh Log Mutation
+  const clearHimkoshLogMutation = useMutation({
+    mutationFn: async (hardDelete: boolean) => {
+      const response = await apiRequest("POST", "/api/himkosh/transactions/clear", { hardDelete });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Logs Cleared",
+        description: data.message,
+      });
+      setClearLogDialog({ open: false, confirmationText: "" });
+      refetchHimkoshActivity();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to clear logs",
         description: error.message || "An error occurred",
         variant: "destructive",
       });
@@ -1190,30 +1245,7 @@ export default function SuperAdminConsole() {
 
   const canSaveGateway = !gatewayRequiredMissing && !updateHimkoshGatewayMutation.isPending;
 
-  const clearHimkoshLogMutation = useMutation({
-    mutationFn: async ({ confirmationText }: { confirmationText: string }) => {
-      const response = await apiRequest("POST", "/api/admin/payments/himkosh/transactions/clear", {
-        confirmationText,
-      });
-      const payload = await response.json();
-      return payload as { success: boolean; deleted: number };
-    },
-    onSuccess: (payload) => {
-      toast({
-        title: "HimKosh log cleared",
-        description: `Removed ${payload.deleted} transactions`,
-      });
-      setClearLogDialog({ open: false, confirmationText: "" });
-      refetchHimkoshActivity();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to clear HimKosh log",
-        description: error?.message || "An error occurred while deleting records",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const ddoTestMutation = useMutation({
     mutationFn: async () => {
@@ -1412,6 +1444,81 @@ export default function SuperAdminConsole() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* System Process Status (PM2) */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-primary" />
+                    <CardTitle>Process Scaling (PM2)</CardTitle>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => refetchSystemStatus()} disabled={systemStatusLoading}>
+                    <RefreshCw className={`w-4 h-4 mr-2 ${systemStatusLoading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
+                <CardDescription>Manage application instances for load balancing.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {systemStatusLoading ? (
+                  <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin" /></div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Active Instances</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold text-primary">{systemStatus?.instances ?? "—"}</span>
+                          <span className="text-sm text-muted-foreground">running processes</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground mb-1">Total Memory</p>
+                        <p className="font-mono font-medium">
+                          {systemStatus?.processes?.reduce((acc: number, p: any) => acc + (p.memory || 0), 0)
+                            ? Math.round(systemStatus.processes.reduce((acc: number, p: any) => acc + (p.memory || 0), 0) / 1024 / 1024) + " MB"
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label>Scale Instances</Label>
+                      <div className="flex items-center gap-4">
+                        <Select
+                          disabled={scaleSystemMutation.isPending}
+                          onValueChange={(val) => scaleSystemMutation.mutate(parseInt(val))}
+                          defaultValue={systemStatus?.instances?.toString()}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select count" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 8 }, (_, i) => i + 1).map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num} {num === 1 ? "Instance" : "Instances"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-muted-foreground">
+                          Recommended: <strong>2-4</strong> for production. Max 8.
+                        </p>
+                      </div>
+                      {scaleSystemMutation.isPending && (
+                        <div className="flex items-center gap-2 text-sm text-amber-600 mt-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Scaling in progress... (this may trigger a reload)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+
 
             {/* System Statistics */}
             <Card className="lg:col-span-2">
@@ -3053,6 +3160,60 @@ export default function SuperAdminConsole() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Clear HimKosh Log Dialog */}
+      <AlertDialog open={clearLogDialog.open} onOpenChange={(open) => {
+        if (!open) setClearLogDialog({ open: false, confirmationText: "" });
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear HimKosh Logs</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove recent transactions from the admin view.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-start gap-3 p-3 border rounded-md bg-muted/50">
+              <Switch
+                id="hard-delete-switch"
+                checked={hardDeleteLogs}
+                onCheckedChange={setHardDeleteLogs}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="hard-delete-switch" className="flex items-center gap-2 font-medium">
+                  Permanently delete from database
+                  {hardDeleteLogs && <Badge variant="destructive" className="text-[10px] h-5">Destructive</Badge>}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  If unchecked, logs are only <strong>archived</strong> (soft delete) and can be restored by DB admin.
+                  If checked, they are <strong>wiped forever</strong>.
+                </p>
+              </div>
+            </div>
+
+            {hardDeleteLogs && (
+              <div className="space-y-2">
+                <Label>Type "CLEAR" to confirm permanent deletion</Label>
+                <Input
+                  value={clearLogDialog.confirmationText}
+                  onChange={(e) => setClearLogDialog(prev => ({ ...prev, confirmationText: e.target.value.toUpperCase() }))}
+                  placeholder="CLEAR"
+                />
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={hardDeleteLogs ? "bg-destructive hover:bg-destructive/90" : ""}
+              disabled={hardDeleteLogs && clearLogDialog.confirmationText !== "CLEAR"}
+              onClick={() => clearHimkoshLogMutation.mutate(hardDeleteLogs)}
+            >
+              {hardDeleteLogs ? "Permanently Delete" : "Archive Logs"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog
         open={transactionDialog.open && Boolean(selectedTransaction)}
         onOpenChange={(open) => {
@@ -3115,6 +3276,6 @@ export default function SuperAdminConsole() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

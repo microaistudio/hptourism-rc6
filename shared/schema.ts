@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -189,6 +189,12 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    mobileIdx: index("users_mobile_idx").on(table.mobile),
+    roleIdx: index("users_role_idx").on(table.role),
+    districtIdx: index("users_district_idx").on(table.district),
+  };
 });
 
 export const insertUserSchema = createInsertSchema(users, {
@@ -1204,6 +1210,8 @@ export const himkoshTransactions = pgTable("himkosh_transactions", {
   verifiedAt: timestamp("verified_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // Archival Flag (for soft deletes in Admin Console)
+  isArchived: boolean("is_archived").default(false),
 });
 
 export const insertHimkoshTransactionSchema = createInsertSchema(himkoshTransactions, {
@@ -1517,7 +1525,6 @@ export const clarifications = pgTable("clarifications", {
   reviewNotes: text("review_notes"),
 
   // Timestamps
-  createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -1775,6 +1782,7 @@ export type LgdUrbanBody = typeof lgdUrbanBodies.$inferSelect;
 export const grievances = pgTable("grievances", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(), // e.g. GRV-2025-001
+  ticketType: varchar("ticket_type", { length: 20 }).default('owner_grievance'), // 'owner_grievance' | 'internal_ticket'
   userId: varchar("user_id").references(() => users.id),
   applicationId: varchar("application_id").references(() => homestayApplications.id),
 
@@ -1801,7 +1809,8 @@ export const grievances = pgTable("grievances", {
 });
 
 export const insertGrievanceSchema = createInsertSchema(grievances, {
-  category: z.enum(['payment', 'application', 'portal', 'other']),
+  ticketType: z.enum(['owner_grievance', 'internal_ticket']).optional().default('owner_grievance'),
+  category: z.enum(['payment', 'application', 'portal', 'policy_query', 'system_issue', 'other']),
   priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   status: z.enum(['open', 'in_progress', 'resolved', 'closed']).optional(),
   subject: z.string().min(5, "Subject must be at least 5 characters"),
@@ -1854,5 +1863,17 @@ export const grievanceAuditLog = pgTable("grievance_audit_log", {
   ipAddress: varchar("ip_address", { length: 50 }),
   userAgent: text("user_agent"),
 });
+
+// Session Table (for connect-pg-simple)
+export const sessions = pgTable("session", {
+  sid: varchar("sid").primaryKey().notNull(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+}, (table) => {
+  return {
+    expireIdx: index("IDX_session_expire").on(table.expire),
+  };
+});
+
 
 export type GrievanceAuditLog = typeof grievanceAuditLog.$inferSelect;

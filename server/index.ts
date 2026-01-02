@@ -29,7 +29,7 @@ app.use(helmet({
     preload: true,
   },
   frameguard: {
-    action: "deny",
+    action: "sameorigin",
   },
 }));
 

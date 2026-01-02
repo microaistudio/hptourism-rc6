@@ -170,7 +170,7 @@ export function Step2OwnerInfo({
                                                 defaultValue={field.value}
                                             >
                                                 <FormControl>
-                                                    <SelectTrigger className={`h-11 ${fieldState.invalid ? "border-destructive" : ""}`}>
+                                                    <SelectTrigger className={`h-11 ${fieldState.invalid ? "border-destructive" : ""} ${showRequiredWarning && !field.value ? "border-amber-400 ring-2 ring-amber-200" : ""}`}>
                                                         <SelectValue placeholder="Select" />
                                                     </SelectTrigger>
                                                 </FormControl>

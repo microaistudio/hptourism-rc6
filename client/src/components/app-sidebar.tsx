@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { APP_VERSION, SERVER_ID } from "@/config/version";
 import {
   Sidebar,
   SidebarContent,
@@ -272,6 +273,14 @@ export function AppSidebar() {
               {getRoleLabel(user.role)}
             </p>
           </div>
+        </div>
+        {/* Version Badge */}
+        <div className="mt-3 pt-3 border-t border-dashed flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            v{APP_VERSION}
+          </span>
+          <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded">{SERVER_ID}</span>
         </div>
       </SidebarFooter>
     </Sidebar>

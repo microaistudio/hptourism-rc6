@@ -67,37 +67,29 @@ const priorityColors: Record<string, string> = {
 };
 
 export default function GrievanceReports() {
-    const { data: summary, isLoading: summaryLoading } = useQuery<SummaryData>({
-        queryKey: ["/api/grievances/reports/summary"],
-    });
-
-    const { data: byCategory } = useQuery<CategoryData[]>({
-        queryKey: ["/api/grievances/reports/by-category"],
-    });
-
-    const { data: byStatus } = useQuery<StatusData[]>({
-        queryKey: ["/api/grievances/reports/by-status"],
-    });
-
-    const { data: byPriority } = useQuery<PriorityData[]>({
-        queryKey: ["/api/grievances/reports/by-priority"],
-    });
-
-    const { data: monthlyTrend } = useQuery<MonthlyData[]>({
-        queryKey: ["/api/grievances/reports/monthly-trend"],
+    const { data: dashboardStats, isLoading } = useQuery<{
+        summary: SummaryData;
+        byCategory: CategoryData[];
+        byStatus: StatusData[];
+        byPriority: PriorityData[];
+        monthlyTrend: MonthlyData[];
+    }>({
+        queryKey: ["/api/grievances/reports/dashboard-stats"],
     });
 
     const handleExportCSV = () => {
         window.open("/api/grievances/reports/export", "_blank");
     };
 
-    if (summaryLoading) {
+    if (isLoading || !dashboardStats) {
         return (
             <div className="flex justify-center items-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
+
+    const { summary, byCategory, byStatus, byPriority, monthlyTrend } = dashboardStats;
 
     const totals = summary?.totals || { total: 0, open: 0, inProgress: 0, resolved: 0, closed: 0 };
     const maxCount = Math.max(...(byCategory?.map(c => c.count) || [1]));

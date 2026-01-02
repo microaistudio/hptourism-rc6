@@ -1030,11 +1030,13 @@ router.get('/transactions', async (req, res) => {
 
     const [countResult] = await db
       .select({ count: sql<string>`count(*)` })
-      .from(himkoshTransactions);
+      .from(himkoshTransactions)
+      .where(eq(himkoshTransactions.isArchived, false));
 
     const transactions = await db
       .select()
       .from(himkoshTransactions)
+      .where(eq(himkoshTransactions.isArchived, false))
       .orderBy(desc(himkoshTransactions.createdAt))
       .limit(limit)
       .offset(offset);
@@ -1048,6 +1050,50 @@ router.get('/transactions', async (req, res) => {
   } catch (error) {
     himkoshLogger.error({ err: error, route: req.path }, "Error fetching transactions");
     res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+/**
+ * POST /api/himkosh/transactions/clear
+ * Clear or Delete logs (Super Admin Only)
+ */
+router.post('/transactions/clear', async (req, res) => {
+  try {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { hardDelete } = req.body;
+
+    // Strict Super Admin Check
+    const user = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, sessionUserId))
+      .limit(1);
+
+    if (user[0]?.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only Super Admin can clear logs' });
+    }
+
+    if (hardDelete) {
+      // Hard Delete: Actually remove rows
+      await db.delete(himkoshTransactions);
+      himkoshLogger.warn({ userId: sessionUserId }, "HimKosh logs HARD deleted by Super Admin");
+      res.json({ message: "All HimKosh transaction logs permanently deleted." });
+    } else {
+      // Soft Delete: Archive them (hide from UI)
+      await db
+        .update(himkoshTransactions)
+        .set({ isArchived: true })
+        .where(eq(himkoshTransactions.isArchived, false));
+      himkoshLogger.info({ userId: sessionUserId }, "HimKosh logs archived (soft cleared) by Super Admin");
+      res.json({ message: "Transaction list cleared (archived)." });
+    }
+  } catch (error) {
+    himkoshLogger.error({ err: error }, "Failed to clear transactions");
+    res.status(500).json({ error: 'Failed to clear transactions' });
   }
 });
 

@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Grievance {
     id: string;
     ticketNumber: string;
+    ticketType?: string; // 'owner_grievance' | 'internal_ticket'
     userId: string;
     applicationId?: string | null;
     category: string;
@@ -96,8 +97,20 @@ export function GrievancesView({ role = 'da' }: GrievancesViewProps) {
     const [newComment, setNewComment] = useState("");
     const [showAuditLog, setShowAuditLog] = useState(false);
 
+    // Two-tier system: track which ticket type view is active
+    const [activeTicketType, setActiveTicketType] = useState<'owner_grievance' | 'internal_ticket'>('owner_grievance');
+    const [showCreateInternalDialog, setShowCreateInternalDialog] = useState(false);
+    const [newInternalSubject, setNewInternalSubject] = useState("");
+    const [newInternalDescription, setNewInternalDescription] = useState("");
+    const [newInternalCategory, setNewInternalCategory] = useState("policy_query");
+
+    // Fetch grievances based on active ticket type
     const { data: grievances, isLoading } = useQuery<Grievance[]>({
-        queryKey: ["/api/grievances"],
+        queryKey: ["/api/grievances", { type: activeTicketType }],
+        queryFn: async () => {
+            const response = await apiRequest("GET", `/api/grievances?type=${activeTicketType}`);
+            return response.json();
+        },
     });
 
     // Fetch unread count
@@ -146,12 +159,35 @@ export function GrievancesView({ role = 'da' }: GrievancesViewProps) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/grievances", selectedGrievance?.id] });
-            queryClient.invalidateQueries({ queryKey: ["/api/grievances"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/grievances", { type: activeTicketType }] });
             toast({ title: "Reply Sent", description: "Your reply has been added to the ticket." });
             setNewComment("");
         },
         onError: () => {
             toast({ title: "Error", description: "Failed to send reply.", variant: "destructive" });
+        },
+    });
+
+    // Mutation to create internal ticket
+    const createInternalMutation = useMutation({
+        mutationFn: async (data: { subject: string; description: string; category: string }) => {
+            const response = await apiRequest("POST", "/api/grievances", {
+                ...data,
+                ticketType: "internal_ticket",
+            });
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/grievances", { type: "internal_ticket" }] });
+            toast({ title: "Internal Ticket Created", description: "Your ticket has been submitted to DTDO." });
+            setShowCreateInternalDialog(false);
+            setNewInternalSubject("");
+            setNewInternalDescription("");
+            setNewInternalCategory("policy_query");
+            setActiveTicketType("internal_ticket"); // Switch to internal tab
+        },
+        onError: () => {
+            toast({ title: "Error", description: "Failed to create internal ticket.", variant: "destructive" });
         },
     });
 
@@ -164,6 +200,7 @@ export function GrievancesView({ role = 'da' }: GrievancesViewProps) {
             resolutionNotes: resolutionNotes || undefined,
         });
     };
+
 
     const handleSendReply = () => {
         if (!selectedGrievance?.id || !newComment.trim()) return;
@@ -284,10 +321,21 @@ export function GrievancesView({ role = 'da' }: GrievancesViewProps) {
                             )}
                         </div>
                         <p className="text-sm text-gray-500">
-                            Review and resolve grievances submitted by property owners.
+                            {activeTicketType === 'owner_grievance'
+                                ? 'Review and resolve grievances submitted by property owners.'
+                                : 'Internal staff tickets for DA-DTDO communication.'}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        {activeTicketType === 'internal_ticket' && (
+                            <Button
+                                size="sm"
+                                className="bg-amber-600 hover:bg-amber-700"
+                                onClick={() => setShowCreateInternalDialog(true)}
+                            >
+                                + Create Internal Ticket
+                            </Button>
+                        )}
                         <a href={role === 'dtdo' ? "/dtdo/grievance-reports" : "/da/grievance-reports"}>
                             <Button variant="outline" size="sm">
                                 <BarChart2 className="w-4 h-4 mr-1" />
@@ -295,11 +343,36 @@ export function GrievancesView({ role = 'da' }: GrievancesViewProps) {
                             </Button>
                         </a>
                         <Badge variant="outline" className="text-sm">
-                            {allGrievances.length} total grievances
+                            {allGrievances.length} total
                         </Badge>
                     </div>
                 </div>
 
+                {/* Primary Tabs: Owner Grievances vs Internal Tickets */}
+                <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit">
+                    <button
+                        onClick={() => setActiveTicketType('owner_grievance')}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTicketType === 'owner_grievance'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-slate-600 hover:bg-white/50'
+                            }`}
+                    >
+                        <User className="w-4 h-4 inline mr-2" />
+                        Owner Grievances
+                    </button>
+                    <button
+                        onClick={() => setActiveTicketType('internal_ticket')}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTicketType === 'internal_ticket'
+                            ? 'bg-amber-600 text-white shadow-sm'
+                            : 'text-slate-600 hover:bg-white/50'
+                            }`}
+                    >
+                        <MessageSquare className="w-4 h-4 inline mr-2" />
+                        Internal Tickets
+                    </button>
+                </div>
+
+                {/* Secondary Tabs: Status Filter */}
                 <Tabs defaultValue="all" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
                         <TabsTrigger value="all">All ({allGrievances.length})</TabsTrigger>
@@ -535,6 +608,84 @@ export function GrievancesView({ role = 'da' }: GrievancesViewProps) {
                                 Update Details
                             </Button>
                         )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create Internal Ticket Dialog */}
+            <Dialog open={showCreateInternalDialog} onOpenChange={setShowCreateInternalDialog}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5 text-amber-600" />
+                            Create Internal Ticket
+                        </DialogTitle>
+                        <DialogDescription>
+                            Create a ticket for DTDO review. This will NOT be visible to property owners.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label htmlFor="int-category" className="text-sm font-medium">Category</Label>
+                            <Select value={newInternalCategory} onValueChange={setNewInternalCategory}>
+                                <SelectTrigger id="int-category" className="mt-1">
+                                    <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="policy_query">Policy Query</SelectItem>
+                                    <SelectItem value="system_issue">System Issue</SelectItem>
+                                    <SelectItem value="application">Application Clarification</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="int-subject" className="text-sm font-medium">Subject</Label>
+                            <input
+                                id="int-subject"
+                                type="text"
+                                value={newInternalSubject}
+                                onChange={(e) => setNewInternalSubject(e.target.value)}
+                                placeholder="Brief description of the issue"
+                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="int-description" className="text-sm font-medium">Description</Label>
+                            <Textarea
+                                id="int-description"
+                                value={newInternalDescription}
+                                onChange={(e) => setNewInternalDescription(e.target.value)}
+                                placeholder="Provide details about the issue or query..."
+                                className="mt-1"
+                                rows={4}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowCreateInternalDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-amber-600 hover:bg-amber-700"
+                            onClick={() => {
+                                if (newInternalSubject.trim() && newInternalDescription.trim()) {
+                                    createInternalMutation.mutate({
+                                        subject: newInternalSubject.trim(),
+                                        description: newInternalDescription.trim(),
+                                        category: newInternalCategory,
+                                    });
+                                }
+                            }}
+                            disabled={!newInternalSubject.trim() || !newInternalDescription.trim() || createInternalMutation.isPending}
+                        >
+                            {createInternalMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Create Ticket
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

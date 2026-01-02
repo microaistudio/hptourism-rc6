@@ -31,7 +31,7 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     sourcemap: true,
-    minify: false,
+    minify: true,
     rollupOptions: {
       output: {
         entryFileNames: "assets/index.js",

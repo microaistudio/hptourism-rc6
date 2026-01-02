@@ -420,6 +420,7 @@ const draftSchema = z.object({
   distanceBusStand: z.number().optional(),
   projectType: z.enum(["new_property", "existing_property", "new_project", "new_rooms"]).optional(),
   propertyArea: z.number().optional(),
+  propertyAreaUnit: z.enum(["sqm", "sqft", "kanal", "marla", "bigha", "biswa"]).optional(),
   singleBedRooms: z.number().optional(),
   singleBedBeds: z.number().optional(),
   singleBedRoomSize: z.number().optional(),
@@ -1868,7 +1869,8 @@ export default function NewApplication() {
   const step1FieldsMissing = !propertyName?.trim() || !district?.trim() || !address?.trim() || !locationType || !pincodeIsValid || tehsilMissing || gramPanchayatMissing;
 
   // Step 2 required field check
-  const step2FieldsMissing = !guardianName?.trim() || guardianName.trim().length < 3;
+  const guardianRelation = form.watch("guardianRelation");
+  const step2FieldsMissing = !guardianRelation || !guardianName?.trim() || guardianName.trim().length < 3;
 
   const isNextDisabled = step === 1
     ? step1FieldsMissing
@@ -2085,6 +2087,7 @@ export default function NewApplication() {
       familySuiteRate: 0,
       projectType: "new_project",
       propertyArea: 0,
+      propertyAreaUnit: "sqm",
       singleBedRooms: 0,
       singleBedBeds: 1,
       singleBedRoomSize: undefined,

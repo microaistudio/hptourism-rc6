@@ -1,4 +1,5 @@
 import express from "express";
+import { exec } from "node:child_process";
 import { ne, eq } from "drizzle-orm";
 import { requireRole } from "../core/middleware";
 import { db } from "../../db";
@@ -425,6 +426,63 @@ export function createAdminDevopsRouter() {
       log.error("[admin] LGD import failed:", error);
       res.status(500).json({ message: "Failed to import LGD data", error: String(error) });
     }
+  });
+
+  // PM2 System Scaling Endpoints
+  router.get("/system/status", requireRole("super_admin"), async (req, res) => {
+    exec('pm2 jlist', (error: any, stdout: string, stderr: string) => {
+      if (error) {
+        log.error({ err: error, stderr }, "Failed to get PM2 status");
+        return res.status(500).json({ error: "Failed to get system status" });
+      }
+      try {
+        const processes = JSON.parse(stdout);
+        const appProcesses = processes.filter((p: any) => p.name === 'hptourism-rc5dev1' || p.name === 'hptourism');
+        const instances = appProcesses.length;
+        res.json({
+          instances, processes: appProcesses.map((p: any) => ({
+            pm_id: p.pm_id,
+            status: p.pm2_env.status,
+            memory: p.monit.memory,
+            cpu: p.monit.cpu,
+            uptime: p.pm2_env.pm_uptime
+          }))
+        });
+      } catch (parseError) {
+        log.error({ err: parseError }, "Failed to parse PM2 output");
+        res.status(500).json({ error: "Invalid system status output" });
+      }
+    });
+  });
+
+  router.post("/system/scale", requireRole("super_admin"), async (req, res) => {
+    const { instances } = req.body;
+    const count = parseInt(instances);
+
+    if (isNaN(count) || count < 1 || count > 8) {
+      return res.status(400).json({ error: "Instances must be between 1 and 8" });
+    }
+
+    // Determine app name (try both common names)
+    exec('pm2 jlist', (error: any, stdout: string) => {
+      let appName = 'hptourism'; // Default
+      try {
+        const processes = JSON.parse(stdout);
+        const found = processes.find((p: any) => p.name === 'hptourism-rc5dev1' || p.name === 'hptourism');
+        if (found) appName = found.name;
+      } catch (e) { /* ignore */ }
+
+      const command = `pm2 scale ${appName} ${count}`;
+      log.info({ command, userId: req.session.userId }, "Scaling system instances");
+
+      exec(command, (scaleError: any, scaleStdout: string, scaleStderr: string) => {
+        if (scaleError) {
+          log.error({ err: scaleError, stderr: scaleStderr }, "Failed to scale instances");
+          return res.status(500).json({ error: "Scaling operation failed" });
+        }
+        res.json({ success: true, message: `System scaled to ${count} instances`, output: scaleStdout });
+      });
+    });
   });
 
   return router;

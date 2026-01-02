@@ -17,6 +17,267 @@ function isOfficer(role: string): boolean {
     return ['dealing_assistant', 'district_tourism_officer', 'district_officer', 'state_officer', 'admin', 'super_admin'].includes(role);
 }
 
+// GET all dashboard stats in one go
+router.get("/dashboard-stats", async (req, res) => {
+    if (!req.session.userId) return res.sendStatus(401);
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user || !isOfficer(user.role)) return res.sendStatus(403);
+
+    try {
+        // 1. Totals
+        const [totals] = await db.select({
+            total: count(),
+            open: sql<number>`count(*) filter (where status = 'open')`,
+            inProgress: sql<number>`count(*) filter (where status = 'in_progress')`,
+            resolved: sql<number>`count(*) filter (where status = 'resolved')`,
+            closed: sql<number>`count(*) filter (where status = 'closed')`,
+        }).from(grievances);
+
+        // 2. Avg Resolution
+        const [avgResolution] = await db.select({
+            avgDays: sql<number>`
+                avg(extract(epoch from (resolved_at - created_at)) / 86400)
+                filter (where resolved_at is not null)
+            `,
+        }).from(grievances);
+
+        // 3. Last 30 Days Stats
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const [recent] = await db.select({
+            newTickets: count(),
+            resolvedTickets: sql<number>`count(*) filter (where resolved_at is not null)`,
+        }).from(grievances).where(gte(grievances.createdAt, thirtyDaysAgo));
+
+        // 4. By Category
+        const byCategory = await db.select({
+            category: grievances.category,
+            count: count(),
+        }).from(grievances).groupBy(grievances.category);
+
+        // 5. By Status
+        const byStatus = await db.select({
+            status: grievances.status,
+            count: count(),
+        }).from(grievances).groupBy(grievances.status);
+
+        // 6. By Priority
+        const byPriority = await db.select({
+            priority: grievances.priority,
+            count: count(),
+        }).from(grievances).groupBy(grievances.priority);
+
+        // 7. Monthly Trend
+        const monthlyTrend = await db.select({
+            month: sql<string>`to_char(created_at, 'YYYY-MM')`,
+            count: count(),
+        })
+            .from(grievances)
+            .where(gte(grievances.createdAt, sql`now() - interval '6 months'`))
+            .groupBy(sql`to_char(created_at, 'YYYY-MM')`)
+            .orderBy(sql`to_char(created_at, 'YYYY-MM')`);
+
+        res.json({
+            summary: {
+                totals: {
+                    total: Number(totals.total) || 0,
+                    open: Number(totals.open) || 0,
+                    inProgress: Number(totals.inProgress) || 0,
+                    resolved: Number(totals.resolved) || 0,
+                    closed: Number(totals.closed) || 0,
+                },
+                averageResolutionDays: Math.round((Number(avgResolution.avgDays) || 0) * 10) / 10,
+                last30Days: {
+                    newTickets: Number(recent.newTickets) || 0,
+                    resolvedTickets: Number(recent.resolvedTickets) || 0,
+                },
+            },
+            byCategory: byCategory.map(r => ({ category: r.category, count: Number(r.count) })),
+            byStatus: byStatus.map(r => ({ status: r.status || 'open', count: Number(r.count) })),
+            byPriority: byPriority.map(r => ({ priority: r.priority || 'medium', count: Number(r.count) })),
+            monthlyTrend: monthlyTrend.map(r => ({ month: r.month, count: Number(r.count) })),
+        });
+    } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+});
+
+// GET all dashboard stats in one go
+router.get("/dashboard-stats", async (req, res) => {
+    if (!req.session.userId) return res.sendStatus(401);
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user || !isOfficer(user.role)) return res.sendStatus(403);
+
+    try {
+        // 1. Totals
+        const [totals] = await db.select({
+            total: count(),
+            open: sql<number>`count(*) filter (where status = 'open')`,
+            inProgress: sql<number>`count(*) filter (where status = 'in_progress')`,
+            resolved: sql<number>`count(*) filter (where status = 'resolved')`,
+            closed: sql<number>`count(*) filter (where status = 'closed')`,
+        }).from(grievances);
+
+        // 2. Avg Resolution
+        const [avgResolution] = await db.select({
+            avgDays: sql<number>`
+                avg(extract(epoch from (resolved_at - created_at)) / 86400)
+                filter (where resolved_at is not null)
+            `,
+        }).from(grievances);
+
+        // 3. Last 30 Days Stats
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const [recent] = await db.select({
+            newTickets: count(),
+            resolvedTickets: sql<number>`count(*) filter (where resolved_at is not null)`,
+        }).from(grievances).where(gte(grievances.createdAt, thirtyDaysAgo));
+
+        // 4. By Category
+        const byCategory = await db.select({
+            category: grievances.category,
+            count: count(),
+        }).from(grievances).groupBy(grievances.category);
+
+        // 5. By Status
+        const byStatus = await db.select({
+            status: grievances.status,
+            count: count(),
+        }).from(grievances).groupBy(grievances.status);
+
+        // 6. By Priority
+        const byPriority = await db.select({
+            priority: grievances.priority,
+            count: count(),
+        }).from(grievances).groupBy(grievances.priority);
+
+        // 7. Monthly Trend
+        const monthlyTrend = await db.select({
+            month: sql<string>`to_char(created_at, 'YYYY-MM')`,
+            count: count(),
+        })
+            .from(grievances)
+            .where(gte(grievances.createdAt, sql`now() - interval '6 months'`))
+            .groupBy(sql`to_char(created_at, 'YYYY-MM')`)
+            .orderBy(sql`to_char(created_at, 'YYYY-MM')`);
+
+        res.json({
+            summary: {
+                totals: {
+                    total: Number(totals.total) || 0,
+                    open: Number(totals.open) || 0,
+                    inProgress: Number(totals.inProgress) || 0,
+                    resolved: Number(totals.resolved) || 0,
+                    closed: Number(totals.closed) || 0,
+                },
+                averageResolutionDays: Math.round((Number(avgResolution.avgDays) || 0) * 10) / 10,
+                last30Days: {
+                    newTickets: Number(recent.newTickets) || 0,
+                    resolvedTickets: Number(recent.resolvedTickets) || 0,
+                },
+            },
+            byCategory: byCategory.map(r => ({ category: r.category, count: Number(r.count) })),
+            byStatus: byStatus.map(r => ({ status: r.status || 'open', count: Number(r.count) })),
+            byPriority: byPriority.map(r => ({ priority: r.priority || 'medium', count: Number(r.count) })),
+            monthlyTrend: monthlyTrend.map(r => ({ month: r.month, count: Number(r.count) })),
+        });
+    } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+});
+
+// GET all dashboard stats in one go
+router.get("/dashboard-stats", async (req, res) => {
+    if (!req.session.userId) return res.sendStatus(401);
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user || !isOfficer(user.role)) return res.sendStatus(403);
+
+    try {
+        // 1. Totals
+        const [totals] = await db.select({
+            total: count(),
+            open: sql<number>`count(*) filter (where status = 'open')`,
+            inProgress: sql<number>`count(*) filter (where status = 'in_progress')`,
+            resolved: sql<number>`count(*) filter (where status = 'resolved')`,
+            closed: sql<number>`count(*) filter (where status = 'closed')`,
+        }).from(grievances);
+
+        // 2. Avg Resolution
+        const [avgResolution] = await db.select({
+            avgDays: sql<number>`
+                avg(extract(epoch from (resolved_at - created_at)) / 86400)
+                filter (where resolved_at is not null)
+            `,
+        }).from(grievances);
+
+        // 3. Last 30 Days Stats
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const [recent] = await db.select({
+            newTickets: count(),
+            resolvedTickets: sql<number>`count(*) filter (where resolved_at is not null)`,
+        }).from(grievances).where(gte(grievances.createdAt, thirtyDaysAgo));
+
+        // 4. By Category
+        const byCategory = await db.select({
+            category: grievances.category,
+            count: count(),
+        }).from(grievances).groupBy(grievances.category);
+
+        // 5. By Status
+        const byStatus = await db.select({
+            status: grievances.status,
+            count: count(),
+        }).from(grievances).groupBy(grievances.status);
+
+        // 6. By Priority
+        const byPriority = await db.select({
+            priority: grievances.priority,
+            count: count(),
+        }).from(grievances).groupBy(grievances.priority);
+
+        // 7. Monthly Trend
+        const monthlyTrend = await db.select({
+            month: sql<string>`to_char(created_at, 'YYYY-MM')`,
+            count: count(),
+        })
+            .from(grievances)
+            .where(gte(grievances.createdAt, sql`now() - interval '6 months'`))
+            .groupBy(sql`to_char(created_at, 'YYYY-MM')`)
+            .orderBy(sql`to_char(created_at, 'YYYY-MM')`);
+
+        res.json({
+            summary: {
+                totals: {
+                    total: Number(totals.total) || 0,
+                    open: Number(totals.open) || 0,
+                    inProgress: Number(totals.inProgress) || 0,
+                    resolved: Number(totals.resolved) || 0,
+                    closed: Number(totals.closed) || 0,
+                },
+                averageResolutionDays: Math.round((Number(avgResolution.avgDays) || 0) * 10) / 10,
+                last30Days: {
+                    newTickets: Number(recent.newTickets) || 0,
+                    resolvedTickets: Number(recent.resolvedTickets) || 0,
+                },
+            },
+            byCategory: byCategory.map(r => ({ category: r.category, count: Number(r.count) })),
+            byStatus: byStatus.map(r => ({ status: r.status || 'open', count: Number(r.count) })),
+            byPriority: byPriority.map(r => ({ priority: r.priority || 'medium', count: Number(r.count) })),
+            monthlyTrend: monthlyTrend.map(r => ({ month: r.month, count: Number(r.count) })),
+        });
+    } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+});
+
 // GET grievance summary statistics
 router.get("/summary", async (req, res) => {
     if (!req.session.userId) return res.sendStatus(401);

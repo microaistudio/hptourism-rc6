@@ -193,7 +193,7 @@ export function Step3RoomsCategory({
                             name="propertyArea"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Area Value <span className="text-red-500">*</span></FormLabel>
+                                    <FormLabel>Area of Property <span className="text-red-500">*</span></FormLabel>
                                     <FormControl>
                                         <Input
                                             type="number"
@@ -560,7 +560,7 @@ export function Step3RoomsCategory({
                                             </div>
                                             <div>
                                                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                                                    Beds/Rm
+                                                    Beds/Room
                                                 </label>
                                                 <Select
                                                     value={String(getRowBedsPerRoom(row))}

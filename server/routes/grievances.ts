@@ -144,6 +144,7 @@ router.get("/:id/audit-log", async (req, res) => {
 });
 
 // GET all grievances for the logged-in user (or all if admin/officer)
+// Query params: ?type=owner_grievance|internal_ticket (for officers)
 router.get("/", async (req, res) => {
     if (!req.session.userId) return res.sendStatus(401);
 
@@ -151,16 +152,27 @@ router.get("/", async (req, res) => {
     if (!user) return res.sendStatus(401);
 
     const isOfficer = ['dealing_assistant', 'district_tourism_officer', 'district_officer', 'state_officer', 'admin', 'super_admin'].includes(user.role);
+    const requestedType = req.query.type as string | undefined;
 
     try {
         if (isOfficer) {
+            // Officers can filter by type; default shows all
+            let whereClause = undefined;
+            if (requestedType === 'owner_grievance' || requestedType === 'internal_ticket') {
+                whereClause = eq(grievances.ticketType, requestedType);
+            }
             const allGrievances = await db.query.grievances.findMany({
+                where: whereClause,
                 orderBy: [desc(grievances.createdAt)],
             });
             return res.json(allGrievances);
         } else {
+            // Owners only see their own owner_grievance tickets (never internal tickets)
             const userGrievances = await db.query.grievances.findMany({
-                where: eq(grievances.userId, user.id),
+                where: and(
+                    eq(grievances.userId, user.id),
+                    eq(grievances.ticketType, 'owner_grievance')
+                ),
                 orderBy: [desc(grievances.createdAt)],
             });
             return res.json(userGrievances);
@@ -215,6 +227,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST create new grievance
+// Officers can create internal_ticket, owners can only create owner_grievance
 router.post("/", async (req, res) => {
     if (!req.session.userId) return res.sendStatus(401);
 
@@ -226,29 +239,43 @@ router.post("/", async (req, res) => {
         return res.status(400).json(validation.error);
     }
 
+    const isOfficer = ['dealing_assistant', 'district_tourism_officer', 'district_officer', 'state_officer', 'admin', 'super_admin'].includes(user.role);
+
+    // Determine ticket type - owners can only create owner_grievance
+    let ticketType = validation.data.ticketType || 'owner_grievance';
+    if (!isOfficer && ticketType === 'internal_ticket') {
+        ticketType = 'owner_grievance'; // Force owner_grievance for non-officers
+    }
+
     try {
-        const ticketNumber = `GRV-${new Date().getFullYear()}-${nanoid(6).toUpperCase()}`;
+        // Different prefix for internal tickets vs owner grievances
+        const prefix = ticketType === 'internal_ticket' ? 'INT' : 'GRV';
+        const ticketNumber = `${prefix}-${new Date().getFullYear()}-${nanoid(6).toUpperCase()}`;
 
         const [newGrievance] = await db.insert(grievances).values({
             ...validation.data,
+            ticketType,
             ticketNumber,
             userId: user.id,
             status: 'open',
-            lastReadByOwner: new Date(), // Owner just created it, so it's read
+            lastReadByOwner: ticketType === 'owner_grievance' ? new Date() : null,
+            lastReadByOfficer: ticketType === 'internal_ticket' ? new Date() : null,
         }).returning();
 
         // Log audit entry
-        await logAuditEntry(newGrievance.id, 'created', user.id, null, `Ticket ${ticketNumber} created`, req);
+        await logAuditEntry(newGrievance.id, 'created', user.id, null, `Ticket ${ticketNumber} created (${ticketType})`, req);
 
-        // Send email/SMS notification
-        notifyGrievanceCreated({
-            ticketNumber,
-            subject: validation.data.subject,
-            category: validation.data.category,
-            ownerName: user.fullName || user.username,
-            ownerEmail: user.email || undefined,
-            ownerMobile: user.mobile || undefined,
-        }).catch(err => console.error("Failed to send grievance created notification:", err));
+        // Send email/SMS notification only for owner grievances
+        if (ticketType === 'owner_grievance') {
+            notifyGrievanceCreated({
+                ticketNumber,
+                subject: validation.data.subject,
+                category: validation.data.category,
+                ownerName: user.fullName || user.username,
+                ownerEmail: user.email || undefined,
+                ownerMobile: user.mobile || undefined,
+            }).catch(err => console.error("Failed to send grievance created notification:", err));
+        }
 
         res.status(201).json(newGrievance);
     } catch (error) {

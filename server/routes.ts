@@ -338,6 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     pool,
     tableName: "session",
     createTableIfMissing: true,
+    pruneSessionInterval: 600, // 10 minutes (reduce DB load)
   });
 
   // Session middleware
@@ -359,6 +360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       secret: sessionSecret,
       resave: false,
       saveUninitialized: false,
+      rolling: true, // Force cookie refresh on every response
       proxy: true, // Trust the reverse proxy when setting secure cookies
       cookie: {
         secure: envCookieSecure,

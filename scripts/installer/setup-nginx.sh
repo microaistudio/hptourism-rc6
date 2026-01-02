@@ -28,6 +28,12 @@ server {
 
     server_name 10.126.117.27 localhost _;
 
+    # Enable Gzip Compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_min_length 1000;
+    gzip_proxied any;
+
     # Max upload size
     client_max_body_size 25M;
 

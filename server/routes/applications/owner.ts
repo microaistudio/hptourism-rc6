@@ -221,7 +221,12 @@ const sanitizeDraftForPersistence = (
     propertyOwnership: validatedData.propertyOwnership === "leased" ? "leased" : "owned",
     projectType: validatedData.projectType || (isPartial ? undefined : "new_project"),
     propertyArea: sNum(validatedData.propertyArea),
-    propertyAreaUnit: validatedData.propertyAreaUnit || (isPartial ? undefined : "sqft"),
+    // DEBUG: Log propertyAreaUnit to trace persistence issue
+    propertyAreaUnit: (() => {
+      const val = validatedData.propertyAreaUnit || (isPartial ? undefined : "sqft");
+      console.log(`[DEBUG] propertyAreaUnit: input="${validatedData.propertyAreaUnit}", isPartial=${isPartial}, result="${val}"`);
+      return val;
+    })(),
     singleBedRooms: sNum(validatedData.singleBedRooms),
     singleBedBeds: sNum(validatedData.singleBedBeds, 1),
     singleBedRoomSize: sNum(validatedData.singleBedRoomSize),
