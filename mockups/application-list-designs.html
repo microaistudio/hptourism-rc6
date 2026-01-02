@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application List Design Options</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 32px 0 16px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h2 .badge {
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        h2 .badge.current {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        h2 .badge.option {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        h2 .badge.recommended {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 24px;
+        }
+
+        .list-container {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .list-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .list-count {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* ============================================
+       CURRENT DESIGN (Fat)
+       ============================================ */
+        .app-card-current {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-card-current .app-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .app-card-current .app-meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+
+        .app-card-current .badges {
+            display: flex;
+            gap: 8px;
+            margin-right: 16px;
+        }
+
+        .app-card-current .status-badge {
+            padding: 4px 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .app-card-current .category-badge {
+            padding: 4px 12px;
+            background: #f5f5f5;
+            color: #666;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .app-card-current .action-btn {
+            padding: 10px 20px;
+            background: #4a6741;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* ============================================
+       OPTION A: Compact Card
+       ============================================ */
+        .app-card-compact {
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .app-card-compact:hover {
+            border-color: #4a6741;
+            background: #fafff9;
+        }
+
+        .app-card-compact .app-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .app-card-compact .app-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .app-card-compact .app-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .app-card-compact .app-meta {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .app-card-compact .app-meta span {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .app-card-compact .badges {
+            display: flex;
+            gap: 6px;
+            margin-right: 12px;
+        }
+
+        .app-card-compact .badge-sm {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .app-card-compact .badge-sm.status {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .app-card-compact .badge-sm.category {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .app-card-compact .action-btn {
+            padding: 8px 14px;
+            background: #4a6741;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .app-card-compact .action-btn:hover {
+            background: #3d5736;
+            transform: translateX(2px);
+        }
+
+        /* ============================================
+       OPTION B: Table Style
+       ============================================ */
+        .app-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .app-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #f8f8f8;
+            font-weight: 600;
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .app-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        .app-table tr:hover {
+            background: #fafff9;
+        }
+
+        .app-table .name-cell {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .app-table .name-cell .id {
+            font-size: 10px;
+            color: #999;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .app-table .badge-sm {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .app-table .action-link {
+            color: #4a6741;
+            text-decoration: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .app-table .action-link:hover {
+            text-decoration: underline;
+        }
+
+        /* ============================================
+       OPTION C: Ultra Compact (Two-Line)
+       ============================================ */
+        .app-row-ultra {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.15s;
+        }
+
+        .app-row-ultra:last-child {
+            border-bottom: none;
+        }
+
+        .app-row-ultra:hover {
+            background: #f8fff8;
+            padding-left: 18px;
+        }
+
+        .app-row-ultra .app-info {
+            flex: 1;
+        }
+
+        .app-row-ultra .line1 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .app-row-ultra .app-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .app-row-ultra .badge-tiny {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 600;
+        }
+
+        .app-row-ultra .badge-tiny.status {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .app-row-ultra .badge-tiny.category {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .app-row-ultra .line2 {
+            font-size: 11px;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        .app-row-ultra .action-btn-sm {
+            padding: 6px 12px;
+            background: #4a6741;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        /* ============================================
+       COMPARISON METRICS
+       ============================================ */
+        .metrics {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-label {
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Summary */
+        .summary-box {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 32px;
+        }
+
+        .summary-box h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1565c0;
+            margin-bottom: 12px;
+        }
+
+        .summary-box table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+
+        .summary-box th,
+        .summary-box td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(21, 101, 192, 0.2);
+        }
+
+        .summary-box th {
+            font-weight: 600;
+            color: #0d47a1;
+        }
+
+        .summary-box tr:last-child td {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📋 Application List Design Options</h1>
+    <p class="subtitle">Comparing current "fat" design with slimmer alternatives for better scanning</p>
+
+    <!-- CURRENT DESIGN -->
+    <h2>Current Design <span class="badge current">Fat / Chunky</span></h2>
+    <div class="list-container">
+        <div class="list-header">
+            <span class="list-title">New Applications</span>
+            <span class="list-count">2 items</span>
+        </div>
+
+        <div class="app-card-current">
+            <div>
+                <div class="app-name">Test Homestay 2</div>
+                <div class="app-meta">
+                    Owner: Test Test &nbsp;|&nbsp; Mobile: 6666666621 &nbsp;|&nbsp; District: Shimla &nbsp;|&nbsp;
+                    Submitted: Jan 01, 2026
+                </div>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <div class="badges">
+                    <span class="status-badge">Submitted</span>
+                    <span class="category-badge">Silver</span>
+                </div>
+                <button class="action-btn">Start scrutiny →</button>
+            </div>
+        </div>
+
+        <div class="app-card-current">
+            <div>
+                <div class="app-name">Mountain View Cottage</div>
+                <div class="app-meta">
+                    Owner: Raj Kumar &nbsp;|&nbsp; Mobile: 9876543210 &nbsp;|&nbsp; District: Kullu &nbsp;|&nbsp;
+                    Submitted: Dec 30, 2025
+                </div>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <div class="badges">
+                    <span class="status-badge">Submitted</span>
+                    <span class="category-badge">Gold</span>
+                </div>
+                <button class="action-btn">Start scrutiny →</button>
+            </div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <span class="metric-label">Row Height:</span>
+                <span class="metric-value">~80px</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Visible at once:</span>
+                <span class="metric-value">~5 items</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTION A: Compact Card -->
+    <h2>Option A: Compact Card <span class="badge recommended">Recommended</span></h2>
+    <div class="list-container">
+        <div class="list-header">
+            <span class="list-title">New Applications</span>
+            <span class="list-count">2 items</span>
+        </div>
+
+        <div class="app-card-compact">
+            <div class="app-main">
+                <div class="app-icon">🏠</div>
+                <div>
+                    <div class="app-name">Test Homestay 2</div>
+                    <div class="app-meta">
+                        <span>👤 Test Test</span>
+                        <span>📍 Shimla</span>
+                        <span>📅 Jan 01, 2026</span>
+                    </div>
+                </div>
+            </div>
+            <div class="badges">
+                <span class="badge-sm status">Submitted</span>
+                <span class="badge-sm category">Silver</span>
+            </div>
+            <button class="action-btn">Start →</button>
+        </div>
+
+        <div class="app-card-compact">
+            <div class="app-main">
+                <div class="app-icon">🏠</div>
+                <div>
+                    <div class="app-name">Mountain View Cottage</div>
+                    <div class="app-meta">
+                        <span>👤 Raj Kumar</span>
+                        <span>📍 Kullu</span>
+                        <span>📅 Dec 30, 2025</span>
+                    </div>
+                </div>
+            </div>
+            <div class="badges">
+                <span class="badge-sm status">Submitted</span>
+                <span class="badge-sm category">Gold</span>
+            </div>
+            <button class="action-btn">Start →</button>
+        </div>
+
+        <div class="app-card-compact">
+            <div class="app-main">
+                <div class="app-icon">🏠</div>
+                <div>
+                    <div class="app-name">Himalayan Retreat</div>
+                    <div class="app-meta">
+                        <span>👤 Sunita Devi</span>
+                        <span>📍 Manali</span>
+                        <span>📅 Dec 29, 2025</span>
+                    </div>
+                </div>
+            </div>
+            <div class="badges">
+                <span class="badge-sm status">Submitted</span>
+                <span class="badge-sm category">Silver</span>
+            </div>
+            <button class="action-btn">Start →</button>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <span class="metric-label">Row Height:</span>
+                <span class="metric-value">~56px</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Visible at once:</span>
+                <span class="metric-value">~8 items</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Space saved:</span>
+                <span class="metric-value">~30%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTION B: Table Style -->
+    <h2>Option B: Table Style <span class="badge option">High Density</span></h2>
+    <div class="list-container">
+        <div class="list-header">
+            <span class="list-title">New Applications</span>
+            <span class="list-count">3 items</span>
+        </div>
+
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>Owner</th>
+                    <th>District</th>
+                    <th>Submitted</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="name-cell">
+                        Test Homestay 2
+                        <div class="id">HP-HS-2026-SML-000001</div>
+                    </td>
+                    <td>Test Test</td>
+                    <td>Shimla</td>
+                    <td>Jan 01, 2026</td>
+                    <td><span class="badge-sm" style="background:#f0f0f0;color:#666;">Silver</span></td>
+                    <td><span class="badge-sm" style="background:#e8f5e9;color:#2e7d32;">Submitted</span></td>
+                    <td><a href="#" class="action-link">Start →</a></td>
+                </tr>
+                <tr>
+                    <td class="name-cell">
+                        Mountain View Cottage
+                        <div class="id">HP-HS-2025-KLU-000042</div>
+                    </td>
+                    <td>Raj Kumar</td>
+                    <td>Kullu</td>
+                    <td>Dec 30, 2025</td>
+                    <td><span class="badge-sm" style="background:#fff3e0;color:#ef6c00;">Gold</span></td>
+                    <td><span class="badge-sm" style="background:#e8f5e9;color:#2e7d32;">Submitted</span></td>
+                    <td><a href="#" class="action-link">Start →</a></td>
+                </tr>
+                <tr>
+                    <td class="name-cell">
+                        Himalayan Retreat
+                        <div class="id">HP-HS-2025-MNL-000089</div>
+                    </td>
+                    <td>Sunita Devi</td>
+                    <td>Manali</td>
+                    <td>Dec 29, 2025</td>
+                    <td><span class="badge-sm" style="background:#f0f0f0;color:#666;">Silver</span></td>
+                    <td><span class="badge-sm" style="background:#e8f5e9;color:#2e7d32;">Submitted</span></td>
+                    <td><a href="#" class="action-link">Start →</a></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="metrics">
+            <div class="metric">
+                <span class="metric-label">Row Height:</span>
+                <span class="metric-value">~48px</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Visible at once:</span>
+                <span class="metric-value">~10 items</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Space saved:</span>
+                <span class="metric-value">~40%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTION C: Ultra Compact -->
+    <h2>Option C: Ultra Compact <span class="badge option">Minimal</span></h2>
+    <div class="list-container">
+        <div class="list-header">
+            <span class="list-title">New Applications</span>
+            <span class="list-count">4 items</span>
+        </div>
+
+        <div class="app-row-ultra">
+            <div class="app-info">
+                <div class="line1">
+                    <span class="app-name">Test Homestay 2</span>
+                    <span class="badge-tiny status">Submitted</span>
+                    <span class="badge-tiny category">Silver</span>
+                </div>
+                <div class="line2">Test Test • Shimla • Jan 01, 2026</div>
+            </div>
+            <button class="action-btn-sm">Start →</button>
+        </div>
+
+        <div class="app-row-ultra">
+            <div class="app-info">
+                <div class="line1">
+                    <span class="app-name">Mountain View Cottage</span>
+                    <span class="badge-tiny status">Submitted</span>
+                    <span class="badge-tiny category">Gold</span>
+                </div>
+                <div class="line2">Raj Kumar • Kullu • Dec 30, 2025</div>
+            </div>
+            <button class="action-btn-sm">Start →</button>
+        </div>
+
+        <div class="app-row-ultra">
+            <div class="app-info">
+                <div class="line1">
+                    <span class="app-name">Himalayan Retreat</span>
+                    <span class="badge-tiny status">Submitted</span>
+                    <span class="badge-tiny category">Silver</span>
+                </div>
+                <div class="line2">Sunita Devi • Manali • Dec 29, 2025</div>
+            </div>
+            <button class="action-btn-sm">Start →</button>
+        </div>
+
+        <div class="app-row-ultra">
+            <div class="app-info">
+                <div class="line1">
+                    <span class="app-name">Pine Valley Homestay</span>
+                    <span class="badge-tiny status">Submitted</span>
+                    <span class="badge-tiny category">Silver</span>
+                </div>
+                <div class="line2">Vikram Singh • Dharamshala • Dec 28, 2025</div>
+            </div>
+            <button class="action-btn-sm">Start →</button>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <span class="metric-label">Row Height:</span>
+                <span class="metric-value">~44px</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Visible at once:</span>
+                <span class="metric-value">~12 items</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Space saved:</span>
+                <span class="metric-value">~45%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Comparison -->
+    <div class="summary-box">
+        <h3>📊 Comparison Summary</h3>
+        <table>
+            <tr>
+                <th>Design</th>
+                <th>Row Height</th>
+                <th>Items Visible</th>
+                <th>Best For</th>
+            </tr>
+            <tr>
+                <td><strong>Current (Fat)</strong></td>
+                <td>~80px</td>
+                <td>~5</td>
+                <td>Detailed view, few items</td>
+            </tr>
+            <tr>
+                <td><strong>Option A (Compact Card)</strong></td>
+                <td>~56px</td>
+                <td>~8</td>
+                <td>✅ Best balance of info + density</td>
+            </tr>
+            <tr>
+                <td><strong>Option B (Table)</strong></td>
+                <td>~48px</td>
+                <td>~10</td>
+                <td>High volume, quick scanning</td>
+            </tr>
+            <tr>
+                <td><strong>Option C (Ultra)</strong></td>
+                <td>~44px</td>
+                <td>~12</td>
+                <td>Maximum density, minimal info</td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+
+</html>

@@ -114,6 +114,7 @@ export const LOCATION_LABEL_MAP = LOCATION_TYPE_OPTIONS.reduce(
 
 export const PROJECT_TYPE_OPTIONS = [
     { value: "new_project", label: "New Homestay Registration" },
+    { value: "existing_property", label: "Existing Property (Service Request)" },
 ] as const;
 
 export const formatDateDisplay = (value?: string | Date | null) => {
@@ -170,9 +171,9 @@ export const OWNERSHIP_LABELS: Record<"owned" | "leased", string> = {
 };
 
 export const CATEGORY_CARD_INFO: Array<{ value: CategoryType; title: string; description: string }> = [
-    { value: "silver", title: "Silver", description: "Neighborhood-scale, budget stays" },
-    { value: "gold", title: "Gold", description: "Premium comforts & curated experiences" },
-    { value: "diamond", title: "Diamond", description: "Luxury suites with bespoke amenities" },
+    { value: "silver", title: "Silver", description: "" },
+    { value: "gold", title: "Gold", description: "" },
+    { value: "diamond", title: "Diamond", description: "" },
 ];
 
 export const ROOM_TYPE_OPTIONS = [
@@ -213,7 +214,8 @@ export const applicationSchema = z.object({
     ownerLastName: z.string().min(1, "Last name is required").regex(/^[A-Za-z\s'-]+$/, "Last name can only contain letters"),
     ownerGender: z.enum(["male", "female", "other"]),
     ownerAadhaar: z.string().min(1, "Aadhaar is required").regex(/^\d{12}$/, "Aadhaar must be 12 digits"),
-    guardianName: z.string().min(3, "Father's/Husband's name is required"),
+    guardianName: z.string().min(3, "Relative/Guardian name is required"),
+    guardianRelation: z.enum(["father", "husband", "guardian"]).default("father"),
     propertyOwnership: z.enum(["owned", "leased"]),
 
     // Category & room rate
@@ -233,12 +235,21 @@ export const applicationSchema = z.object({
     distanceBusStand: z.number().min(0).optional(),
 
     // Project type
-    projectType: z.enum(["new_rooms", "new_project"]),
+    projectType: z.enum(["new_property", "existing_property", "new_project", "new_rooms"]),
 
     // Property details
     propertyArea: z
         .number()
-        .min(0, "Property area cannot be negative"),
+        .min(1, "Property area is required"),
+
+    // Property area unit - includes all district-wise units
+    propertyAreaUnit: z.enum(["sqm", "sqft", "kanal", "marla", "bigha", "biswa"]).default("sqm"),
+
+    // Conversion rate to Sq.M (user-editable for local units, fixed for sqft)
+    propertyAreaConversionRate: z.number().min(0.001).optional(),
+
+    // Final area in Sq.M (calculated or entered directly)
+    propertyAreaSqM: z.number().min(0).optional(),
 
     // Room configuration (single/double/suite)
     singleBedRooms: z.number().int().min(0).default(0),
@@ -270,6 +281,10 @@ export const applicationSchema = z.object({
 
     // Nearest hospital
     nearestHospital: z.string().optional().or(z.literal("")),
+
+    // Checklists
+    mandatoryChecklist: z.record(z.string(), z.boolean()).optional(),
+    desirableChecklist: z.record(z.string(), z.boolean()).optional(),
 
     // Key Location Highlights
     keyLocationHighlight1: z.string().optional().or(z.literal("")),
@@ -436,6 +451,7 @@ export const draftSchema = z.object({
     ownerGender: z.enum(["male", "female", "other"]).optional(),
     ownerAadhaar: z.string().optional(),
     guardianName: z.string().optional(),
+    guardianRelation: z.enum(["father", "husband", "guardian"]).optional(),
     propertyOwnership: z.enum(["owned", "leased"]).optional(),
     category: z.enum(["diamond", "gold", "silver"]).optional(),
     proposedRoomRate: z.number().optional(),
@@ -447,8 +463,11 @@ export const draftSchema = z.object({
     distanceCityCenter: z.number().optional(),
     distanceShopping: z.number().optional(),
     distanceBusStand: z.number().optional(),
-    projectType: z.enum(["new_rooms", "new_project"]).optional(),
+    projectType: z.enum(["new_property", "existing_property", "new_project", "new_rooms"]).optional(),
     propertyArea: z.number().optional(),
+    propertyAreaUnit: z.enum(["sqm", "sqft", "kanal", "marla", "bigha", "biswa"]).optional(),
+    propertyAreaConversionRate: z.number().optional(),
+    propertyAreaSqM: z.number().optional(),
     singleBedRooms: z.number().optional(),
     singleBedBeds: z.number().optional(),
     singleBedRoomSize: z.number().optional(),
@@ -468,6 +487,8 @@ export const draftSchema = z.object({
     gstin: z.string().optional(),
     certificateValidityYears: z.enum(["1", "3"]).optional(),
     nearestHospital: z.string().optional(),
+    mandatoryChecklist: z.record(z.string(), z.boolean()).optional(),
+    desirableChecklist: z.record(z.string(), z.boolean()).optional(),
 });
 
 export type DraftForm = z.infer<typeof draftSchema>;

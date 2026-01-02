@@ -431,7 +431,7 @@ export class MemStorage implements IStorage {
   async getApplicationActions(applicationId: string): Promise<ApplicationAction[]> {
     return Array.from(this.applicationActions.values())
       .filter(action => action.applicationId === applicationId)
-      .sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0));
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
   }
 
   async deleteApplicationActions(applicationId: string): Promise<void> {

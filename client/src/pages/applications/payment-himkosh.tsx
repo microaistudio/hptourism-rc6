@@ -641,73 +641,51 @@ export default function HimKoshPaymentPage() {
                   </ol>
                 </AlertDescription>
               </Alert>
-
-              <Button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (paymentData && paymentData.isConfigured) {
-                    // POPUP WINDOW STRATEGY (Requested by User):
-                    // 1. Open a "sized" popup window first. Chrome treats these as "Apps" and is less aggressive.
-                    const width = 1024;
-                    const height = 800;
-                    const left = (window.screen.width - width) / 2;
-                    const top = (window.screen.height - height) / 2;
-
-                    const popup = window.open(
-                      "",
-                      "HimKoshPayment",
-                      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes`
-                    );
-
-                    if (popup) {
-                      // 2. Create and submit form into this named window
-                      const form = document.createElement("form");
-                      form.method = "POST";
-                      form.action = paymentData.paymentUrl;
-                      form.target = "HimKoshPayment"; // Matches window name
-                      form.style.display = "none";
-
-                      const input1 = document.createElement("input");
-                      input1.type = "hidden";
-                      input1.name = "encdata";
-                      input1.value = paymentData.encdata;
-                      form.appendChild(input1);
-
-                      const input2 = document.createElement("input");
-                      input2.type = "hidden";
-                      input2.name = "merchant_code";
-                      input2.value = paymentData.merchantCode;
-                      form.appendChild(input2);
-
-                      document.body.appendChild(form);
-                      form.submit();
-
-                      // Cleanup
-                      setTimeout(() => document.body.removeChild(form), 500);
-                    } else {
-                      alert("Popup blocked! Please allow popups for this site.");
-                    }
-                  } else {
+              {/* Use an actual form element for Chrome compatibility - dialogs won't be suppressed */}
+              {paymentData && paymentData.isConfigured ? (
+                <form
+                  method="POST"
+                  action={paymentData.paymentUrl}
+                  target="_blank"
+                >
+                  <input type="hidden" name="encdata" value={paymentData.encdata} />
+                  <input type="hidden" name="merchant_code" value={paymentData.merchantCode} />
+                  <Button
+                    type="submit"
+                    disabled={paymentButtonDisabled}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <span className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Pay Now
+                    </span>
+                  </Button>
+                </form>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
                     initiateMutation.mutate();
-                  }
-                }}
-                disabled={paymentButtonDisabled}
-                className="w-full"
-                size="lg"
-              >
-                {initiateMutation.isPending ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {paymentButtonLabel}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <ExternalLink className="h-4 w-4" />
-                    Pay Now
-                  </span>
-                )}
-              </Button>
+                  }}
+                  disabled={paymentButtonDisabled}
+                  className="w-full"
+                  size="lg"
+                >
+                  {initiateMutation.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {paymentButtonLabel}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      {paymentButtonLabel}
+                    </span>
+                  )}
+                </Button>
+              )}
               {showTestMode && (
                 <Card className="border-orange-200 bg-orange-50 mb-6">
                   <CardHeader>

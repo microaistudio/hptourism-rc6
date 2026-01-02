@@ -23,6 +23,9 @@ import {
   reviews,
   storageObjects,
   users,
+  grievances,
+  grievanceComments,
+  grievanceAuditLog,
 } from "@shared/schema";
 import { logger } from "../../logger";
 
@@ -117,7 +120,11 @@ export function createAdminDevopsRouter() {
       }
 
       if (deletePropertyOwners) {
-        // Must delete storage objects first - they have FK to users
+        // Must delete grievances and storage objects first - they have FK to users
+        await db.delete(grievanceAuditLog);
+        await db.delete(grievanceComments);
+        await db.delete(grievances);
+        deletedCounts.grievances = "all";
         await db.delete(storageObjects);
         deletedCounts.storageObjects = "all";
         await db.delete(users).where(eq(users.role, "property_owner"));

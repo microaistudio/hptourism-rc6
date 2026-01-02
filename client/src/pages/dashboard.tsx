@@ -17,8 +17,10 @@ import {
 import {
   Plus, FileText, Clock, CheckCircle2, XCircle, AlertCircle, RefreshCw,
   CreditCard, Download, Copy, Mountain, Home, Camera, FileCheck, ScrollText,
-  Building2, MapPin, ClipboardCheck, Zap
+  Building2, MapPin, ClipboardCheck, Zap, Trash2, Eye
 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { User, HomestayApplication } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -124,7 +126,30 @@ export default function Dashboard() {
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const [showServiceSelection, setShowServiceSelection] = useState(false);
   const [showReadinessDialog, setShowReadinessDialog] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleDeleteDraft = async (applicationId: string) => {
+    if (!confirm("Are you sure you want to discard this draft? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await apiRequest("DELETE", `/api/applications/${applicationId}`);
+      toast({
+        title: "Draft discarded",
+        description: "Your draft application has been deleted.",
+      });
+      handleRefresh();
+    } catch (error) {
+      console.error("Failed to delete draft:", error);
+      toast({
+        title: "Error",
+        description: "Failed to discard draft. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
@@ -240,7 +265,7 @@ export default function Dashboard() {
     sentBack: applications.filter(a => a.status === 'sent_back_for_corrections' || a.status === 'reverted_to_applicant' || a.status === 'reverted_by_dtdo').length,
     underProcess: applications.filter(a => ['under_scrutiny', 'forwarded_to_dtdo', 'inspection_scheduled', 'inspection_completed'].includes(a.status || '')).length,
     newApps: applications.filter(a => ['draft', 'paid_pending_submit', 'submitted'].includes(a.status || '')).length,
-    resubmitted: applications.filter(a => a.status === 'submitted' && a.resubmittedCount && a.resubmittedCount > 0).length
+    resubmitted: applications.filter(a => a.status === 'submitted' && (a as any).resubmittedCount && (a as any).resubmittedCount > 0).length
   };
 
   const getStatusBadge = (status: string) => {
@@ -251,7 +276,7 @@ export default function Dashboard() {
       state_review: { variant: "secondary", label: "State Review" },
       sent_back_for_corrections: { variant: "warning", label: "Sent Back" },
       reverted_to_applicant: { variant: "warning", label: "Reverted by DA" },
-      reverted_by_dtdo: { variant: "warning", label: "Reverted by DTDO" },
+      reverted_by_dtdo: { variant: "warning", label: "Reverted by Prescribed Authority" },
       objection_raised: { variant: "warning", label: "DTDO Objection" },
       inspection_scheduled: { variant: "secondary", label: "Inspection Scheduled" },
       inspection_completed: { variant: "secondary", label: "Inspection Completed" },
@@ -320,7 +345,26 @@ export default function Dashboard() {
               </Button>
             )}
             {user.role === 'property_owner' && (
-              <Button onClick={() => setShowReadinessDialog(true)}>
+              <Button
+                onClick={() => {
+                  // Check for any active application (not approved or rejected)
+                  const activeApp = applications.find(app =>
+                    app.status !== "approved" && app.status !== "rejected"
+                  );
+
+                  if (activeApp) {
+                    // Redirect to existing application
+                    if (activeApp.status === 'draft') {
+                      setLocation(`/applications/new?draft=${activeApp.id}`);
+                    } else {
+                      setLocation(`/applications/${activeApp.id}`);
+                    }
+                  } else {
+                    // Start new flow
+                    setShowReadinessDialog(true);
+                  }
+                }}
+              >
                 <Plus className="w-4 h-4 mr-2" /> New Application
               </Button>
             )}
@@ -339,6 +383,46 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* ACTION REQUIRED BANNER - Show when application needs corrections */}
+        {stats.sentBack > 0 && user.role === 'property_owner' && (() => {
+          const correctionApp = applications.find(a =>
+            a.status === 'sent_back_for_corrections' ||
+            a.status === 'reverted_to_applicant' ||
+            a.status === 'reverted_by_dtdo'
+          );
+          if (!correctionApp) return null;
+          return (
+            <div className="mb-6 flex items-start gap-4 rounded-lg border-2 border-orange-400 bg-orange-50 p-5">
+              <AlertTriangle className="w-7 h-7 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-orange-800">
+                  ⚡ Action Required
+                </h3>
+                <p className="text-orange-700 mt-1">
+                  {correctionApp.status === 'reverted_by_dtdo'
+                    ? 'The DTDO has requested revisions to your application. Please review the remarks and make the necessary corrections.'
+                    : 'The Dealing Assistant has sent back your application for corrections. Please review the feedback and resubmit.'}
+                </p>
+                <div className="flex flex-wrap gap-3 mt-4">
+                  <Button
+                    className="bg-orange-600 hover:bg-orange-700"
+                    onClick={() => setLocation(`/applications/new?application=${correctionApp.id}`)}
+                  >
+                    <FileEdit className="w-4 h-4 mr-2" />
+                    Review & Submit Corrections
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation(`/applications/${correctionApp.id}`)}
+                  >
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Stats Cards - New Design with Color-Coded Borders */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -402,6 +486,54 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Useful Formats Section */}
+        <div className="mb-8">
+          <Card className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-background border-slate-200 dark:border-slate-800">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <ScrollText className="w-5 h-5 text-slate-600" />
+                <CardTitle className="text-lg">Useful Formats</CardTitle>
+              </div>
+              <CardDescription>
+                Downloadable formats for required documents.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href="/print/affidavit"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-white hover:bg-slate-50 transition-colors group"
+                >
+                  <div className="p-2 rounded-full bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Affidavit Format</span>
+                    <span className="text-xs text-muted-foreground group-hover:text-emerald-600 transition-colors">Section 29 Declaration</span>
+                  </div>
+                </a>
+
+                <a
+                  href="/print/undertaking"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-white hover:bg-slate-50 transition-colors group"
+                >
+                  <div className="p-2 rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Undertaking Format</span>
+                    <span className="text-xs text-muted-foreground group-hover:text-blue-600 transition-colors">Form-C Acceptance</span>
+                  </div>
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Application Progress Timeline - Shows current stage */}
         {applications.length > 0 && (() => {
           const primaryApp = applications.find(a => a.status !== 'approved' && a.status !== 'rejected') || applications[0];
@@ -415,19 +547,32 @@ export default function Dashboard() {
                     <CardTitle className="text-base">Application Status</CardTitle>
                     <CardDescription>{primaryApp.propertyName || 'Your Application'} • {primaryApp.applicationNumber || 'DRAFT'}</CardDescription>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (primaryApp.status === 'draft') {
-                        setLocation(`/applications/new?draft=${primaryApp.id}`);
-                      } else {
-                        setLocation(`/applications/${primaryApp.id}`);
-                      }
-                    }}
-                  >
-                    View Details
-                  </Button>
+                  <div className="flex gap-2">
+                    {primaryApp.status === 'draft' && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDeleteDraft(primaryApp.id)}
+                        title="Discard Draft"
+                        className="h-9 w-9 bg-rose-100 text-rose-600 hover:bg-rose-200 border-rose-200 border shadow-none"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (primaryApp.status === 'draft') {
+                          setLocation(`/applications/new?draft=${primaryApp.id}`);
+                        } else {
+                          setLocation(`/applications/${primaryApp.id}`);
+                        }
+                      }}
+                    >
+                      View Details
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -513,11 +658,12 @@ export default function Dashboard() {
               <div className="text-center py-12 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No applications found matching this filter.</p>
-                {user.role === 'property_owner' && activeFilter === 'all' && (
-                  <Button variant="link" onClick={() => setShowServiceSelection(true)} className="mt-2">
-                    Start a new application
-                  </Button>
-                )}
+                {user.role === 'property_owner' && activeFilter === 'all' &&
+                  !applications.some(app => app.status !== "approved" && app.status !== "rejected") && (
+                    <Button variant="ghost" onClick={() => setShowServiceSelection(true)} className="mt-2">
+                      Start a new application
+                    </Button>
+                  )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -626,6 +772,30 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
+        {/* Document Preview Dialog */}
+        <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
+          <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+            <DialogHeader className="p-4 border-b">
+              <DialogTitle>Document Preview</DialogTitle>
+              <DialogDescription>
+                Previewing document template. You can download the editable format using the Download button.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 bg-slate-100 p-4">
+              {previewUrl && (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full rounded border bg-white shadow-sm"
+                  title="Document Preview"
+                />
+              )}
+            </div>
+            <DialogFooter className="p-4 border-t">
+              <Button onClick={() => setPreviewUrl(null)}>Close Preview</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Document Readiness Check Dialog - Enhanced Version */}
         <Dialog open={showReadinessDialog} onOpenChange={setShowReadinessDialog}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
@@ -636,15 +806,27 @@ export default function Dashboard() {
                   <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                     <ClipboardCheck className="w-5 h-5" />
                   </div>
-                  Before You Begin
+                  Documents Checklist
                 </DialogTitle>
-                <DialogDescription className="text-emerald-100 text-base mt-2">
-                  Please ensure you have all required documents ready before starting your homestay registration.
+                <DialogDescription className="text-emerald-100 text-lg mt-2">
+                  Keep these documents ready before you start your application.
                 </DialogDescription>
               </DialogHeader>
             </div>
 
             <div className="p-6 space-y-6">
+              {/* File Size Note */}
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-emerald-800 text-sm">File Size Limits</h4>
+                  <p className="text-sm text-emerald-700">
+                    • <strong>Documents (PDF)</strong>: Max 5 MB per file.<br />
+                    • <strong>Photos</strong>: Max 10 MB per file (we will optimize them for you).
+                  </p>
+                </div>
+              </div>
+
               {/* Quick Tip */}
               <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -653,7 +835,7 @@ export default function Dashboard() {
                 <div>
                   <p className="font-semibold text-blue-900 text-sm">Pro Tip</p>
                   <p className="text-sm text-blue-700">
-                    Having all documents ready will help you complete the application in one session (approx. 15-20 minutes).
+                    Having all documents ready will help you complete the application in one session
                   </p>
                 </div>
               </div>
@@ -685,26 +867,87 @@ export default function Dashboard() {
                 <h3 className="font-bold text-base text-foreground flex items-center gap-2 mb-4">
                   <ScrollText className="w-5 h-5 text-muted-foreground" />
                   Required Documents
-                  <span className="text-xs font-normal text-muted-foreground">(All Categories)</span>
+                  <span className="text-xs font-normal text-muted-foreground">(Rule 4, ANNEXURE-II)</span>
                 </h3>
 
                 <div className="space-y-3">
                   {[
-                    { title: "Revenue Papers / Property Documents", desc: "Ownership proof (Jamabandi, Registry, etc.)" },
-                    { title: "Affidavit (Section 29)", desc: "Self-declaration as per tourism rules" },
-                    { title: "Undertaking (Form-C)", desc: "Compliance declaration form" }
+                    { title: "Revenue Papers (Jamabandi/Tatima)", desc: "Land ownership proof [ANNEXURE-II, Sl.3]", template: null },
+                    { title: "Affidavit (Section 29)", desc: "Self-declaration [ANNEXURE-II, Sl.4]", template: "/print/affidavit" },
+                    { title: "Undertaking (Form-C)", desc: "Compliance declaration [ANNEXURE-II, Sl.5]", template: "/print/undertaking" }
                   ].map((doc, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
                       <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                         <FileCheck className="w-5 h-5 text-emerald-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground">{doc.title}</p>
+                        <p className="font-bold text-foreground">{doc.title}</p>
                         <p className="text-sm text-muted-foreground">{doc.desc}</p>
                       </div>
-                      <CheckCircle2 className="w-5 h-5 text-muted-foreground/30" />
+                      {doc.template ? (
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={doc.template}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Download className="w-3 h-3" />
+                            Format
+                          </a>
+                          <a
+                            href="#"
+                            className="flex items-center justify-center w-8 h-8 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (doc.template) setPreviewUrl(doc.template);
+                            }}
+                            title="Preview"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ) : (
+                        <CheckCircle2 className="w-5 h-5 text-muted-foreground/30" />
+                      )}
                     </div>
                   ))}
+                  {/* Co-sharer affidavit - conditional */}
+                  <div className="flex items-center gap-4 p-4 rounded-xl border border-dashed bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
+                      <FileCheck className="w-5 h-5 text-slate-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-700">Co-sharer Affidavit <span className="text-xs font-normal text-amber-600">(If joint ownership)</span></p>
+                      <p className="text-sm text-muted-foreground">For joint holding [ANNEXURE-I, 6b]</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href="/templates/co-sharer-affidavit.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Download className="w-3 h-3" />
+                        Format
+                      </a>
+                      <a
+                        href="#"
+                        className="flex items-center justify-center w-8 h-8 text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPreviewUrl("/templates/co-sharer-affidavit.html");
+                        }}
+                        title="Preview"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -728,7 +971,7 @@ export default function Dashboard() {
                         <FileCheck className="w-4 h-4 text-yellow-700" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm text-foreground">{doc.title}</p>
+                        <p className="font-bold text-sm text-foreground">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">{doc.desc}</p>
                       </div>
                     </div>
@@ -779,9 +1022,9 @@ export default function Dashboard() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+        </Dialog >
 
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

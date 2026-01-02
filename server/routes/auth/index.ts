@@ -356,12 +356,18 @@ export function createAuthRouter() {
         }
       }
 
-      req.session.userId = user.id;
-      req.session.captchaAnswer = null;
-      req.session.captchaIssuedAt = null;
+      req.session.regenerate((err) => {
+        if (err) {
+          authLog.error("[auth] Failed to regenerate session", err);
+          return res.status(500).json({ message: "Login failed (session error)" });
+        }
+        req.session.userId = user.id;
+        req.session.captchaAnswer = null;
+        req.session.captchaIssuedAt = null;
 
-      const userResponse = formatUserForResponse(user);
-      res.json({ user: userResponse });
+        const userResponse = formatUserForResponse(user);
+        res.json({ user: userResponse });
+      });
     } catch (error) {
       authLog.error("[auth] Login error", error);
       res.status(500).json({ message: "Login failed" });

@@ -33,6 +33,7 @@ import { ObjectUploader, type UploadedFileMetadata } from "@/components/ObjectUp
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_EXISTING_RC_MIN_ISSUE_DATE } from "@shared/appSettings";
 import { getDistricts, getTehsilsForDistrict } from "@shared/regions";
+import { DEFAULT_UPLOAD_POLICY, type UploadPolicy } from "@shared/uploadPolicy";
 
 const HP_DISTRICTS = getDistricts();
 import type { User, HomestayApplication } from "@shared/schema";
@@ -48,7 +49,8 @@ const intakeSchema = z.object({
   pincode: z.string().min(4, "Pincode is required"),
   locationType: z.enum(["gp", "mc", "tcp"]),
   totalRooms: z.coerce.number().int().min(1).max(12),
-  guardianName: z.string().min(3, "Father's / care-of name is required"),
+  guardianRelation: z.enum(["S/O", "D/O", "W/O", "C/O"]).default("S/O"),
+  guardianName: z.string().min(3, "Relative / Guardian name is required"),
   rcNumber: z.string().min(3, "RC number is required"),
   rcIssueDate: z.string().min(4, "Issue date is required"),
   certificateValidityYears: z.enum(["1", "3"]).default("1"),
@@ -97,6 +99,14 @@ export default function ExistingOwnerOnboarding() {
     },
     staleTime: 5 * 60 * 1000,
   });
+  // Fetch upload policy from admin config
+  const { data: uploadPolicyData } = useQuery<UploadPolicy>({
+    queryKey: ["/api/settings/upload-policy"],
+    staleTime: 5 * 60 * 1000,
+  });
+  const uploadPolicy = uploadPolicyData ?? DEFAULT_UPLOAD_POLICY;
+  const docsMaxMB = uploadPolicy.documents.maxFileSizeMB;
+  const photosMaxMB = uploadPolicy.photos.maxFileSizeMB;
   const [certificateFiles, setCertificateFiles] = useState<UploadedFileMetadata[]>([]);
   const [identityProofFiles, setIdentityProofFiles] = useState<UploadedFileMetadata[]>([]);
   const [additionalDocuments, setAdditionalDocuments] = useState<UploadedFileMetadata[]>([]);
@@ -116,6 +126,7 @@ export default function ExistingOwnerOnboarding() {
       pincode: "",
       locationType: "gp",
       totalRooms: 1,
+      guardianRelation: "S/O",
       guardianName: "",
       rcNumber: "",
       rcIssueDate: "",
@@ -402,10 +413,10 @@ export default function ExistingOwnerOnboarding() {
       <div className="space-y-2">
         <div className="flex items-center gap-3">
           <Handshake className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Existing Owner Onboarding</h1>
+          <h1 className="text-3xl font-bold">Existing RC Registration</h1>
         </div>
         <p className="text-muted-foreground max-w-3xl">
-          Already have a valid Homestay certificate? Use these options to migrate into the new HP Tourism portal so you can renew,
+          Already have a valid Homestay certificate? Register your existing RC to migrate into the new HP Tourism portal so you can renew,
           amend rooms, or download digital certificates without reapplying from scratch.
         </p>
       </div>
@@ -504,19 +515,44 @@ export default function ExistingOwnerOnboarding() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="guardianName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Father's / Care-of Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="As printed on certificate" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-[140px_1fr] gap-2">
+                    <FormField
+                      control={form.control}
+                      name="guardianRelation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relationship</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="S/O">S/O</SelectItem>
+                              <SelectItem value="D/O">D/O</SelectItem>
+                              <SelectItem value="W/O">W/O</SelectItem>
+                              <SelectItem value="C/O">C/O</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="guardianName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name <span className="text-destructive">*</span></FormLabel>
+                          <FormControl>
+                            <Input placeholder="As per Aadhaar card" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -704,20 +740,22 @@ export default function ExistingOwnerOnboarding() {
                           Validity Period
                         </FormLabel>
                         <FormControl>
-                          <RadioGroup
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            className="flex gap-4"
-                          >
-                            <div className="flex items-center gap-2">
-                              <RadioGroupItem value="1" id="validity-1" />
-                              <label htmlFor="validity-1" className="text-sm cursor-pointer">1 Year</label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <RadioGroupItem value="3" id="validity-3" />
-                              <label htmlFor="validity-3" className="text-sm cursor-pointer">3 Years</label>
-                            </div>
-                          </RadioGroup>
+                          <div className="h-9 flex items-center">
+                            <RadioGroup
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              className="flex gap-4"
+                            >
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="1" id="validity-1" />
+                                <label htmlFor="validity-1" className="text-sm cursor-pointer">1 Year</label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="3" id="validity-3" />
+                                <label htmlFor="validity-3" className="text-sm cursor-pointer">3 Years</label>
+                              </div>
+                            </RadioGroup>
+                          </div>
                         </FormControl>
                         <p className="text-xs text-muted-foreground">
                           Auto-calculates expiry from issue date
@@ -758,6 +796,12 @@ export default function ExistingOwnerOnboarding() {
                   )}
                 />
 
+                {/* Consolidated Document Upload Notice */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                  <p className="font-medium">📎 Document Upload Requirements</p>
+                  <p className="text-xs mt-1">Maximum file size: {docsMaxMB}MB for PDF documents, {photosMaxMB}MB for photos/images. Large images will be automatically optimized.</p>
+                </div>
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Owner ID Proof (Aadhaar or Govt ID) <span className="text-destructive">*</span></p>
                   <ObjectUploader
@@ -767,6 +811,7 @@ export default function ExistingOwnerOnboarding() {
                     onUploadComplete={setIdentityProofFiles}
                     existingFiles={identityProofFiles}
                     isMissing={identityProofFiles.length === 0}
+                    hideNote
                   />
                   {identityProofFiles.length === 0 && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -785,6 +830,7 @@ export default function ExistingOwnerOnboarding() {
                     onUploadComplete={setCertificateFiles}
                     existingFiles={certificateFiles}
                     isMissing={certificateFiles.length === 0}
+                    hideNote
                   />
                   {certificateFiles.length === 0 && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -803,6 +849,8 @@ export default function ExistingOwnerOnboarding() {
                     category="photos"
                     onUploadComplete={setAdditionalDocuments}
                     existingFiles={additionalDocuments}
+                    showDescription={true}
+                    hideNote
                   />
                   <p className="text-xs text-muted-foreground">
                     You may upload additional supporting documents (PDF or JPG format).

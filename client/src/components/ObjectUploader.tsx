@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Upload, X, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import imageCompression from "browser-image-compression";
 import {
   DEFAULT_UPLOAD_POLICY,
   type UploadPolicy,
@@ -14,6 +15,7 @@ export interface UploadedFileMetadata {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  description?: string;
 }
 
 interface ObjectUploaderProps {
@@ -27,6 +29,8 @@ interface ObjectUploaderProps {
   existingFiles?: UploadedFileMetadata[];
   className?: string;
   isMissing?: boolean; // Show subtle indication when mandatory upload is missing
+  showDescription?: boolean;
+  hideNote?: boolean; // Hide the per-item file size note (for consolidated notices)
 }
 
 export function ObjectUploader({
@@ -40,10 +44,13 @@ export function ObjectUploader({
   existingFiles = [],
   className = "",
   isMissing = false,
+  showDescription = false,
+  hideNote = false,
 }: ObjectUploaderProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileMetadata[]>(existingFiles);
   const { data: uploadPolicyData } = useQuery<UploadPolicy>({
     queryKey: ["/api/settings/upload-policy"],
@@ -64,7 +71,12 @@ export function ObjectUploader({
       ),
     [categoryPolicy.allowedExtensions],
   );
-  const maxFileSizeBytes = categoryPolicy.maxFileSizeMB * 1024 * 1024;
+
+  // Use policy-based limits from admin config (fetched from /api/settings/upload-policy)
+  const documentsPolicy = uploadPolicy.documents;
+  const photosPolicy = uploadPolicy.photos;
+  const IMG_TARGET_SIZE_MB = 0.5; // Compression target for images
+
   const derivedAccept = useMemo(() => {
     const entries = new Set<string>();
 
@@ -232,36 +244,94 @@ export function ObjectUploader({
       return;
     }
 
-    const validFiles: File[] = [];
+    const processedFiles: File[] = [];
     const skippedMessages: string[] = [];
 
+    setUploading(true);
+
     for (const file of files) {
+      setProcessingStatus(`Processing ${file.name}...`);
       const extension = getExtension(file.name);
       const normalizedMime = normalizeMime(file.type) || "application/octet-stream";
 
-      if (file.size > maxFileSizeBytes) {
-        skippedMessages.push(
-          `${file.name} is ${formatBytes(file.size)} (limit ${categoryPolicy.maxFileSizeMB} MB)`,
-        );
-        continue;
+      // Validation Logic - uses admin policy values
+      let isValidSize = false;
+      const isPdf = normalizedMime === 'application/pdf';
+      const isImage = normalizedMime.startsWith('image/');
+
+      if (isPdf) {
+        // PDFs use documents policy
+        const maxSizeMB = documentsPolicy.maxFileSizeMB;
+        if (file.size <= maxSizeMB * 1024 * 1024) {
+          isValidSize = true;
+        } else {
+          skippedMessages.push(`Oops! ${file.name} is too large (${formatBytes(file.size)}). Please keep PDF documents under ${maxSizeMB}MB.`);
+        }
+      } else if (isImage) {
+        // Images use photos policy
+        const maxSizeMB = photosPolicy.maxFileSizeMB;
+        if (file.size <= maxSizeMB * 1024 * 1024) {
+          isValidSize = true;
+        } else {
+          skippedMessages.push(`That photo is a bit too heavy! ${file.name} is ${formatBytes(file.size)}. Please use an image under ${maxSizeMB}MB.`);
+        }
+      } else {
+        // Fallback to category policy for other types
+        if (file.size <= categoryPolicy.maxFileSizeMB * 1024 * 1024) {
+          isValidSize = true;
+        } else {
+          skippedMessages.push(`${file.name} exceeds the ${categoryPolicy.maxFileSizeMB}MB limit.`);
+        }
       }
 
+      if (!isValidSize) continue;
+
       if (!isExtensionAllowed(extension)) {
-        skippedMessages.push(
-          `${file.name} must use ${categoryPolicy.allowedExtensions.join(", ")}`,
-        );
+        skippedMessages.push(`Sorry, we can't accept ${file.name}. Please try a valid file type.`);
         continue;
       }
 
       if (!isMimeAllowed(normalizedMime)) {
-        skippedMessages.push(
-          `${file.name} has unsupported type ${normalizedMime}`,
-        );
+        skippedMessages.push(`Sorry, the file type of ${file.name} isn't supported.`);
         continue;
       }
 
-      validFiles.push(file);
+      // Compression Logic for Images
+      if (isImage) {
+        try {
+          // If already small enough, skip compression
+          if (file.size <= IMG_TARGET_SIZE_MB * 1024 * 1024) {
+            processedFiles.push(file);
+            continue;
+          }
+
+          const options = {
+            maxSizeMB: IMG_TARGET_SIZE_MB,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true
+          };
+
+          const compressedBlob = await imageCompression(file, options);
+          // Convert Blob back to File to preserve properties
+          const compressedFile = new File([compressedBlob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          });
+
+          processedFiles.push(compressedFile);
+        } catch (error) {
+          console.error("Compression failed:", error);
+          // Fallback to original if compression fails, but warn user if it's huge?
+          // For now, let's just push original but it might be rejected by backend policy if strict.
+          // Or we could skip it.
+          skippedMessages.push(`Failed to compress ${file.name}. Please try a smaller image.`);
+        }
+      } else {
+        processedFiles.push(file);
+      }
     }
+
+    setProcessingStatus("");
 
     if (skippedMessages.length > 0) {
       toast({
@@ -271,17 +341,17 @@ export function ObjectUploader({
       });
     }
 
-    if (validFiles.length === 0) {
+    if (processedFiles.length === 0) {
+      setUploading(false);
       event.target.value = "";
       return;
     }
 
-    setUploading(true);
-
     try {
       const uploadedMetadata: UploadedFileMetadata[] = [];
 
-      for (const file of validFiles) {
+      for (const file of processedFiles) {
+        setProcessingStatus(`Uploading ${file.name}...`);
         const normalizedMime = normalizeMime(file.type) || "application/octet-stream";
         const params = new URLSearchParams({
           fileType,
@@ -312,7 +382,7 @@ export function ObjectUploader({
 
         const uploadResponse = await fetch(uploadTarget, {
           method: "PUT",
-          body: file,
+          body: file, // This is the compressed file if it was an image
           headers: {
             "Content-Type": normalizedMime,
           },
@@ -348,12 +418,20 @@ export function ObjectUploader({
       });
     } finally {
       setUploading(false);
+      setProcessingStatus("");
       event.target.value = "";
     }
   };
 
   const removeFile = (index: number) => {
     const newFiles = uploadedFiles.filter((_, i) => i !== index);
+    setUploadedFiles(newFiles);
+    onUploadComplete(newFiles);
+  };
+
+  const updateFileDescription = (index: number, description: string) => {
+    const newFiles = [...uploadedFiles];
+    newFiles[index] = { ...newFiles[index], description };
     setUploadedFiles(newFiles);
     onUploadComplete(newFiles);
   };
@@ -380,46 +458,66 @@ export function ObjectUploader({
             {uploadedFiles.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 border rounded-md bg-card"
+                className="border rounded-md bg-card"
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <FileText className="w-5 h-5 text-primary flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium truncate block">{file.fileName}</span>
-                    <span className="text-xs text-muted-foreground">{formatFileSize(file.fileSize)}</span>
+                <div className={`flex items-center justify-between p-3 gap-3 ${showDescription ? 'flex-wrap md:flex-nowrap' : ''}`}>
+                  {/* File info */}
+                  <div className="flex items-center gap-3 min-w-0 shrink-0">
+                    <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium truncate block max-w-[150px]">{file.fileName}</span>
+                      <span className="text-xs text-muted-foreground">{formatFileSize(file.fileSize)}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    data-testid={`button-view-file-${index}`}
-                  >
-                    <a
-                      href={`/api/object-storage/view?path=${encodeURIComponent(file.filePath)}&mime=${encodeURIComponent(file.mimeType)}&filename=${encodeURIComponent(file.fileName)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+
+                  {/* Description input - inline */}
+                  {showDescription && (
+                    <div className="flex-1 min-w-[200px]">
+                      <input
+                        type="text"
+                        placeholder="Document Info"
+                        value={file.description || ""}
+                        onChange={(e) => updateFileDescription(index, e.target.value)}
+                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none bg-gray-50 placeholder:text-gray-400"
+                      />
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      data-testid={`button-view-file-${index}`}
                     >
-                      View
-                    </a>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(index)}
-                    data-testid={`button-remove-file-${index}`}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                      <a
+                        href={`/api/object-storage/view?path=${encodeURIComponent(file.filePath)}&mime=${encodeURIComponent(file.mimeType)}&filename=${encodeURIComponent(file.fileName)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                      data-testid={`button-remove-file-${index}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+      </div>
 
+      <div className="space-y-1">
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -432,7 +530,7 @@ export function ObjectUploader({
             {uploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
+                {processingStatus || "Uploading..."}
               </>
             ) : (
               <>
@@ -447,16 +545,22 @@ export function ObjectUploader({
             </span>
           )}
         </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={effectiveAccept}
-          multiple={multiple}
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+        {/* Helper text regarding limits */}
+        {!hideNote && (
+          <p className="text-xs text-muted-foreground ml-1">
+            Note: Documents max 5MB (PDF). Photos max 10MB (we'll automatically optimize them for you!).
+          </p>
+        )}
       </div>
-    </div >
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={effectiveAccept}
+        multiple={multiple}
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+    </div>
   );
 }

@@ -10,6 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -39,6 +49,8 @@ import {
   Pencil,
   Save,
   X,
+  ExternalLink,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -69,6 +81,42 @@ interface ApplicationData {
   }>;
 }
 
+interface DealingAssistant {
+  id: string;
+  fullName: string;
+  mobile: string;
+}
+
+// Generate time slots for inspection scheduling
+const generateTimeSlots = (startHour = 8, endHour = 19) => {
+  const slots: string[] = [];
+  for (let hour = startHour; hour <= endHour; hour++) {
+    for (const minute of [0, 15, 30, 45]) {
+      if (hour === endHour && minute > 45) continue;
+      const labelHour = String(hour).padStart(2, "0");
+      const labelMinute = String(minute).padStart(2, "0");
+      slots.push(`${labelHour}:${labelMinute}`);
+    }
+  }
+  return slots;
+};
+
+const TIME_SLOTS = generateTimeSlots(8, 19);
+
+const formatTimeLabel = (slot: string) => {
+  const [hour, minute] = slot.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hour, minute, 0, 0);
+  return format(date, "h:mm a");
+};
+
+const combineDateAndTime = (date: Date, time: string) => {
+  const [hour, minute] = time.split(":").map(Number);
+  const combined = new Date(date);
+  combined.setHours(hour, minute, 0, 0);
+  return combined;
+};
+
 const formatCorrectionTimestamp = (value?: string | null) => {
   if (!value) return "No resubmission yet";
   const parsed = new Date(value);
@@ -92,12 +140,24 @@ export default function DTDOApplicationReview() {
   // Edit mode state
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedFields, setEditedFields] = useState<Partial<HomestayApplication>>({});
+  const [correctionReason, setCorrectionReason] = useState("");
 
   // Legacy RC: optional inspection (default: no inspection)
   const [requireInspection, setRequireInspection] = useState(false);
 
+  // Inline inspection scheduling state
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedTime, setSelectedTime] = useState<string>(TIME_SLOTS[8] ?? "10:00");
+  const [assignedDA, setAssignedDA] = useState("");
+
   const { data, isLoading } = useQuery<ApplicationData>({
     queryKey: ["/api/dtdo/applications", id],
+  });
+
+  // Fetch available DAs for scheduling
+  const { data: dasData } = useQuery<{ das: DealingAssistant[] }>({
+    queryKey: ["/api/dtdo/available-das"],
+    enabled: actionType === 'accept', // Only fetch when Accept dialog is open
   });
 
   const { data: settings } = useQuery<{ inspectionConfig: { optionalKinds: string[] } }>({
@@ -105,9 +165,16 @@ export default function DTDOApplicationReview() {
   });
 
   const actionMutation = useMutation({
-    mutationFn: async ({ action, remarks }: { action: string; remarks: string }) => {
+    mutationFn: async ({ action, remarks, inspectionDate, assignedTo }: {
+      action: string;
+      remarks: string;
+      inspectionDate?: string;
+      assignedTo?: string;
+    }) => {
       const response = await apiRequest("POST", `/api/dtdo/applications/${id}/${action}`, {
         remarks,
+        inspectionDate,
+        assignedTo,
       });
       return response.json();
     },
@@ -115,17 +182,21 @@ export default function DTDOApplicationReview() {
       queryClient.invalidateQueries({ queryKey: ["/api/dtdo/applications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dtdo/applications", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/applications", id, "timeline"] });
-      toast({
-        title: "Success",
-        description: "Application processed successfully",
-      });
 
-      // If accepting, redirect to schedule inspection page
       if (variables.action === 'accept') {
-        setLocation(`/dtdo/schedule-inspection/${id}`);
+        toast({
+          title: "Inspection Scheduled",
+          description: "Application accepted and inspection has been scheduled successfully.",
+        });
       } else {
-        setLocation("/dtdo/dashboard");
+        toast({
+          title: "Success",
+          description: "Application processed successfully",
+        });
       }
+
+      // Always redirect to queue (scheduling is now inline)
+      setLocation("/dtdo/dashboard");
     },
     onError: (error: Error) => {
       toast({
@@ -136,25 +207,34 @@ export default function DTDOApplicationReview() {
     },
   });
 
-  // DTDO can update application fields
-  const updateMutation = useMutation({
-    mutationFn: async (updates: Partial<HomestayApplication>) => {
-      const response = await apiRequest("PATCH", `/api/dtdo/applications/${id}`, updates);
+  // DTDO can correct approved application fields (with audit trail)
+  const correctionMutation = useMutation({
+    mutationFn: async ({ corrections, reason }: { corrections: Partial<HomestayApplication>; reason: string }) => {
+      const response = await apiRequest("PATCH", `/api/dtdo/applications/${id}/correct`, {
+        corrections,
+        reason
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to apply corrections");
+      }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/dtdo/applications", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/applications", id, "timeline"] });
       toast({
-        title: "Success",
-        description: "Application details updated successfully",
+        title: "Corrections Applied",
+        description: data.message || "Application details corrected successfully",
       });
       setIsEditMode(false);
       setEditedFields({});
+      setCorrectionReason("");
     },
     onError: (error: Error) => {
       toast({
-        title: "Update failed",
-        description: error.message || "Failed to update application",
+        title: "Correction Failed",
+        description: error.message || "Failed to apply corrections",
         variant: "destructive",
       });
     },
@@ -267,10 +347,24 @@ export default function DTDOApplicationReview() {
   const handleAction = (action: 'accept' | 'reject' | 'revert' | 'approve-cancellation' | 'approve-bypass') => {
     setActionType(action);
     setRemarks("");
+    // Reset scheduling fields when opening accept dialog
+    if (action === 'accept') {
+      setSelectedDate(undefined);
+      setSelectedTime(TIME_SLOTS[8] ?? "10:00");
+      setAssignedDA("");
+    }
   };
 
   const actionRequiresRemarks = (action: typeof actionType) =>
     action === 'accept' || action === 'reject' || action === 'revert' || action === 'approve-cancellation' || action === 'approve-bypass';
+
+  // Calculate minimum selectable date for scheduling (tomorrow)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const minSelectableDate = tomorrow;
+
+  const availableDAs = dasData?.das || [];
 
   const confirmAction = () => {
     if (!actionType) return;
@@ -292,7 +386,54 @@ export default function DTDOApplicationReview() {
       return;
     }
 
-    actionMutation.mutate({ action: actionType, remarks: remarks.trim() });
+    // For accept action, validate scheduling fields
+    if (actionType === 'accept') {
+      if (!selectedDate) {
+        toast({
+          title: "Date Required",
+          description: "Please select an inspection date.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!selectedTime) {
+        toast({
+          title: "Time Required",
+          description: "Please select an inspection time.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!assignedDA) {
+        toast({
+          title: "DA Required",
+          description: "Please assign a Dealing Assistant.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Combine date and time and validate it's in the future
+      const combinedDate = combineDateAndTime(selectedDate, selectedTime);
+      if (combinedDate < new Date()) {
+        toast({
+          title: "Invalid Date",
+          description: "Inspection date must be in the future.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Include scheduling data in the mutation
+      actionMutation.mutate({
+        action: actionType,
+        remarks: remarks.trim(),
+        inspectionDate: combinedDate.toISOString(),
+        assignedTo: assignedDA,
+      });
+    } else {
+      actionMutation.mutate({ action: actionType, remarks: remarks.trim() });
+    }
   };
 
   // Certificate download function
@@ -323,15 +464,33 @@ export default function DTDOApplicationReview() {
 
   const handleSaveEdits = () => {
     if (Object.keys(editedFields).length === 0) {
-      setIsEditMode(false);
+      toast({
+        title: "No Changes",
+        description: "No fields have been modified.",
+        variant: "destructive",
+      });
       return;
     }
-    updateMutation.mutate(editedFields);
+
+    if (correctionReason.trim().length < 10) {
+      toast({
+        title: "Reason Required",
+        description: "Please provide a correction reason (minimum 10 characters)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    correctionMutation.mutate({
+      corrections: editedFields,
+      reason: correctionReason.trim()
+    });
   };
 
   const handleCancelEdit = () => {
     setIsEditMode(false);
     setEditedFields({});
+    setCorrectionReason("");
   };
 
   // Get display value (edited or original)
@@ -850,37 +1009,170 @@ export default function DTDOApplicationReview() {
                     data-testid="button-edit-details"
                   >
                     <Pencil className="mr-2 h-4 w-4" />
-                    Edit Application Details
+                    Edit RC Details
                   </Button>
                 ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1"
-                      variant="default"
-                      onClick={handleSaveEdits}
-                      disabled={updateMutation.isPending}
-                      data-testid="button-save-edits"
-                    >
-                      {updateMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                      disabled={updateMutation.isPending}
-                      data-testid="button-cancel-edit"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                  <div className="space-y-4">
+                    {/* Correction Form */}
+                    <div className="space-y-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-medium">
+                        <AlertTriangle className="h-4 w-4" />
+                        Editing Active RC
+                      </div>
+
+                      {/* Editable Fields */}
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-xs text-gray-600">Property Name</Label>
+                          <Input
+                            value={getFieldValue('propertyName') ?? ''}
+                            onChange={(e) => handleEditField('propertyName', e.target.value)}
+                            placeholder="Property name"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs text-gray-600">Guardian / Father's Name</Label>
+                          <Input
+                            value={(editedFields as any).guardianName ?? (application as any).guardianName ?? ''}
+                            onChange={(e) => handleEditField('guardianName' as any, e.target.value)}
+                            placeholder="Father's / Husband's name"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs text-gray-600">Address</Label>
+                          <Input
+                            value={getFieldValue('address') ?? ''}
+                            onChange={(e) => handleEditField('address', e.target.value)}
+                            placeholder="Full address"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs text-gray-600">Gender</Label>
+                            <Select
+                              value={getFieldValue('ownerGender') ?? ''}
+                              onValueChange={(value) => handleEditField('ownerGender', value)}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="male">Male</SelectItem>
+                                <SelectItem value="female">Female</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600">Tehsil</Label>
+                            <Input
+                              value={getFieldValue('tehsil') ?? ''}
+                              onChange={(e) => handleEditField('tehsil', e.target.value)}
+                              placeholder="Tehsil"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs text-gray-600">Village / Gram Panchayat</Label>
+                            <Input
+                              value={(editedFields as any).gramPanchayat ?? (application as any).gramPanchayat ?? ''}
+                              onChange={(e) => handleEditField('gramPanchayat' as any, e.target.value)}
+                              placeholder="Village name"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600">Urban Body</Label>
+                            <Input
+                              value={(editedFields as any).urbanBody ?? (application as any).urbanBody ?? ''}
+                              onChange={(e) => handleEditField('urbanBody' as any, e.target.value)}
+                              placeholder="MC/NAC name"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs text-gray-600">Pincode</Label>
+                            <Input
+                              value={getFieldValue('pincode') ?? ''}
+                              onChange={(e) => handleEditField('pincode', e.target.value)}
+                              placeholder="Pincode"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-600">Alternate Phone</Label>
+                            <Input
+                              value={(editedFields as any).alternatePhone ?? (application as any).alternatePhone ?? ''}
+                              onChange={(e) => handleEditField('alternatePhone' as any, e.target.value)}
+                              placeholder="Alt. phone"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Correction Reason - REQUIRED */}
+                      <div className="pt-2 border-t border-amber-200 dark:border-amber-700">
+                        <Label className="text-xs text-gray-600 flex items-center gap-1">
+                          Correction Reason <span className="text-red-500">*</span>
+                        </Label>
+                        <Textarea
+                          value={correctionReason}
+                          onChange={(e) => setCorrectionReason(e.target.value)}
+                          placeholder="Explain why these corrections are needed (min. 10 characters)..."
+                          className="text-sm resize-none"
+                          rows={2}
+                        />
+                        {correctionReason.length > 0 && correctionReason.length < 10 && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {10 - correctionReason.length} more characters needed
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1"
+                        variant="default"
+                        onClick={handleSaveEdits}
+                        disabled={correctionMutation.isPending || Object.keys(editedFields).length === 0}
+                        data-testid="button-save-edits"
+                      >
+                        {correctionMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Corrections
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        disabled={correctionMutation.isPending}
+                        data-testid="button-cancel-edit"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -900,15 +1192,15 @@ export default function DTDOApplicationReview() {
 
       {/* Action Dialog */}
       <Dialog open={actionType !== null} onOpenChange={(open) => !open && setActionType(null)}>
-        <DialogContent>
+        <DialogContent className={actionType === 'accept' ? 'max-w-lg' : ''}>
           <DialogHeader>
             <DialogTitle>
-              {actionType === 'accept' && 'Accept Application'}
+              {actionType === 'accept' && 'Accept & Schedule Inspection'}
               {actionType === 'reject' && 'Reject Application'}
               {actionType === 'revert' && 'Revert to Applicant'}
             </DialogTitle>
             <DialogDescription>
-              {actionType === 'accept' && 'This will schedule an inspection for the property.'}
+              {actionType === 'accept' && 'Schedule the site inspection and assign a Dealing Assistant.'}
               {actionType === 'reject' && 'This will permanently reject the application. Please provide rejection reason.'}
               {actionType === 'revert' && 'This will send the application back to the applicant for corrections. Please provide details.'}
               {actionType === 'approve-bypass' && 'This will approve the application immediately without an inspection field visit.'}
@@ -916,10 +1208,11 @@ export default function DTDOApplicationReview() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Remarks field (for all actions) */}
             <div className="space-y-2">
               <Label htmlFor="remarks">
                 {actionType === 'accept'
-                  ? 'Inspection Remarks (Required)'
+                  ? 'Instructions for Inspection Team'
                   : 'Remarks (Required)'}
               </Label>
               <Textarea
@@ -935,10 +1228,93 @@ export default function DTDOApplicationReview() {
                 }
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                rows={4}
+                rows={3}
                 data-testid="textarea-remarks"
               />
             </div>
+
+            {/* Scheduling fields for Accept action */}
+            {actionType === 'accept' && (
+              <>
+                {/* Date & Time selector */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    Inspection Date & Time <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="grid gap-3 sm:grid-cols-[1fr,0.6fr]">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !selectedDate && "text-muted-foreground",
+                          )}
+                          data-testid="button-inspection-date"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          disabled={(date) => date < minSelectableDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Select
+                      value={selectedTime}
+                      onValueChange={setSelectedTime}
+                    >
+                      <SelectTrigger data-testid="select-inspection-time">
+                        <SelectValue placeholder="Time" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {TIME_SLOTS.map((slot) => (
+                          <SelectItem key={slot} value={slot}>
+                            {formatTimeLabel(slot)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Schedule starts from tomorrow. Time slots in 15-minute intervals.
+                  </p>
+                </div>
+
+                {/* DA Assignment */}
+                <div className="space-y-2">
+                  <Label htmlFor="assignedDA" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Assign Dealing Assistant <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={assignedDA} onValueChange={setAssignedDA}>
+                    <SelectTrigger id="assignedDA" data-testid="select-da">
+                      <SelectValue placeholder="Select a DA" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDAs.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          No DAs available in this district
+                        </div>
+                      ) : (
+                        availableDAs.map((da) => (
+                          <SelectItem key={da.id} value={da.id}>
+                            {da.fullName} - {da.mobile}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
@@ -954,13 +1330,14 @@ export default function DTDOApplicationReview() {
               onClick={confirmAction}
               disabled={
                 actionMutation.isPending ||
-                (actionRequiresRemarks(actionType) && !remarks.trim())
+                (actionRequiresRemarks(actionType) && !remarks.trim()) ||
+                (actionType === 'accept' && (!selectedDate || !selectedTime || !assignedDA))
               }
               variant={actionType === 'reject' ? 'destructive' : 'default'}
               data-testid="button-confirm-action"
             >
               {actionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirm {actionType === 'accept' ? 'Accept' : actionType === 'approve-bypass' ? 'Approval' : actionType === 'reject' ? 'Rejection' : 'Revert'}
+              {actionType === 'accept' ? 'Accept & Schedule' : actionType === 'approve-bypass' ? 'Confirm Approval' : actionType === 'reject' ? 'Confirm Rejection' : 'Confirm Revert'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -985,28 +1362,41 @@ export default function DTDOApplicationReview() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => window.open(documentUrl(previewDoc), "_blank", "noopener,noreferrer")}
+                    title="Open in new tab for full view"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Full View
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => window.open(documentUrl(previewDoc), "_blank")}
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Download Original
+                    Download
                   </Button>
                 </div>
-                <div className="border rounded-lg max-h-[70vh] overflow-auto bg-muted/30 flex items-center justify-center">
+                <div className="border rounded-lg overflow-hidden bg-muted/30" style={{ height: 'calc(80vh - 180px)', minHeight: '500px' }}>
                   {previewDoc.mimeType?.startsWith("image/") ? (
-                    <img
-                      src={documentUrl(previewDoc)}
-                      alt={previewDoc.fileName}
-                      className="w-full h-auto object-contain"
-                    />
+                    <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                      <img
+                        src={documentUrl(previewDoc)}
+                        alt={previewDoc.fileName}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
                   ) : previewDoc.mimeType?.includes("pdf") ? (
                     <iframe
                       src={documentUrl(previewDoc)}
-                      className="w-full h-[70vh]"
+                      className="w-full h-full"
                       title={previewDoc.fileName}
                     />
                   ) : (
-                    <div className="p-8 text-center text-sm text-muted-foreground">
-                      This file type is not previewable in the browser. Please download the original file.
+                    <div className="p-8 text-center text-sm text-muted-foreground h-full flex flex-col items-center justify-center">
+                      <FileText className="w-16 h-16 mb-4 opacity-50" />
+                      <p>This file type is not previewable in the browser.</p>
+                      <p className="text-xs mt-2">Click "Full View" or "Download" to view the file.</p>
                     </div>
                   )}
                 </div>

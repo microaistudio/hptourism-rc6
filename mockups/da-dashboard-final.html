@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DA Dashboard - Final Card Structure</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #333;
+        }
+
+        /* Header Banner */
+        .revision-banner {
+            background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+            color: white;
+            padding: 16px 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .revision-banner h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .revision-banner .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Layout */
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 60px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            padding: 16px 0;
+            height: calc(100vh - 60px);
+            position: fixed;
+            left: 0;
+            top: 60px;
+            overflow-y: auto;
+        }
+
+        .brand {
+            padding: 12px 16px;
+            background: #4a6741;
+            color: white;
+            margin: 0 12px 16px;
+            border-radius: 8px;
+        }
+
+        .brand h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .brand span {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .section-header {
+            font-size: 10px;
+            font-weight: 600;
+            color: #888;
+            padding: 12px 16px 6px;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            color: #333;
+            text-decoration: none;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .nav-item:hover {
+            background: #f5f5f5;
+        }
+
+        .nav-item.active {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #2e7d32;
+        }
+
+        .nav-item .icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: #ef5350;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .nav-badge.amber {
+            background: #ff9800;
+        }
+
+        .nav-badge.legacy {
+            background: #9c27b0;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 220px;
+            padding: 24px;
+        }
+
+        .header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            padding: 10px 16px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Stats Grid - 5 CARDS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 2px dashed #4a6741;
+            border-radius: 8px;
+            padding: 14px;
+            position: relative;
+        }
+
+        .stat-card .label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #4a6741;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-card .label-icon {
+            font-size: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-card .description {
+            font-size: 11px;
+            color: #666;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .stat-card .sub-items {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .stat-card .sub-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 8px;
+            margin: 3px 0;
+            background: #f8f8f8;
+            border-radius: 5px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stat-card .sub-item:hover {
+            background: #e8f5e9;
+        }
+
+        .stat-card .sub-item .count {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 10px;
+            border: 1px solid #eee;
+        }
+
+        .stat-card .sub-item .count.highlight {
+            background: #4a6741;
+            color: white;
+            border: none;
+        }
+
+        /* Card States */
+        .stat-card.has-items {
+            border-style: solid;
+            border-color: #4a6741;
+        }
+
+        .stat-card.completed-card {
+            border-color: #2196f3;
+        }
+
+        .stat-card.completed-card .label {
+            color: #1565c0;
+        }
+
+        /* Time Filter */
+        .time-filter {
+            margin-top: 8px;
+        }
+
+        .time-filter select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 11px;
+            background: white;
+            cursor: pointer;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 18px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            border-color: #4a6741;
+        }
+
+        .tab.active {
+            background: #4a6741;
+            color: white;
+            border-color: #4a6741;
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-text h4 {
+            font-size: 13px;
+            color: #e65100;
+            font-weight: 600;
+        }
+
+        .alert-text p {
+            font-size: 11px;
+            color: #ef6c00;
+            margin-top: 2px;
+        }
+
+        .alert-btn {
+            padding: 8px 14px;
+            background: white;
+            border: 1px solid #ffcc80;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        /* Summary Box */
+        .summary-box {
+            background: #e8f5e9;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .summary-box h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+
+        .summary-box table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+
+        .summary-box th {
+            text-align: left;
+            padding: 6px 8px;
+            background: #c8e6c9;
+            color: #1b5e20;
+            font-weight: 600;
+        }
+
+        .summary-box td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #c8e6c9;
+        }
+
+        .summary-box tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Legacy Note */
+        .legacy-note {
+            background: #f3e5f5;
+            border-radius: 8px;
+            padding: 14px 18px;
+            border: 1px dashed #9c27b0;
+            margin-top: 20px;
+        }
+
+        .legacy-note h4 {
+            font-size: 13px;
+            color: #7b1fa2;
+            margin-bottom: 6px;
+        }
+
+        .legacy-note p {
+            font-size: 12px;
+            color: #6a1b9a;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="revision-banner">
+        <h2>✅ DA Dashboard - Final Card Structure (5 Cards)</h2>
+        <span class="badge">Ready for Review</span>
+    </div>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="brand">
+                <h3>HP Tourism</h3>
+                <span>eServices Portal</span>
+            </div>
+
+            <div class="section-header">HOME</div>
+            <a href="#" class="nav-item active">
+                <span class="icon">📊</span>
+                Dashboard
+            </a>
+
+            <div class="section-header">WORK QUEUES</div>
+            <a href="#" class="nav-item">
+                <span class="icon">📝</span>
+                New Applications
+            </a>
+            <a href="#" class="nav-item">
+                <span class="icon">📋</span>
+                Existing RC (Legacy)
+                <span class="nav-badge legacy">1</span>
+            </a>
+
+            <div class="section-header">GRIEVANCES</div>
+            <a href="#" class="nav-item">
+                <span class="icon">🎫</span>
+                Open Tickets
+            </a>
+
+            <div class="section-header">INSIGHTS</div>
+            <a href="#" class="nav-item">
+                <span class="icon">📈</span>
+                Analytics
+            </a>
+            <a href="#" class="nav-item">
+                <span class="icon">⚡</span>
+                Workflow Monitor
+            </a>
+
+            <div class="section-header">TOOLS</div>
+            <a href="#" class="nav-item">
+                <span class="icon">🔍</span>
+                Search
+            </a>
+            <a href="#" class="nav-item">
+                <span class="icon">🔎</span>
+                Inspections
+                <span class="nav-badge">1</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="icon">👤</span>
+                My Profile
+            </a>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <div>
+                    <h1>Dealing Assistant Dashboard</h1>
+                    <p>Shimla Division – Scrutiny + Inspection Workflow</p>
+                </div>
+                <div class="header-actions">
+                    <button class="header-btn">🔄 Refresh</button>
+                    <button class="header-btn">📦 Incomplete Apps</button>
+                </div>
+            </div>
+
+            <!-- Final 5-Card Stats Grid -->
+            <div class="stats-grid">
+
+                <!-- Card 1: INCOMING QUEUE -->
+                <div class="stat-card has-items">
+                    <div class="label">
+                        <span class="label-icon">📥</span>
+                        INCOMING QUEUE
+                    </div>
+                    <div class="value">2</div>
+                    <div class="description">New submissions ready for scrutiny.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>New Registration</span>
+                            <span class="count highlight">2</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Renewals</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Add Room</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Other Amendments</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Cancellation</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: IN PROGRESS -->
+                <div class="stat-card">
+                    <div class="label">
+                        <span class="label-icon">⚙️</span>
+                        IN PROGRESS
+                    </div>
+                    <div class="value">0</div>
+                    <div class="description">Files currently being processed.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Under Screening</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Forwarded to DTDO</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: AWAITING RESPONSE -->
+                <div class="stat-card">
+                    <div class="label">
+                        <span class="label-icon">⏳</span>
+                        AWAITING RESPONSE
+                    </div>
+                    <div class="value">0</div>
+                    <div class="description">Sent back for corrections.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Sent Back to Applicant</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Resubmitted to DTDO</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: INSPECTIONS -->
+                <div class="stat-card has-items">
+                    <div class="label">
+                        <span class="label-icon">🔎</span>
+                        INSPECTIONS
+                    </div>
+                    <div class="value">1</div>
+                    <div class="description">Field inspections assigned.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Scheduled</span>
+                            <span class="count highlight">1</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Report Submitted</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 5: COMPLETED (with time filter) -->
+                <div class="stat-card completed-card">
+                    <div class="label">
+                        <span class="label-icon">✅</span>
+                        COMPLETED
+                    </div>
+                    <div class="value">3</div>
+                    <div class="description">Decisions recorded.</div>
+                    <div class="time-filter">
+                        <select>
+                            <option>This Week</option>
+                            <option selected>This Month</option>
+                            <option>Last 30 Days</option>
+                            <option>All Time</option>
+                        </select>
+                    </div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Approved</span>
+                            <span class="count" style="background:#4caf50;color:white;border:none;">2</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Rejected</span>
+                            <span class="count" style="background:#f44336;color:white;border:none;">1</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Summary Table -->
+            <div class="summary-box">
+                <h4>📋 Final Card Structure Summary</h4>
+                <table>
+                    <tr>
+                        <th>Card</th>
+                        <th>Sub-Items</th>
+                        <th>Notes</th>
+                    </tr>
+                    <tr>
+                        <td><strong>1. INCOMING QUEUE</strong></td>
+                        <td>New Registration, Renewals, Add Room, Other Amendments, Cancellation</td>
+                        <td>All new submissions needing scrutiny</td>
+                    </tr>
+                    <tr>
+                        <td><strong>2. IN PROGRESS</strong></td>
+                        <td>Under Screening, Forwarded to DTDO</td>
+                        <td>Active workflow items</td>
+                    </tr>
+                    <tr>
+                        <td><strong>3. AWAITING RESPONSE</strong></td>
+                        <td>Sent Back to Applicant, Resubmitted to DTDO</td>
+                        <td>Waiting on external action</td>
+                    </tr>
+                    <tr>
+                        <td><strong>4. INSPECTIONS</strong></td>
+                        <td>Scheduled, Report Submitted</td>
+                        <td>Mandatory or optional per config</td>
+                    </tr>
+                    <tr>
+                        <td><strong>5. COMPLETED</strong></td>
+                        <td>Approved, Rejected (with time filter)</td>
+                        <td>Time filter: Week/Month/30 Days</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active">New Registration <span>●</span></button>
+                <button class="tab">Renewals <span>0</span></button>
+                <button class="tab">Add Room <span>0</span></button>
+                <button class="tab">Amendments <span>0</span></button>
+                <button class="tab">Cancellation <span>0</span></button>
+            </div>
+
+            <!-- Alert -->
+            <div class="alert-banner">
+                <div class="alert-text">
+                    <h4>⚠️ Inspections need attention</h4>
+                    <p>1 inspection is awaiting field report submission.</p>
+                </div>
+                <button class="alert-btn">☆ View inspection queue</button>
+            </div>
+
+            <!-- Legacy RC Note -->
+            <div class="legacy-note">
+                <h4>📋 Existing RC (Legacy Onboarding) - Sidebar Only</h4>
+                <p>
+                    <strong>Separate workflow:</strong> No fee, No inspection. Just verify ID + RC → Approve.<br>
+                    <strong>Why separate?</strong> Temporary service for old system RCs. Eventually replaced by DB
+                    import.<br>
+                    <strong>Renewals ≠ Legacy:</strong> "Renewals" in Incoming Queue = New system RCs expiring soon (90
+                    days), full workflow.
+                </p>
+            </div>
+
+        </main>
+    </div>
+</body>
+
+</html>

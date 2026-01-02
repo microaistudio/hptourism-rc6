@@ -22,8 +22,25 @@ app.disable("x-powered-by");
 
 // Security headers
 app.use(helmet({
-  contentSecurityPolicy: false, // Disabled for now to prevent breaking frontend assets
+  contentSecurityPolicy: false, // Keeping disabled for Staging as requested, but should be enabled for Prod
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  frameguard: {
+    action: "deny",
+  },
 }));
+
+// Block dangerous HTTP methods (Issue 5)
+app.use((req, res, next) => {
+  const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+  if (!allowedMethods.includes(req.method)) {
+    return res.status(405).json({ message: "Method Not Allowed" });
+  }
+  next();
+});
 
 declare module 'http' {
   interface IncomingMessage {
@@ -37,7 +54,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// app.use(globalRateLimiter);
+app.use(globalRateLimiter);
 
 app.use(httpLogger);
 

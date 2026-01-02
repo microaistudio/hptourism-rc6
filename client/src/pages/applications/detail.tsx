@@ -525,244 +525,242 @@ export default function ApplicationDetail() {
   return (
     <>
       <div id="application-print-sheet" className="print-only application-print-sheet text-black text-sm leading-relaxed">
-        <div className="rounded-3xl border border-gray-300 shadow-sm p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <img src={hpGovtLogo} alt="Government of Himachal Pradesh" className="h-14 w-auto" />
-            <div className="text-center">
-              <p className="uppercase tracking-[0.35em] text-[11px] text-gray-500">Government of Himachal Pradesh</p>
-              <h1 className="text-2xl font-semibold mt-1">HP Tourism eServices</h1>
-              <p className="text-sm text-gray-600">Homestay Registration Application</p>
-            </div>
-            <img src={himachalTourismLogo} alt="Himachal Tourism" className="h-14 w-auto" />
+        <div className="flex items-center justify-between border-b pb-6 mb-6">
+          <div className="text-left">
+            <p className="uppercase tracking-[0.35em] text-[11px] text-gray-500">Government of Himachal Pradesh</p>
+            <h1 className="text-2xl font-semibold mt-1">HP Tourism eServices</h1>
+            <p className="text-sm text-gray-600">Homestay Registration Application</p>
           </div>
-
-          <section className="space-y-3 break-inside-avoid">
-            <div className="grid grid-cols-2 gap-4 border border-gray-200 rounded-2xl p-4">
-              <div>
-                <p className="text-xs uppercase text-gray-500">Application Number</p>
-                <p className="font-semibold">{displayValue(app.applicationNumber)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Current Status</p>
-                <p className="font-semibold">{statusLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Submitted On</p>
-                <p>{submissionDate ? submissionDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Last Updated</p>
-                <p>{lastUpdatedAt ? lastUpdatedAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3 break-inside-avoid">
-            <h2 className="text-lg font-semibold">1. Property Snapshot</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs uppercase text-gray-500">Property Name</p>
-                <p>{displayValue(app.propertyName)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Category</p>
-                <p>{categoryLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Address</p>
-                <p>{displayValue(app.address)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Location Type</p>
-                <p>{locationTypeLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">District / Tehsil</p>
-                <p>{displayValue(app.district)} · {displayValue(app.tehsil)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Village / Urban Body</p>
-                <p>{displayValue(app.gramPanchayat)} · {displayValue(app.urbanBody)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">PIN Code</p>
-                <p>{displayValue(app.pincode)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Total Rooms</p>
-                <p>{displayValue(app.totalRooms)}</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3 break-inside-avoid">
-            <h2 className="text-lg font-semibold">2. Owner & Contact</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs uppercase text-gray-500">Full Name</p>
-                <p>{displayValue(app.ownerName)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Mobile Number</p>
-                <p>{displayValue(app.ownerMobile)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Email Address</p>
-                <p>{displayValue(app.ownerEmail)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Gender</p>
-                <p>{app.ownerGender ? startCase(app.ownerGender) : '—'}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs uppercase text-gray-500">Aadhaar Number</p>
-                <p>{app.ownerAadhaar ? app.ownerAadhaar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : '—'}</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3 break-inside-avoid">
-            <h2 className="text-lg font-semibold">3. Accommodation & Tariffs</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs uppercase text-gray-500">Project Type</p>
-                <p>{projectTypeLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Ownership Type</p>
-                <p>{ownershipLabel}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Single / Double / Suites</p>
-                <p>{displayValue(app.singleBedRooms)} / {displayValue(app.doubleBedRooms)} / {displayValue(app.familySuites)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Attached Washrooms</p>
-                <p>{displayValue(app.attachedWashrooms)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Single Room Rate</p>
-                <p>{formatCurrency(app.singleBedRoomRate)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Double Room Rate</p>
-                <p>{formatCurrency(app.doubleBedRoomRate)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Family Suite Rate</p>
-                <p>{formatCurrency(app.familySuiteRate)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Proposed Tariff</p>
-                <p>{formatCurrency(app.proposedRoomRate)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">GSTIN</p>
-                <p>{displayValue(app.gstin)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Certificate Validity</p>
-                <p>{displayValue(app.certificateValidityYears)} years</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3 break-inside-avoid">
-            <h2 className="text-lg font-semibold">4. Distances & Facilities</h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs uppercase text-gray-500">Airport</p>
-                <p>{formatDistance(app.distanceAirport)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Railway Station</p>
-                <p>{formatDistance(app.distanceRailway)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">City Center</p>
-                <p>{formatDistance(app.distanceCityCenter)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Shopping Area</p>
-                <p>{formatDistance(app.distanceShopping)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Bus Stand</p>
-                <p>{formatDistance(app.distanceBusStand)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Nearest Hospital</p>
-                <p>{displayValue(app.nearestHospital)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Lobby Area</p>
-                <p>{formatArea(app.lobbyArea)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Dining Area</p>
-                <p>{formatArea(app.diningArea)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Parking</p>
-                <p>{displayValue(app.parkingArea)}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs uppercase text-gray-500">Eco-Friendly Facilities</p>
-                <p>{displayValue(app.ecoFriendlyFacilities)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Differently Abled Facilities</p>
-                <p>{displayValue(app.differentlyAbledFacilities)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">Fire Safety Equipment</p>
-                <p>{displayValue(app.fireEquipmentDetails)}</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3 break-inside-avoid">
-            <h2 className="text-lg font-semibold">5. Amenities</h2>
-            {selectedAmenityLabels.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {selectedAmenityLabels.map((label) => (
-                  <span key={label} className="border border-gray-300 rounded-full px-3 py-1 text-sm">
-                    {label}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p>No amenities declared.</p>
-            )}
-          </section>
-
-          <section className="space-y-3 break-inside-avoid">
-            <h2 className="text-lg font-semibold">6. Fee Summary</h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="border border-gray-200 rounded-2xl p-3">
-                <p className="text-xs uppercase text-gray-500">Base Fee</p>
-                <p className="text-lg font-semibold">{formatCurrency(app.baseFee)}</p>
-              </div>
-              <div className="border border-gray-200 rounded-2xl p-3">
-                <p className="text-xs uppercase text-gray-500">Discounts</p>
-                <p className="text-lg font-semibold">{formatCurrency(app.totalDiscount)}</p>
-              </div>
-              <div className="border border-emerald-200 rounded-2xl p-3 bg-emerald-50/60">
-                <p className="text-xs uppercase text-emerald-700">Total Payable</p>
-                <p className="text-xl font-bold text-emerald-900">{formatCurrency(app.totalFee)}</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="text-xs text-gray-600 border-t border-gray-200 pt-4">
-            <p>
-              Generated on {printGeneratedAt.toLocaleString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </section>
+          <img src={himachalTourismLogo} alt="Himachal Tourism" className="h-14 w-auto" />
         </div>
+
+        <section className="space-y-3 break-inside-avoid">
+          <div className="grid grid-cols-2 gap-4 border border-gray-200 rounded-2xl p-4">
+            <div>
+              <p className="text-xs uppercase text-gray-500">Application Number</p>
+              <p className="font-semibold">{displayValue(app.applicationNumber)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Current Status</p>
+              <p className="font-semibold">{statusLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Submitted On</p>
+              <p>{submissionDate ? submissionDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Last Updated</p>
+              <p>{lastUpdatedAt ? lastUpdatedAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold">1. Property Snapshot</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs uppercase text-gray-500">Property Name</p>
+              <p>{displayValue(app.propertyName)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Category</p>
+              <p>{categoryLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Address</p>
+              <p>{displayValue(app.address)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Location Type</p>
+              <p>{locationTypeLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">District / Tehsil</p>
+              <p>{displayValue(app.district)} · {displayValue(app.tehsil)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Village / Urban Body</p>
+              <p>{displayValue(app.gramPanchayat)} · {displayValue(app.urbanBody)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">PIN Code</p>
+              <p>{displayValue(app.pincode)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Total Rooms</p>
+              <p>{displayValue(app.totalRooms)}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold">2. Owner & Contact</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs uppercase text-gray-500">Full Name</p>
+              <p>{displayValue(app.ownerName)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Mobile Number</p>
+              <p>{displayValue(app.ownerMobile)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Email Address</p>
+              <p>{displayValue(app.ownerEmail)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Gender</p>
+              <p>{app.ownerGender ? startCase(app.ownerGender) : '—'}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-xs uppercase text-gray-500">Aadhaar Number</p>
+              <p>{app.ownerAadhaar ? app.ownerAadhaar.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3') : '—'}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold">3. Accommodation & Tariffs</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs uppercase text-gray-500">Project Type</p>
+              <p>{projectTypeLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Ownership Type</p>
+              <p>{ownershipLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Single / Double / Suites</p>
+              <p>{displayValue(app.singleBedRooms)} / {displayValue(app.doubleBedRooms)} / {displayValue(app.familySuites)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Attached Washrooms</p>
+              <p>{displayValue(app.attachedWashrooms)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Single Room Rate</p>
+              <p>{formatCurrency(app.singleBedRoomRate)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Double Room Rate</p>
+              <p>{formatCurrency(app.doubleBedRoomRate)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Family Suite Rate</p>
+              <p>{formatCurrency(app.familySuiteRate)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Proposed Tariff</p>
+              <p>{formatCurrency(app.proposedRoomRate)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">GSTIN</p>
+              <p>{displayValue(app.gstin)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Certificate Validity</p>
+              <p>{displayValue(app.certificateValidityYears)} years</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold">4. Distances & Facilities</h2>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs uppercase text-gray-500">Airport</p>
+              <p>{formatDistance(app.distanceAirport)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Railway Station</p>
+              <p>{formatDistance(app.distanceRailway)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">City Center</p>
+              <p>{formatDistance(app.distanceCityCenter)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Shopping Area</p>
+              <p>{formatDistance(app.distanceShopping)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Bus Stand</p>
+              <p>{formatDistance(app.distanceBusStand)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Nearest Hospital</p>
+              <p>{displayValue(app.nearestHospital)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Lobby Area</p>
+              <p>{formatArea(app.lobbyArea)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Dining Area</p>
+              <p>{formatArea(app.diningArea)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Parking</p>
+              <p>{displayValue(app.parkingArea)}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs uppercase text-gray-500">Eco-Friendly Facilities</p>
+              <p>{displayValue(app.ecoFriendlyFacilities)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Differently Abled Facilities</p>
+              <p>{displayValue(app.differentlyAbledFacilities)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-gray-500">Fire Safety Equipment</p>
+              <p>{displayValue(app.fireEquipmentDetails)}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold">5. Amenities</h2>
+          {selectedAmenityLabels.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {selectedAmenityLabels.map((label) => (
+                <span key={label} className="border border-gray-300 rounded-full px-3 py-1 text-sm">
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p>No amenities declared.</p>
+          )}
+        </section>
+
+        <section className="space-y-3 break-inside-avoid">
+          <h2 className="text-lg font-semibold">6. Fee Summary</h2>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="border border-gray-200 rounded-2xl p-3">
+              <p className="text-xs uppercase text-gray-500">Base Fee</p>
+              <p className="text-lg font-semibold">{formatCurrency(app.baseFee)}</p>
+            </div>
+            <div className="border border-gray-200 rounded-2xl p-3">
+              <p className="text-xs uppercase text-gray-500">Discounts</p>
+              <p className="text-lg font-semibold">{formatCurrency(app.totalDiscount)}</p>
+            </div>
+            <div className="border border-emerald-200 rounded-2xl p-3 bg-emerald-50/60">
+              <p className="text-xs uppercase text-emerald-700">Total Payable</p>
+              <p className="text-xl font-bold text-emerald-900">{formatCurrency(app.totalFee)}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="text-xs text-gray-600 border-t border-gray-200 pt-4">
+          <p>
+            Generated on {printGeneratedAt.toLocaleString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </section>
       </div>
+
       <div className="print:hidden container mx-auto px-4 py-8 space-y-4">
         {needsCorrectionsAlert && (
           <Alert className="border-amber-300 bg-amber-50 md:sticky md:top-4 z-10">
@@ -835,13 +833,10 @@ export default function ApplicationDetail() {
           <Card className="mb-6 rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
             <CardHeader className="space-y-4 border-b border-slate-100 bg-gradient-to-r from-emerald-50 via-blue-50 to-white">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <img src={hpGovtLogo} alt="Himachal Pradesh" className="h-12 w-auto" />
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-slate-500">HP Tourism eServices</p>
-                    <h2 className="text-2xl font-semibold leading-tight">Homestay Registration Application</h2>
-                    <p className="text-sm text-muted-foreground">Application #{displayValue(app.applicationNumber)}</p>
-                  </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-slate-500">HP Tourism eServices</p>
+                  <h2 className="text-2xl font-semibold leading-tight">Homestay Registration Application</h2>
+                  <p className="text-sm text-muted-foreground">Application #{displayValue(app.applicationNumber)}</p>
                 </div>
                 <img src={himachalTourismLogo} alt="Himachal Tourism" className="h-12 w-auto" />
               </div>

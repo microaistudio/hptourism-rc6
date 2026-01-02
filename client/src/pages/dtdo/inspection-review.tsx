@@ -101,7 +101,7 @@ export default function DTDOInspectionReview() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'revert' | null>(null);
   const [remarks, setRemarks] = useState("");
   const { data, isLoading } = useQuery<InspectionReviewData>({
@@ -166,19 +166,19 @@ export default function DTDOInspectionReview() {
       },
       owner: data.owner
         ? {
-            id: data.application.userId,
-            fullName: data.owner.fullName,
-            mobile: data.owner.mobile,
-            email: data.owner.email ?? null,
-          }
+          id: data.application.userId,
+          fullName: data.owner.fullName,
+          mobile: data.owner.mobile,
+          email: data.owner.email ?? null,
+        }
         : null,
       da: data.da
         ? {
-            id: data.report.submittedBy,
-            fullName: data.da.fullName,
-            mobile: data.da.mobile,
-            district: data.application.district,
-          }
+          id: data.report.submittedBy,
+          fullName: data.da.fullName,
+          mobile: data.da.mobile,
+          district: data.application.district,
+        }
         : null,
       dtdo: null,
     };
@@ -211,15 +211,18 @@ export default function DTDOInspectionReview() {
   }
 
   const { report, application, inspectionOrder, owner, da } = data;
-const normalizedRecommendation = (report.recommendation || "").toLowerCase();
-const hasDAObjection = normalizedRecommendation === "raise_objections";
-const formatRecommendationLabel = (value?: string | null) => {
-  if (!value) return "—";
-  const normalized = value.toLowerCase();
-  if (normalized === "approve") return "Verify for Payment";
-  if (normalized === "raise_objections") return "Raise Objections";
-  return value.replace(/_/g, " ");
-};
+  const normalizedRecommendation = (report.recommendation || "").toLowerCase();
+  const hasDAObjection = normalizedRecommendation === "raise_objections";
+  const isUpfrontPaid = (application.paymentStatus === 'paid' || application.paymentStatus === 'completed' || application.applicationNumber?.startsWith('LG-HS-')) ?? false;
+  const approveLabel = isUpfrontPaid ? "RC Approval" : "Approve for Payment";
+
+  const formatRecommendationLabel = (value?: string | null) => {
+    if (!value) return "—";
+    const normalized = value.toLowerCase();
+    if (normalized === "approve") return approveLabel;
+    if (normalized === "raise_objections") return "Raise Objections";
+    return value.replace(/_/g, " ");
+  };
 
   const handleAction = (action: 'approve' | 'reject' | 'revert') => {
     setActionType(action);
@@ -228,7 +231,7 @@ const formatRecommendationLabel = (value?: string | null) => {
 
   const confirmAction = () => {
     if (!actionType) return;
-    
+
     if (!remarks.trim() && (actionType === 'reject' || actionType === 'revert')) {
       toast({
         title: "Remarks Required",
@@ -245,12 +248,12 @@ const formatRecommendationLabel = (value?: string | null) => {
   // Calculate compliance
   const mandatoryChecklist = (report.mandatoryChecklist as Record<string, boolean>) || {};
   const desirableChecklist = (report.desirableChecklist as Record<string, boolean>) || {};
-  
+
   const mandatoryValues = Object.values(mandatoryChecklist);
-  const mandatoryCompliance = mandatoryValues.length > 0 
+  const mandatoryCompliance = mandatoryValues.length > 0
     ? Math.round((mandatoryValues.filter(Boolean).length / mandatoryValues.length) * 100)
     : 0;
-    
+
   const desirableValues = Object.values(desirableChecklist);
   const desirableCompliance = desirableValues.length > 0
     ? Math.round((desirableValues.filter(Boolean).length / desirableValues.length) * 100)
@@ -352,328 +355,328 @@ const formatRecommendationLabel = (value?: string | null) => {
           </div>
         </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm print:border print:shadow-none">
-        <div className="flex flex-col items-center justify-between gap-4 border-b border-slate-100 px-6 py-6 md:flex-row">
-          <img src={hpGovLogo} alt="Government of Himachal Pradesh" className="h-16 w-auto" />
-          <div className="text-center md:text-left">
-            <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">Government of Himachal Pradesh</p>
-            <h1 className="text-3xl font-bold tracking-tight">District Inspection Memorandum</h1>
-            <p className="text-sm text-muted-foreground">
-              Application #{application.applicationNumber} • Homestay Registration 2025
-            </p>
-          </div>
-          <img src={hpTourismLogo} alt="Himachal Tourism" className="h-16 w-auto" />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-4 text-xs uppercase tracking-wide text-muted-foreground">
-          <div>
-            <p>Status</p>
-            <Badge variant="outline" className={hasDAObjection ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}>
-              {hasDAObjection ? "DA Raised Objections" : "Under Review"}
-            </Badge>
-          </div>
-          <div>
-            <p>Inspection Window</p>
-            <p className="text-sm font-medium normal-case text-slate-900">
-              {scheduledOn} to {inspectionDoneOn}
-            </p>
-          </div>
-          <div>
-            <p>Report Submitted</p>
-            <p className="text-sm font-medium normal-case text-slate-900">{reportSubmittedOn}</p>
-          </div>
-        </div>
-
-        <div className="space-y-6 px-6 py-6">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Application</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{application.applicationNumber}</div>
-                <p className="text-xs text-muted-foreground mt-1">{application.propertyName}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="mt-2">{getCategoryBadge(report.recommendedCategory || application.category)}</div>
-                {report.categoryMeetsStandards ? (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Meets standards</p>
-                ) : (
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">✗ Does not meet standards</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Mandatory Compliance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{mandatoryCompliance}%</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {mandatoryValues.filter(Boolean).length} of {mandatoryValues.length} met
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Desirable Compliance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{desirableCompliance}%</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {desirableValues.filter(Boolean).length} of {desirableValues.length} met
-                </p>
-              </CardContent>
-            </Card>
+        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm print:border print:shadow-none">
+          <div className="flex flex-col items-center justify-between gap-4 border-b border-slate-100 px-6 py-6 md:flex-row">
+            <img src={hpGovLogo} alt="Government of Himachal Pradesh" className="h-16 w-auto" />
+            <div className="text-center md:text-left">
+              <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">Government of Himachal Pradesh</p>
+              <h1 className="text-3xl font-bold tracking-tight">District Inspection Memorandum</h1>
+              <p className="text-sm text-muted-foreground">
+                Application #{application.applicationNumber} • Homestay Registration 2025
+              </p>
+            </div>
+            <img src={hpTourismLogo} alt="Himachal Tourism" className="h-16 w-auto" />
           </div>
 
-          <Tabs defaultValue="owner" className="avoid-break">
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle>Property & Inspection</CardTitle>
-                  <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="owner">Owner</TabsTrigger>
-                    <TabsTrigger value="property">Property</TabsTrigger>
-                    <TabsTrigger value="inspection">Inspection</TabsTrigger>
-                  </TabsList>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <TabsContent value="owner" className="space-y-2 text-sm">
-                  <p className="font-medium">{owner?.fullName ?? "—"}</p>
-                  <p className="text-muted-foreground">{owner?.mobile ?? "No mobile"}</p>
-                  {owner?.email && <p className="text-muted-foreground">{owner.email}</p>}
-                </TabsContent>
-                <TabsContent value="property" className="space-y-2 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Property Name</p>
-                    <p className="font-medium">{application.propertyName}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">District / Tehsil</p>
-                    <p className="font-medium">{application.district} · {application.tehsil}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Rooms</p>
-                    <p className="font-medium">
-                      Declared: {application.totalRooms || "N/A"} | Verified: {report.actualRoomCount || "N/A"}
-                    </p>
-                  </div>
-                </TabsContent>
-                <TabsContent value="inspection" className="space-y-2 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Inspector</p>
-                    <p className="font-medium">{da?.fullName || "N/A"}</p>
-                    {da?.mobile && <p className="text-muted-foreground">{da.mobile}</p>}
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Inspection Date</p>
-                    <p className="font-medium">{formatDate(report.actualInspectionDate ?? null)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Report Submitted</p>
-                    <p className="font-medium">{formatDate(report.submittedDate ?? null)}</p>
-                  </div>
-                </TabsContent>
-              </CardContent>
-            </Card>
-          </Tabs>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Inspection Findings</CardTitle>
-              <CardDescription>
-                ANNEXURE-III Compliance Checklist (HP Homestay Rules 2025)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Tabs defaultValue="mandatory" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted/60 p-1 text-xs font-medium">
-                  <TabsTrigger value="mandatory" className="text-sm">
-                    Section A · Mandatory ({mandatoryMetCount}/{mandatoryTotalPoints})
-                  </TabsTrigger>
-                  <TabsTrigger value="desirable" className="text-sm">
-                    Section B · Desirable ({desirableMetCount}/{desirableTotalPoints})
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="mandatory" className="mt-4 space-y-3">
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-                    All mandatory requirements must be met for approval.
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {MANDATORY_POINTS.map((point) => (
-                      <div key={point.key} className="flex items-center gap-2 rounded border p-2 text-sm">
-                        {mandatoryChecklist[point.key] ? (
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-                        )}
-                        <span className={mandatoryChecklist[point.key] ? "text-slate-900" : "text-muted-foreground"}>
-                          {point.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {report.mandatoryRemarks && (
-                    <div className="rounded border bg-muted/30 p-3 text-sm">
-                      <p className="mb-1 font-medium">DA Remarks</p>
-                      {report.mandatoryRemarks}
-                    </div>
-                  )}
-                </TabsContent>
-                <TabsContent value="desirable" className="mt-4 space-y-3">
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
-                    Desirable amenities enhance guest comfort and property rating.
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {DESIRABLE_POINTS.map((point) => (
-                      <div key={point.key} className="flex items-center gap-2 rounded border p-2 text-sm">
-                        {desirableChecklist[point.key] ? (
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                        )}
-                        <span className={desirableChecklist[point.key] ? "text-slate-900" : "text-muted-foreground"}>
-                          {point.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {report.desirableRemarks && (
-                    <div className="rounded border bg-muted/30 p-3 text-sm">
-                      <p className="mb-1 font-medium">DA Remarks</p>
-                      {report.desirableRemarks}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          {/* DA's Overall Assessment */}
-          {report.detailedFindings && (
-            <Card>
-              <CardHeader>
-                <CardTitle>DA's Overall Assessment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{report.detailedFindings}</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <span className="text-sm font-medium">Recommendation:</span>
-                  <Badge>{formatRecommendationLabel(report.recommendation)}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* DTDO Decision Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>DTDO Decision</CardTitle>
-              <CardDescription>
-                Make your final decision on this inspection report
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                <Button
-                  variant="default"
-                  className="flex-1"
-                  onClick={() => handleAction('approve')}
-                  data-testid="button-approve"
-                >
-                  <ThumbsUp className="mr-2 h-4 w-4" />
-                  Verify for Payment
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => handleAction('revert')}
-                  data-testid="button-revert"
-                >
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Revert to Applicant
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={() => handleAction('reject')}
-                  data-testid="button-reject"
-                >
-                  <ThumbsDown className="mr-2 h-4 w-4" />
-                  Reject
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-
-      {/* Action Dialog */}
-      <Dialog open={!!actionType} onOpenChange={() => setActionType(null)}>
-        <DialogContent data-testid="dialog-action">
-          <DialogHeader>
-            <DialogTitle>
-              {actionType === 'approve' && 'Verify for Payment'}
-              {actionType === 'reject' && 'Reject Application'}
-              {actionType === 'revert' && 'Revert to Applicant'}
-            </DialogTitle>
-            <DialogDescription>
-              {actionType === 'approve' && 'The owner will be allowed to proceed with payment.'}
-              {actionType === 'reject' && 'The application will be permanently rejected.'}
-              {actionType === 'revert' && 'Send the application back to the owner with your remarks for correction.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 px-6 py-4 text-xs uppercase tracking-wide text-muted-foreground">
             <div>
-              <Label htmlFor="remarks">
-                {actionType === 'approve' ? 'Remarks (Optional)' : 'Remarks (Required)'}
-              </Label>
-              <Textarea
-                id="remarks"
-                placeholder={
-                  actionType === 'approve'
-                    ? 'Add any additional notes...'
-                    : actionType === 'reject'
-                    ? 'Specify the reason for rejection...'
-                    : 'Specify the issues that need to be addressed...'
-                }
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                rows={4}
-                data-testid="textarea-remarks"
-              />
+              <p>Status</p>
+              <Badge variant="outline" className={hasDAObjection ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}>
+                {hasDAObjection ? "DA Raised Objections" : "Under Review"}
+              </Badge>
+            </div>
+            <div>
+              <p>Inspection Window</p>
+              <p className="text-sm font-medium normal-case text-slate-900">
+                {scheduledOn} to {inspectionDoneOn}
+              </p>
+            </div>
+            <div>
+              <p>Report Submitted</p>
+              <p className="text-sm font-medium normal-case text-slate-900">{reportSubmittedOn}</p>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setActionType(null)} data-testid="button-cancel">
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmAction}
-              disabled={actionMutation.isPending}
-              data-testid="button-confirm"
-            >
-              {actionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <div className="space-y-6 px-6 py-6">
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Application</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{application.applicationNumber}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{application.propertyName}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Category</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="mt-2">{getCategoryBadge(report.recommendedCategory || application.category)}</div>
+                  {report.categoryMeetsStandards ? (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Meets standards</p>
+                  ) : (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">✗ Does not meet standards</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Mandatory Compliance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{mandatoryCompliance}%</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {mandatoryValues.filter(Boolean).length} of {mandatoryValues.length} met
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Desirable Compliance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{desirableCompliance}%</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {desirableValues.filter(Boolean).length} of {desirableValues.length} met
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Tabs defaultValue="owner" className="avoid-break">
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <CardTitle>Property & Inspection</CardTitle>
+                    <TabsList className="grid grid-cols-3">
+                      <TabsTrigger value="owner">Owner</TabsTrigger>
+                      <TabsTrigger value="property">Property</TabsTrigger>
+                      <TabsTrigger value="inspection">Inspection</TabsTrigger>
+                    </TabsList>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <TabsContent value="owner" className="space-y-2 text-sm">
+                    <p className="font-medium">{owner?.fullName ?? "—"}</p>
+                    <p className="text-muted-foreground">{owner?.mobile ?? "No mobile"}</p>
+                    {owner?.email && <p className="text-muted-foreground">{owner.email}</p>}
+                  </TabsContent>
+                  <TabsContent value="property" className="space-y-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Property Name</p>
+                      <p className="font-medium">{application.propertyName}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">District / Tehsil</p>
+                      <p className="font-medium">{application.district} · {application.tehsil}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Rooms</p>
+                      <p className="font-medium">
+                        Declared: {application.totalRooms || "N/A"} | Verified: {report.actualRoomCount || "N/A"}
+                      </p>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="inspection" className="space-y-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Inspector</p>
+                      <p className="font-medium">{da?.fullName || "N/A"}</p>
+                      {da?.mobile && <p className="text-muted-foreground">{da.mobile}</p>}
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Inspection Date</p>
+                      <p className="font-medium">{formatDate(report.actualInspectionDate ?? null)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Report Submitted</p>
+                      <p className="font-medium">{formatDate(report.submittedDate ?? null)}</p>
+                    </div>
+                  </TabsContent>
+                </CardContent>
+              </Card>
+            </Tabs>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Inspection Findings</CardTitle>
+                  <CardDescription>
+                    ANNEXURE-III Compliance Checklist (HP Homestay Rules 2025)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Tabs defaultValue="mandatory" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted/60 p-1 text-xs font-medium">
+                      <TabsTrigger value="mandatory" className="text-sm">
+                        Section A · Mandatory ({mandatoryMetCount}/{mandatoryTotalPoints})
+                      </TabsTrigger>
+                      <TabsTrigger value="desirable" className="text-sm">
+                        Section B · Desirable ({desirableMetCount}/{desirableTotalPoints})
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="mandatory" className="mt-4 space-y-3">
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                        All mandatory requirements must be met for approval.
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        {MANDATORY_POINTS.map((point) => (
+                          <div key={point.key} className="flex items-center gap-2 rounded border p-2 text-sm">
+                            {mandatoryChecklist[point.key] ? (
+                              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                            )}
+                            <span className={mandatoryChecklist[point.key] ? "text-slate-900" : "text-muted-foreground"}>
+                              {point.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {report.mandatoryRemarks && (
+                        <div className="rounded border bg-muted/30 p-3 text-sm">
+                          <p className="mb-1 font-medium">DA Remarks</p>
+                          {report.mandatoryRemarks}
+                        </div>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="desirable" className="mt-4 space-y-3">
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                        Desirable amenities enhance guest comfort and property rating.
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        {DESIRABLE_POINTS.map((point) => (
+                          <div key={point.key} className="flex items-center gap-2 rounded border p-2 text-sm">
+                            {desirableChecklist[point.key] ? (
+                              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            )}
+                            <span className={desirableChecklist[point.key] ? "text-slate-900" : "text-muted-foreground"}>
+                              {point.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {report.desirableRemarks && (
+                        <div className="rounded border bg-muted/30 p-3 text-sm">
+                          <p className="mb-1 font-medium">DA Remarks</p>
+                          {report.desirableRemarks}
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              {/* DA's Overall Assessment */}
+              {report.detailedFindings && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>DA's Overall Assessment</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap">{report.detailedFindings}</p>
+                    <div className="mt-4 flex items-center gap-2">
+                      <span className="text-sm font-medium">Recommendation:</span>
+                      <Badge>{formatRecommendationLabel(report.recommendation)}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* DTDO Decision Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>DTDO Decision</CardTitle>
+                  <CardDescription>
+                    Make your final decision on this inspection report
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="default"
+                      className="flex-1"
+                      onClick={() => handleAction('approve')}
+                      data-testid="button-approve"
+                    >
+                      <ThumbsUp className="mr-2 h-4 w-4" />
+                      {approveLabel}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleAction('revert')}
+                      data-testid="button-revert"
+                    >
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Revert to Applicant
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => handleAction('reject')}
+                      data-testid="button-reject"
+                    >
+                      <ThumbsDown className="mr-2 h-4 w-4" />
+                      Reject
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Dialog */}
+        <Dialog open={!!actionType} onOpenChange={() => setActionType(null)}>
+          <DialogContent data-testid="dialog-action">
+            <DialogHeader>
+              <DialogTitle>
+                {actionType === 'approve' && approveLabel}
+                {actionType === 'reject' && 'Reject Application'}
+                {actionType === 'revert' && 'Revert to Applicant'}
+              </DialogTitle>
+              <DialogDescription>
+                {actionType === 'approve' && 'The owner will be allowed to proceed with payment.'}
+                {actionType === 'reject' && 'The application will be permanently rejected.'}
+                {actionType === 'revert' && 'Send the application back to the owner with your remarks for correction.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="remarks">
+                  {actionType === 'approve' ? 'Remarks (Optional)' : 'Remarks (Required)'}
+                </Label>
+                <Textarea
+                  id="remarks"
+                  placeholder={
+                    actionType === 'approve'
+                      ? 'Add any additional notes...'
+                      : actionType === 'reject'
+                        ? 'Specify the reason for rejection...'
+                        : 'Specify the issues that need to be addressed...'
+                  }
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  rows={4}
+                  data-testid="textarea-remarks"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setActionType(null)} data-testid="button-cancel">
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmAction}
+                disabled={actionMutation.isPending}
+                data-testid="button-confirm"
+              >
+                {actionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </>
   );
 }

@@ -195,7 +195,7 @@ const sanitizeDraftForPersistence = (
   // Clean the object
   const result = {
     ...validatedData,
-    propertyName: sStr(validatedData.propertyName, "Draft Homestay"),
+    propertyName: sStr(validatedData.propertyName, ""),
     category: validatedData.category || (isPartial ? undefined : "silver"),
     locationType: validatedData.locationType || (isPartial ? undefined : "gp"),
     district: sStr(validatedData.district),
@@ -221,6 +221,7 @@ const sanitizeDraftForPersistence = (
     propertyOwnership: validatedData.propertyOwnership === "leased" ? "leased" : "owned",
     projectType: validatedData.projectType || (isPartial ? undefined : "new_project"),
     propertyArea: sNum(validatedData.propertyArea),
+    propertyAreaUnit: validatedData.propertyAreaUnit || (isPartial ? undefined : "sqft"),
     singleBedRooms: sNum(validatedData.singleBedRooms),
     singleBedBeds: sNum(validatedData.singleBedBeds, 1),
     singleBedRoomSize: sNum(validatedData.singleBedRoomSize),
@@ -253,6 +254,8 @@ const sanitizeDraftForPersistence = (
     differentlyAbledFacilities: sStr(validatedData.differentlyAbledFacilities),
     fireEquipmentDetails: sStr(validatedData.fireEquipmentDetails),
     nearestHospital: sStr(validatedData.nearestHospital),
+    keyLocationHighlight1: sStr(validatedData.keyLocationHighlight1),
+    keyLocationHighlight2: sStr(validatedData.keyLocationHighlight2),
     amenities: validatedData.amenities, // Ensure amenities are passed through
     nearbyAttractions: validatedData.nearbyAttractions, // Ensure nearbyAttractions are passed through
     // For documents: if not present in partial update, leave undefined. Default to [] only for full updates.
@@ -323,8 +326,9 @@ const draftSchema = z
     singleBedRoomRate: z.coerce.number().optional(),
     doubleBedRoomRate: z.coerce.number().optional(),
     familySuiteRate: z.coerce.number().optional(),
-    projectType: z.enum(["new_rooms", "new_project"]).optional(),
+    projectType: z.enum(["new_property", "existing_property", "new_project", "new_rooms"]).optional(),
     propertyArea: z.coerce.number().optional(),
+    propertyAreaUnit: z.enum(["sqm", "sqft", "kanal", "marla", "bigha", "biswa"]).optional(),
     singleBedRooms: z.coerce.number().optional(),
     singleBedBeds: z.coerce.number().optional(),
     singleBedRoomSize: z.coerce.number().optional(),
@@ -348,6 +352,8 @@ const draftSchema = z
     differentlyAbledFacilities: z.string().optional(),
     fireEquipmentDetails: z.string().optional(),
     nearestHospital: z.string().optional(),
+    keyLocationHighlight1: z.string().optional(),
+    keyLocationHighlight2: z.string().optional(),
     amenities: z.any().optional(),
     baseFee: z.preprocess(preprocessNumericInput, z.coerce.number().optional()),
     totalBeforeDiscounts: z.preprocess(preprocessNumericInput, z.coerce.number().optional()),
@@ -367,7 +373,7 @@ const draftSchema = z
 
 // Extended schema for service requests
 const serviceRequestDraftSchema = draftSchema.extend({
-  applicationKind: z.enum(['new_registration', 'add_rooms', 'delete_rooms', 'cancel_certificate', 'change_category']).optional(),
+  applicationKind: z.enum(['new_registration', 'add_rooms', 'delete_rooms', 'cancel_certificate', 'change_category', 'change_ownership']).optional(),
   parentApplicationId: z.string().uuid().optional(),
   serviceContext: z.object({
     requestedRooms: z.any().optional(),
@@ -400,7 +406,7 @@ const ownerSubmittableSchema = z.object({
   singleBedRoomRate: z.coerce.number().min(0).optional(),
   doubleBedRoomRate: z.coerce.number().min(0).optional(),
   familySuiteRate: z.coerce.number().min(0).optional(),
-  projectType: z.enum(["new_rooms", "new_project"]),
+  projectType: z.enum(["new_property", "existing_property", "new_project", "new_rooms"]),
   propertyArea: z.coerce.number().min(0),
   singleBedRooms: z.coerce.number().min(0).optional(),
   singleBedBeds: z.coerce.number().min(0).optional(),
@@ -497,6 +503,8 @@ const ownerSubmittableSchema = z.object({
       ),
     )
     .optional(),
+  // Analytics: Time spent filling the form (seconds)
+  formCompletionTimeSeconds: z.coerce.number().int().nonnegative().optional(),
 });
 
 const correctionUpdateSchema = z.object({
@@ -527,7 +535,7 @@ const correctionUpdateSchema = z.object({
   ownerEmail: z.string().optional(),
   ownerAadhaar: z.string().optional(),
   propertyOwnership: z.enum(["owned", "leased"]).optional(),
-  projectType: z.enum(["new_rooms", "new_project"]).optional(),
+  projectType: z.enum(["new_property", "existing_property", "new_project", "new_rooms"]).optional(),
   propertyArea: z.coerce.number().min(0).optional(),
   singleBedRooms: z.coerce.number().int().min(0).optional(),
   singleBedBeds: z.coerce.number().int().min(0).optional(),
@@ -697,6 +705,17 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
 
         // 3. Populate Draft with Parent Data
         // We copy property/owner details so the user starts with the current state
+        console.log('[DEBUG /draft] Copying from parentApp:', {
+          propertyName: parentApp.propertyName,
+          ownerName: parentApp.ownerName,
+          guardianName: parentApp.guardianName,
+          gramPanchayat: parentApp.gramPanchayat,
+          urbanBody: parentApp.urbanBody,
+          locationType: parentApp.locationType,
+          district: parentApp.district,
+          tehsil: parentApp.tehsil,
+          address: parentApp.address,
+        });
         draftData = {
           ...draftData,
           // Core Identity
@@ -706,6 +725,7 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
           ownerMobile: parentApp.ownerMobile ?? undefined,
           ownerEmail: parentApp.ownerEmail ?? undefined,
           ownerAadhaar: parentApp.ownerAadhaar ?? undefined,
+          guardianName: parentApp.guardianName ?? undefined,
 
           // Address (Usually invariant)
           district: parentApp.district ?? undefined,
@@ -727,7 +747,8 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
           selectedCategory: (parentApp.category ?? undefined) as any, // Start with current
           totalRooms: parentApp.totalRooms ?? undefined,
           propertyArea: parentApp.propertyArea ? Number(parentApp.propertyArea) : undefined,
-          projectType: (parentApp.projectType ?? 'new_project') as any, // Default if not set
+          propertyAreaUnit: (parentApp.propertyAreaUnit ?? 'sqft') as any,
+          projectType: 'existing_property' as any, // Service requests are always for existing properties
           propertyOwnership: (parentApp.propertyOwnership ?? 'owned') as any, // Default if not set
 
           // Room Configs
@@ -815,7 +836,8 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
       }
 
       const validatedData = draftSchema.parse(req.body);
-      console.log("[draft:update] Payload validated");
+
+
 
       const user = await storage.getUser(userId);
       if (!user) {
@@ -824,7 +846,8 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
 
       console.log("[draft:update] Sanitizing draft...");
       const sanitizedDraft = sanitizeDraftForPersistence(validatedData, user, true);
-      console.log("[draft:update] Draft sanitized");
+
+
 
       const policy = await getUploadPolicy();
       console.log("[draft:update] Validating documents...");
@@ -1076,6 +1099,10 @@ export function createOwnerApplicationsRouter({ getRoomRateBandsSetting }: Owner
       const submissionMeta = {
         status: "submitted" as const,
         submittedAt: new Date(),
+        // Analytics: Time spent filling the form (from client-side timer)
+        formCompletionTimeSeconds: typeof validatedData.formCompletionTimeSeconds === "number"
+          ? validatedData.formCompletionTimeSeconds
+          : undefined,
       };
 
       if (existingApp) {

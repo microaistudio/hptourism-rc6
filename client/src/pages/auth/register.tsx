@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, User, Phone, Mail, Lock, FileText, ArrowRight } from "lucide-react";
 import heroImagePine from "@assets/stock_images/beautiful_himachal_p_50139e3f.jpg";
+import vCliqLogo from "@/assets/logos/v-cliq-logo.jpg";
 
 const COLORS = {
   primary: "#00d09c",
@@ -18,15 +19,43 @@ const COLORS = {
   background: "#ffffff",
 };
 
+// Input filter helpers - strip invalid characters in real-time
+const filterNameInput = (value: string) => value.replace(/[^a-zA-Z\s]/g, "").slice(0, 50);
+const filterNumericInput = (value: string, maxLen: number) => value.replace(/[^0-9]/g, "").slice(0, maxLen);
+
 const registerSchema = z
   .object({
-    firstName: z.string().min(2, "First name must be at least 2 characters"),
-    lastName: z.string().min(2, "Last name must be at least 2 characters"),
-    mobile: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
-    email: z.string().email("Enter a valid email").optional().or(z.literal("")),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters"),
-    aadhaarNumber: z.string().regex(/^\d{12}$/, "Aadhaar must be 12 digits"),
+    firstName: z
+      .string()
+      .min(2, "First name must be at least 2 characters")
+      .max(50, "First name cannot exceed 50 characters")
+      .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
+    lastName: z
+      .string()
+      .max(50, "Last name cannot exceed 50 characters")
+      .regex(/^[a-zA-Z\s]*$/, "Name can only contain letters and spaces")
+      .optional()
+      .or(z.literal("")),
+    mobile: z
+      .string()
+      .length(10, "Mobile number must be exactly 10 digits")
+      .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number starting with 6-9"),
+    email: z
+      .string()
+      .max(100, "Email cannot exceed 100 characters")
+      .email("Enter a valid email"),
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .max(32, "Password cannot exceed 32 characters"),
+    confirmPassword: z
+      .string()
+      .min(6, "Confirm password must be at least 6 characters")
+      .max(32, "Password cannot exceed 32 characters"),
+    aadhaarNumber: z
+      .string()
+      .length(12, "Aadhaar must be exactly 12 digits")
+      .regex(/^\d{12}$/, "Aadhaar can only contain digits"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -97,6 +126,8 @@ export default function Register() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full h-full text-white">
+          {/* V CLIQ Campaign Logo - Removed */}
+
           <div className="flex items-center gap-3" onClick={() => setLocation("/")}>
             <div className="bg-white/10 backdrop-blur-md p-2 rounded-lg cursor-pointer hover:bg-white/20 transition">
               <ArrowLeft className="w-6 h-6" />
@@ -104,36 +135,33 @@ export default function Register() {
             <span className="font-semibold tracking-wide cursor-pointer">Back to Home</span>
           </div>
 
-          <div className="space-y-6 max-w-lg">
+          <div className="space-y-6 max-w-lg" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
             <h1 className="text-5xl font-bold leading-tight">
-              Join the <br />
-              <span style={{ color: COLORS.primary }}>HP Tourism Family</span>
+              <span style={{ color: COLORS.primary }}>Home Stay</span> <br />
+              Registration
             </h1>
             <p className="text-lg text-gray-200 leading-relaxed opacity-90">
-              Register your homestay today and start welcoming guests from around the world.
-              Simple, fast, and fully digital.
+              Register under HP Homestay Rules 2025 and avail exclusive discounts:
             </p>
 
-            <div className="flex flex-col gap-4 pt-4">
-              <div className="flex items-center gap-3 text-white/90">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <span className="font-bold">1</span>
-                </div>
-                <span>Create your account in 2 minutes</span>
+            <div className="space-y-2 text-base text-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span><strong>10% Discount</strong> on 3-year registration</span>
               </div>
-              <div className="flex items-center gap-3 text-white/90">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <span className="font-bold">2</span>
-                </div>
-                <span>Register your property online</span>
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span><strong>5% Additional Discount</strong> for women owners</span>
               </div>
-              <div className="flex items-center gap-3 text-white/90">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <span className="font-bold">3</span>
-                </div>
-                <span>Start hosting and earning</span>
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span><strong>50% Discount</strong> for Pangi Sub-Division</span>
               </div>
             </div>
+
+
+
+
           </div>
 
           <div className="text-xs text-white/40">
@@ -169,11 +197,17 @@ export default function Register() {
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 font-medium text-lg">First Name</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">First Name *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <div className="absolute left-3 top-3.5 text-gray-400"><User className="w-5 h-5" /></div>
-                            <Input placeholder="First Name" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                            <Input
+                              placeholder="First Name"
+                              {...field}
+                              maxLength={50}
+                              onChange={(e) => field.onChange(filterNameInput(e.target.value))}
+                              className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg"
+                            />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -189,7 +223,13 @@ export default function Register() {
                         <FormControl>
                           <div className="relative">
                             <div className="absolute left-3 top-3.5 text-gray-400"><User className="w-5 h-5" /></div>
-                            <Input placeholder="Last Name" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                            <Input
+                              placeholder="Last Name"
+                              {...field}
+                              maxLength={50}
+                              onChange={(e) => field.onChange(filterNameInput(e.target.value))}
+                              className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg"
+                            />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -204,11 +244,18 @@ export default function Register() {
                     name="mobile"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 font-medium text-lg">Mobile Number</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Mobile Number *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <div className="absolute left-3 top-3.5 text-gray-400"><Phone className="w-5 h-5" /></div>
-                            <Input placeholder="10-digit number" {...field} maxLength={10} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                            <Input
+                              placeholder="10-digit number"
+                              {...field}
+                              maxLength={10}
+                              inputMode="numeric"
+                              onChange={(e) => field.onChange(filterNumericInput(e.target.value, 10))}
+                              className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg"
+                            />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -220,11 +267,18 @@ export default function Register() {
                     name="aadhaarNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 font-medium text-lg">Aadhaar Number</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Aadhaar Number *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <div className="absolute left-3 top-3.5 text-gray-400"><FileText className="w-5 h-5" /></div>
-                            <Input placeholder="12-digit Aadhaar" {...field} maxLength={12} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                            <Input
+                              placeholder="12-digit Aadhaar"
+                              {...field}
+                              maxLength={12}
+                              inputMode="numeric"
+                              onChange={(e) => field.onChange(filterNumericInput(e.target.value, 12))}
+                              className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg"
+                            />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -238,11 +292,11 @@ export default function Register() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700 font-medium text-lg">Email Address (Optional)</FormLabel>
+                      <FormLabel className="text-gray-700 font-medium text-lg">Email Address *</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <div className="absolute left-3 top-3.5 text-gray-400"><Mail className="w-5 h-5" /></div>
-                          <Input type="email" placeholder="your@email.com" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                          <Input type="email" placeholder="your@email.com" {...field} maxLength={100} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -256,11 +310,11 @@ export default function Register() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 font-medium text-lg">Password</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Password *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <div className="absolute left-3 top-3.5 text-gray-400"><Lock className="w-5 h-5" /></div>
-                            <Input type="password" placeholder="Min 6 characters" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                            <Input type="password" placeholder="Min 6 characters" {...field} maxLength={32} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -272,11 +326,11 @@ export default function Register() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 font-medium text-lg">Confirm Password</FormLabel>
+                        <FormLabel className="text-gray-700 font-medium text-lg">Confirm Password *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <div className="absolute left-3 top-3.5 text-gray-400"><Lock className="w-5 h-5" /></div>
-                            <Input type="password" placeholder="Re-enter password" {...field} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
+                            <Input type="password" placeholder="Re-enter password" {...field} maxLength={32} className="pl-10 h-14 bg-gray-50 border-gray-200 focus:ring-green-500 rounded-lg text-lg" />
                           </div>
                         </FormControl>
                         <FormMessage />

@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Session middleware
   const envCookieName = process.env.SESSION_COOKIE_NAME || "hp-tourism.sid";
-  const envCookieSecure = (process.env.SESSION_COOKIE_SECURE || "false").toLowerCase() === "true";
+  const envCookieSecure = (process.env.SESSION_COOKIE_SECURE || "true").toLowerCase() === "true";
   const envCookieSameSite = (process.env.SESSION_COOKIE_SAMESITE || "lax").toLowerCase() as "lax" | "strict" | "none";
   const envCookieDomain = process.env.SESSION_COOKIE_DOMAIN || undefined;
 
@@ -518,6 +518,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const adventureSportsRoutes = (await import("./routes/adventure-sports")).default;
   app.use("/api/adventure-sports", adventureSportsRoutes);
 
+  // Grievance Management
+  const grievanceRouter = (await import("./routes/grievances")).default;
+  app.use("/api/grievances", grievanceRouter);
+
+  // Grievance Reports & Analytics
+  const grievanceReportsRouter = (await import("./routes/grievances/reports")).default;
+  app.use("/api/grievances/reports", grievanceReportsRouter);
+
   // Public endpoint for multi-service hub check (used by login redirect)
   const { getMultiServiceHubEnabled } = await import("./routes/core/multi-service");
   app.get("/api/portal/multi-service-enabled", async (_req, res) => {
@@ -545,6 +553,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // DA send-back OTP verification routes
   const { createSendbackOtpRouter } = await import("./routes/sendback-otp");
   app.use("/api/sendback-otp", createSendbackOtpRouter());
+
+  // Dev Tools (Workflow Simulator) - STRICTLY DEV ONLY
+  if (process.env.NODE_ENV !== "production") {
+    const { createDevToolsRouter } = await import("./routes/dev-tools");
+    app.use("/api/dev", createDevToolsRouter());
+  }
+
+  // CCAvenue Test Routes
+  const { createCCAvenueTestRouter } = await import("./routes/ccavenue-test");
+  app.use("/api/ccavenue/test", createCCAvenueTestRouter());
 
   registerDaRoutes(app);
 

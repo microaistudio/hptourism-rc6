@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, ArrowRight, BedDouble, Check, CheckCircle2, Crown, Flame, Gem, Info, Plus, ShieldCheck, Sparkles, Star, Trash2, TrendingUp, Video } from "lucide-react";
+import { AlertTriangle, ArrowRight, BedDouble, Check, CheckCircle2, Crown, Flame, Gem, Plus, ShieldCheck, Sparkles, Star, Trash2, TrendingUp, Video } from "lucide-react";
 import {
     CATEGORY_CARD_INFO,
     ROOM_TYPE_OPTIONS,
@@ -27,6 +27,24 @@ import {
 } from "@/lib/application-schema";
 import { type CategoryType } from "@shared/fee-calculator";
 import { type CategoryRateBands } from "@shared/appSettings";
+
+// =============================================================================
+// PROPERTY AREA UNITS
+// All units available for all districts with user-editable conversion rates.
+// =============================================================================
+
+// All available units for property area
+const PROPERTY_AREA_UNITS = [
+    { value: "sqm", label: "Sq.M" },
+    { value: "sqft", label: "Sq.Ft" },
+    { value: "marla", label: "Marla" },
+    { value: "kanal", label: "Kanal" },
+    { value: "biswa", label: "Biswa" },
+    { value: "bigha", label: "Bigha" },
+];
+
+// =============================================================================
+
 
 // Helper functions local to this component or imported
 const getCategoryBadge = (cat: string) => {
@@ -115,6 +133,9 @@ export function Step3RoomsCategory({
 }: Step3RoomsCategoryProps) {
     const isUpgradeMode = activeApplicationKind === 'change_category';
 
+    // All units available for all districts now
+    const availableUnits = PROPERTY_AREA_UNITS;
+
     // Filter categories if looking for upgrade
     // Only show categories strictly higher than current
     const allowedCategories = isUpgradeMode && currentCategory
@@ -123,11 +144,232 @@ export function Step3RoomsCategory({
         )
         : CATEGORY_CARD_INFO;
 
+    // Auto-calculate property area in Sq.M whenever area, unit, or conversion rate changes
+    const watchedArea = form.watch("propertyArea");
+    const watchedUnit = form.watch("propertyAreaUnit");
+    const watchedRate = form.watch("propertyAreaConversionRate");
+
+    useEffect(() => {
+        const areaValue = watchedArea || 0;
+        const unit = watchedUnit || "sqm";
+        const conversionRate = watchedRate;
+
+        let calculatedSqM: number | null = null;
+        if (unit === "sqm") {
+            calculatedSqM = areaValue;
+        } else if (areaValue > 0 && conversionRate && conversionRate > 0) {
+            calculatedSqM = areaValue * conversionRate;
+        }
+
+        if (calculatedSqM !== null) {
+            form.setValue("propertyAreaSqM", parseFloat(calculatedSqM.toFixed(2)));
+        }
+    }, [watchedArea, watchedUnit, watchedRate, form]);
+
 
     return (
         <>
+
+            {/* Property Area Section - Annexure-I #6a */}
+            <div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                <span className="text-lg font-bold">📐</span>
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-semibold">Property Area</h2>
+                                <p className="text-blue-100 text-sm">As per Annexure-I #6a</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* Column 1: Area Value */}
+                        <FormField
+                            control={form.control}
+                            name="propertyArea"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Area Value <span className="text-red-500">*</span></FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            max={999999}
+                                            step="0.01"
+                                            placeholder="Enter area"
+                                            className="h-11"
+                                            value={field.value === 0 || field.value === null || field.value === undefined ? "" : field.value}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === "") {
+                                                    field.onChange(null);
+                                                    return;
+                                                }
+                                                const num = parseFloat(val);
+                                                field.onChange(Math.min(999999, Math.max(0, num)));
+                                            }}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Column 2: Unit */}
+                        <FormField
+                            control={form.control}
+                            name="propertyAreaUnit"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Unit <span className="text-red-500">*</span></FormLabel>
+                                    <Select
+                                        value={field.value}
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
+                                            // Reset conversion rate when unit changes (except for sqft which has fixed rate)
+                                            if (value === "sqft") {
+                                                form.setValue("propertyAreaConversionRate", 0.092903);
+                                            } else if (value === "sqm") {
+                                                form.setValue("propertyAreaConversionRate", 1);
+                                            } else {
+                                                // Clear rate for other units - user must enter
+                                                form.setValue("propertyAreaConversionRate", undefined);
+                                            }
+                                        }}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="h-11">
+                                                <SelectValue placeholder="Select unit" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {availableUnits.map((u) => (
+                                                <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Column 3: Conversion Rate */}
+                        <FormField
+                            control={form.control}
+                            name="propertyAreaConversionRate"
+                            render={({ field }) => {
+                                const unit = form.watch("propertyAreaUnit") || "sqm";
+                                const isFixed = unit === "sqft" || unit === "sqm";
+                                const showField = unit !== "sqm"; // Hide for Sq.M (no conversion needed)
+
+                                if (!showField) {
+                                    return (
+                                        <FormItem>
+                                            <FormLabel className="text-gray-400">Conversion Rate</FormLabel>
+                                            <div className="h-11 flex items-center text-sm text-gray-400 italic">
+                                                Not needed for Sq.M
+                                            </div>
+                                        </FormItem>
+                                    );
+                                }
+
+                                return (
+                                    <FormItem>
+                                        <FormLabel>
+                                            Conversion Rate
+                                            {isFixed && <span className="text-xs text-gray-500 ml-1">(fixed)</span>}
+                                        </FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    min={0.001}
+                                                    max={99999}
+                                                    step="0.01"
+                                                    placeholder={isFixed ? "" : "Enter rate"}
+                                                    className={`h-11 pr-16 ${isFixed ? "bg-gray-50" : ""}`}
+                                                    readOnly={isFixed}
+                                                    value={field.value === null || field.value === undefined ? "" : field.value}
+                                                    onChange={(e) => {
+                                                        if (isFixed) return;
+                                                        const val = e.target.value;
+                                                        if (val === "") {
+                                                            field.onChange(undefined);
+                                                            return;
+                                                        }
+                                                        field.onChange(parseFloat(val));
+                                                    }}
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                                                    → Sq.M
+                                                </span>
+                                            </div>
+                                        </FormControl>
+                                        <FormDescription className="text-xs">
+                                            {isFixed ? (
+                                                <span className="text-gray-500">1 {unit === "sqft" ? "Sq.Ft" : "Sq.M"} = {field.value} Sq.M</span>
+                                            ) : (
+                                                <span className="text-amber-600">Enter your district's rate</span>
+                                            )}
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                );
+                            }}
+                        />
+
+                        {/* Column 4: Area in Sq.M (calculated) */}
+                        <FormField
+                            control={form.control}
+                            name="propertyAreaSqM"
+                            render={({ field }) => {
+                                const areaValue = form.watch("propertyArea") || 0;
+                                const unit = form.watch("propertyAreaUnit") || "sqm";
+                                const conversionRate = form.watch("propertyAreaConversionRate");
+
+                                // Auto-calculate Sq.M
+                                let calculatedSqM: number | null = null;
+                                if (unit === "sqm") {
+                                    calculatedSqM = areaValue;
+                                } else if (areaValue > 0 && conversionRate && conversionRate > 0) {
+                                    calculatedSqM = areaValue * conversionRate;
+                                }
+
+
+
+                                const needsRate = unit !== "sqm" && (!conversionRate || conversionRate <= 0);
+
+                                return (
+                                    <FormItem>
+                                        <FormLabel>Area in Sq.M</FormLabel>
+                                        <div className={`h-11 flex items-center px-3 rounded-md border ${needsRate ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
+                                            {needsRate ? (
+                                                <span className="text-amber-600 text-sm">Enter conversion rate</span>
+                                            ) : calculatedSqM !== null ? (
+                                                <span className="text-emerald-700 font-semibold text-lg">
+                                                    {calculatedSqM.toFixed(2)}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400 text-sm">—</span>
+                                            )}
+                                        </div>
+                                        <FormDescription className="text-xs text-gray-500">
+                                            Used in certificate
+                                        </FormDescription>
+                                    </FormItem>
+                                );
+                            }}
+                        />
+                    </div>
+                </div>
+            </div >
+
             {/* Summary Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            < div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" >
                 <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                     <div className="text-sm text-gray-500 mb-1">Total Rooms</div>
                     <div className={`text-3xl font-bold ${totalRooms > MAX_ROOMS_ALLOWED ? "text-red-500" : "text-gray-900"}`}>
@@ -147,7 +389,7 @@ export function Step3RoomsCategory({
                     <div className="text-3xl font-bold text-emerald-600">
                         {highestRoomRate > 0 ? `₹${highestRoomRate.toLocaleString()}` : "—"}
                     </div>
-                    <div className="text-xs text-gray-500">Per night</div>
+                    <div className="text-xs text-gray-500">Per Day</div>
                 </div>
                 <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-4 shadow-sm">
                     <div className="text-sm text-gray-500 mb-1">Category</div>
@@ -158,10 +400,10 @@ export function Step3RoomsCategory({
                     </div>
                     <div className="text-xs text-emerald-600 mt-1">Auto-selected</div>
                 </div>
-            </div>
+            </div >
 
             {/* SECTION 1: Room Configuration */}
-            <div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-gray-200">
+            < div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-gray-200" >
                 <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -170,7 +412,7 @@ export function Step3RoomsCategory({
                             </div>
                             <div>
                                 <h2 className="text-xl font-semibold">Room Configuration</h2>
-                                <p className="text-slate-300 text-sm">Add your rooms with beds per room and nightly rate</p>
+                                <p className="text-slate-300 text-sm">Add your rooms with beds per room and daily rate</p>
                             </div>
                         </div>
                         <Button
@@ -215,24 +457,31 @@ export function Step3RoomsCategory({
                                 const maxRoomsByBeds = Math.floor(remainingBeds / currentBedsPerRoom);
                                 const maxRoomsForRow = Math.max(1, Math.min(remainingRooms, maxRoomsByBeds));
                                 const quantityOptions = Array.from({ length: maxRoomsForRow }, (_, idx) => idx + 1);
-                                const maxBedsForRow =
-                                    row.quantity > 0
-                                        ? Math.max(
-                                            1,
-                                            Math.min(
-                                                MAX_BEDS_PER_ROOM,
-                                                Math.floor(remainingBeds / Math.max(1, row.quantity)),
-                                            ),
-                                        )
-                                        : Math.max(1, Math.min(MAX_BEDS_PER_ROOM, remainingBeds || 1));
-                                const bedOptions = Array.from({ length: maxBedsForRow }, (_, idx) => idx + 1);
+
+                                // Bed options based on room type per policy:
+                                // Single (Type 1) = 1 bed only
+                                // Double (Type 2) = 2 beds only
+                                // Suite = 3 or 4 beds
+                                let bedOptions: number[];
+                                if (row.roomType === "single") {
+                                    bedOptions = [1];
+                                } else if (row.roomType === "double") {
+                                    bedOptions = [2];
+                                } else if (row.roomType === "suite") {
+                                    bedOptions = [3, 4];
+                                } else {
+                                    // Fallback - shouldn't happen
+                                    bedOptions = [1, 2, 3, 4];
+                                }
 
                                 // Clamp values if limits shrink because of other rows
                                 if (row.quantity > maxRoomsForRow) {
                                     updateType2Row(row.id, { quantity: maxRoomsForRow });
                                 }
-                                if (getRowBedsPerRoom(row) > maxBedsForRow) {
-                                    updateType2Row(row.id, { bedsPerRoom: maxBedsForRow });
+                                // Auto-set bedsPerRoom based on room type if not valid
+                                const validBeds = bedOptions.includes(getRowBedsPerRoom(row));
+                                if (!validBeds && bedOptions.length > 0) {
+                                    updateType2Row(row.id, { bedsPerRoom: bedOptions[0] });
                                 }
 
                                 // Determine rate status for direct mode
@@ -289,7 +538,7 @@ export function Step3RoomsCategory({
                                                                         ),
                                                                     ),
                                                                 )
-                                                                : maxBedsForRow;
+                                                                : MAX_BEDS_PER_ROOM;
                                                         const clampedBeds = Math.min(getRowBedsPerRoom(row), nextMaxBeds);
                                                         updateType2Row(row.id, {
                                                             quantity: nextQty,
@@ -303,7 +552,7 @@ export function Step3RoomsCategory({
                                                     <SelectContent>
                                                         {quantityOptions.map((qty) => (
                                                             <SelectItem key={qty} value={String(qty)}>
-                                                                {qty} Rms
+                                                                {qty} {qty === 1 ? "Room" : "Rooms"}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -345,7 +594,7 @@ export function Step3RoomsCategory({
                                         {/* Tariff / Rate */}
                                         <div className="md:col-span-2 min-w-0">
                                             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                                                {roomCalcMode === "direct" ? "Nightly Rate" : "Tariff Range"}
+                                                {roomCalcMode === "direct" ? "Tariff Per Day" : "Tariff Range"}
                                             </label>
 
                                             {roomCalcMode === "direct" ? (
@@ -408,33 +657,38 @@ export function Step3RoomsCategory({
                                         <div className="md:col-span-3 min-w-0">
                                             <div className="flex gap-2">
                                                 <div className="flex flex-col flex-1">
-                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Area</label>
+                                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Room Area</label>
                                                     <Input
                                                         type="number"
-                                                        min={0}
+                                                        min={1}
+                                                        max={999999}
                                                         step="0.01"
-                                                        value={row.area ?? ""}
-                                                        placeholder="0"
+                                                        value={row.area === 0 || row.area === null || row.area === undefined || row.area === "" ? "" : row.area}
+                                                        placeholder="Enter area"
                                                         className="h-9"
-                                                        onChange={(e) => updateType2Row(row.id, { area: e.target.value === "" ? "" : Number(e.target.value) })}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === "") {
+                                                                updateType2Row(row.id, { area: "" });
+                                                                return;
+                                                            }
+                                                            const num = parseFloat(val);
+                                                            updateType2Row(row.id, { area: Math.min(999999, Math.max(0, num)) });
+                                                        }}
                                                     />
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Units</label>
                                                     <Select
-                                                        value={row.areaUnit || "sqm"}
+                                                        value={row.areaUnit || "sqft"}
                                                         onValueChange={(val) => updateType2Row(row.id, { areaUnit: val })}
                                                     >
                                                         <SelectTrigger className="h-9 w-[85px] shrink-0">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="sqm">Sq.M</SelectItem>
                                                             <SelectItem value="sqft">Sq.Ft</SelectItem>
-                                                            <SelectItem value="kanal">Kanal</SelectItem>
-                                                            <SelectItem value="marla">Marla</SelectItem>
-                                                            <SelectItem value="bigha">Bigha</SelectItem>
-                                                            <SelectItem value="biswas">Biswas</SelectItem>
+                                                            <SelectItem value="sqm">Sq.M</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -464,7 +718,7 @@ export function Step3RoomsCategory({
                             <div className="flex items-center gap-6">
                                 <div className="flex items-center gap-2 text-sm text-gray-700">
                                     <BedDouble className="w-4 h-4 text-emerald-600" />
-                                    <span className="font-medium">{totalRooms} rooms, {totalBeds} beds configured</span>
+                                    <span className="font-medium">{totalRooms} {totalRooms === 1 ? "room" : "rooms"}, {totalBeds} {totalBeds === 1 ? "bed" : "beds"} configured</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-700">
                                     <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -474,7 +728,7 @@ export function Step3RoomsCategory({
                             {suggestedCategory && (
                                 <div className="flex items-center gap-2 text-sm text-emerald-700">
                                     <ArrowRight className="w-4 h-4" />
-                                    <span>Qualifies for <strong>{getCategoryBadge(suggestedCategory).label}</strong> category</span>
+                                    <span>Applicable Category: <strong>{getCategoryBadge(suggestedCategory).label.toUpperCase()}</strong></span>
                                 </div>
                             )}
                         </div>
@@ -539,10 +793,10 @@ export function Step3RoomsCategory({
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
 
             {/* SECTION 2: Category Selection */}
-            <div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-gray-200">
+            < div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-gray-200" >
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -586,29 +840,29 @@ export function Step3RoomsCategory({
 
                                     // Icons for each category
                                     const categoryIcons = {
-                                        silver: <Star className="w-6 h-6 text-slate-500" />,
+                                        silver: <Star className="w-6 h-6 text-gray-700" />,
                                         gold: <Crown className="w-6 h-6 text-amber-500" />,
-                                        diamond: <Gem className="w-6 h-6 text-purple-500" />
+                                        diamond: <Gem className="w-6 h-6 text-neutral-600" />
                                     };
 
                                     const categoryStyles = {
                                         silver: {
-                                            border: isSelected ? "border-slate-400 ring-2 ring-slate-300" : "border-gray-200",
-                                            bg: isSelected ? "bg-gradient-to-br from-slate-50 to-gray-100" : "bg-white",
-                                            iconBg: "bg-slate-100",
-                                            text: "text-slate-700"
+                                            border: isSelected ? "border-gray-700 ring-2 ring-gray-600" : "border-gray-500",
+                                            bg: isSelected ? "bg-gradient-to-br from-gray-300 via-slate-300 to-gray-400" : "bg-gradient-to-br from-gray-200 to-slate-300",
+                                            iconBg: "bg-gradient-to-br from-gray-400 to-slate-500",
+                                            text: "text-gray-900"
                                         },
                                         gold: {
-                                            border: isSelected ? "border-amber-400 ring-2 ring-amber-300" : "border-gray-200",
-                                            bg: isSelected ? "bg-gradient-to-br from-amber-50 to-yellow-50" : "bg-white",
-                                            iconBg: "bg-amber-100",
-                                            text: "text-amber-700"
+                                            border: isSelected ? "border-amber-500 ring-2 ring-amber-400" : "border-amber-300",
+                                            bg: isSelected ? "bg-gradient-to-br from-amber-100 via-yellow-50 to-amber-200" : "bg-gradient-to-br from-amber-50 to-yellow-100",
+                                            iconBg: "bg-gradient-to-br from-amber-200 to-yellow-300",
+                                            text: "text-amber-800"
                                         },
                                         diamond: {
-                                            border: isSelected ? "border-purple-400 ring-2 ring-purple-300" : "border-gray-200",
-                                            bg: isSelected ? "bg-gradient-to-br from-cyan-50 via-purple-50 to-pink-50" : "bg-white",
-                                            iconBg: "bg-gradient-to-r from-cyan-100 to-purple-100",
-                                            text: "text-purple-700"
+                                            border: isSelected ? "border-neutral-400 ring-2 ring-neutral-300" : "border-neutral-300",
+                                            bg: isSelected ? "bg-gradient-to-br from-neutral-50 via-white to-zinc-100" : "bg-gradient-to-br from-white to-neutral-100",
+                                            iconBg: "bg-gradient-to-br from-neutral-200 to-zinc-300",
+                                            text: "text-neutral-700"
                                         }
                                     };
 
@@ -650,11 +904,13 @@ export function Step3RoomsCategory({
                                                 {info.title}
                                             </h3>
 
-                                            <p className={`text-sm mb-3 ${isSelected || isApplicable ? "text-gray-600" : "text-gray-400"}`}>
-                                                {info.description}
-                                            </p>
+                                            {info.description && (
+                                                <p className={`text-sm mb-3 ${isSelected || isApplicable ? "text-gray-600" : "text-gray-400"}`}>
+                                                    {info.description}
+                                                </p>
+                                            )}
 
-                                            <div className={`text-sm font-medium ${isSelected || isApplicable ? styles.text : "text-gray-400"}`}>
+                                            <div className={`text-base font-semibold mt-2 ${isSelected || isApplicable ? styles.text : "text-gray-400"}`}>
                                                 Tariff Range: {formatBandLabel(band)}
                                             </div>
                                         </div>
@@ -669,7 +925,7 @@ export function Step3RoomsCategory({
                                         <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
                                         <div>
                                             <p className="font-medium text-emerald-800">
-                                                Your property qualifies for the <strong>{getCategoryBadge(suggestedCategory).label.toUpperCase()}</strong> category
+                                                Applicable Category: <strong>{getCategoryBadge(suggestedCategory).label.toUpperCase()}</strong>
                                             </p>
                                             <p className="text-sm text-emerald-600">
                                                 Based on your highest room rate of ₹{highestRoomRate.toLocaleString()}/night
@@ -681,71 +937,118 @@ export function Step3RoomsCategory({
                         </>
                     )}
                 </div>
-            </div>
+            </div >
 
-            {/* Safety Checklist Card */}
-            <Card className="border-l-4 border-l-blue-500">
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-blue-500" />
-                        <CardTitle>Mandatory Safety Checklist</CardTitle>
-                    </div>
-                    <CardDescription>
-                        Confirm availability of critical safety infrastructure
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedAmenities["cctv"] ? "bg-blue-50/50 border-blue-200" : "hover:bg-muted/50"}`}>
-                            <Checkbox
-                                id="check-cctv"
-                                checked={selectedAmenities["cctv"] || false}
-                                onCheckedChange={(checked) =>
-                                    setSelectedAmenities(prev => ({ ...prev, cctv: !!checked }))
-                                }
-                            />
-                            <label htmlFor="check-cctv" className="grid gap-1.5 cursor-pointer">
-                                <div className="font-medium flex items-center gap-2">
-                                    <Video className="w-4 h-4 text-muted-foreground" />
-                                    CCTV Surveillance
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Required at entrance and common areas
-                                </p>
-                            </label>
+            {/* Safety Checklist Card - Hidden for delete_rooms */}
+            {activeApplicationKind !== 'delete_rooms' && (
+                <Card className="border-l-4 border-l-blue-500">
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5 text-blue-500" />
+                            <CardTitle>Mandatory Safety Checklist</CardTitle>
+                        </div>
+                        <CardDescription>
+                            Confirm availability of critical safety infrastructure
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedAmenities["cctv"] ? "bg-blue-50/50 border-blue-200" : "hover:bg-muted/50"}`}>
+                                <Checkbox
+                                    id="check-cctv"
+                                    checked={selectedAmenities["cctv"] || false}
+                                    onCheckedChange={(checked) =>
+                                        setSelectedAmenities(prev => ({ ...prev, cctv: !!checked }))
+                                    }
+                                />
+                                <label htmlFor="check-cctv" className="grid gap-1.5 cursor-pointer">
+                                    <div className="font-medium flex items-center gap-2">
+                                        <Video className="w-4 h-4 text-muted-foreground" />
+                                        CCTV Surveillance
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Required at entrance and common areas
+                                    </p>
+                                </label>
+                            </div>
+
+                            <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedAmenities["fireSafety"] ? "bg-blue-50/50 border-blue-200" : "hover:bg-muted/50"}`}>
+                                <Checkbox
+                                    id="check-fire"
+                                    checked={selectedAmenities["fireSafety"] || false}
+                                    onCheckedChange={(checked) =>
+                                        setSelectedAmenities(prev => ({ ...prev, fireSafety: !!checked }))
+                                    }
+                                />
+                                <label htmlFor="check-fire" className="grid gap-1.5 cursor-pointer">
+                                    <div className="font-medium flex items-center gap-2">
+                                        <Flame className="w-4 h-4 text-muted-foreground" />
+                                        Fire Safety Equipment
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Extinguishers and smoke detectors installed
+                                    </p>
+                                </label>
+                            </div>
                         </div>
 
-                        <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedAmenities["fireSafety"] ? "bg-blue-50/50 border-blue-200" : "hover:bg-muted/50"}`}>
-                            <Checkbox
-                                id="check-fire"
-                                checked={selectedAmenities["fireSafety"] || false}
-                                onCheckedChange={(checked) =>
-                                    setSelectedAmenities(prev => ({ ...prev, fireSafety: !!checked }))
-                                }
+                        {/* Fire Equipment Details - shows when fire safety is checked */}
+                        {selectedAmenities["fireSafety"] && (
+                            <FormField
+                                control={form.control}
+                                name="fireEquipmentDetails"
+                                render={({ field }) => {
+                                    const charCount = field.value?.length || 0;
+                                    const isInvalid = charCount < 10;
+                                    return (
+                                        <FormItem>
+                                            <FormLabel className="text-sm">Fire Safety Equipment Details (Annexure-I #6g) <span className="text-red-500">*</span></FormLabel>
+                                            <FormControl>
+                                                <textarea
+                                                    {...field}
+                                                    value={field.value || ""}
+                                                    placeholder="E.g., 2 fire extinguishers (kitchen, lobby), smoke detectors in all rooms, fire alarm system..."
+                                                    className={`w-full min-h-[80px] p-3 text-sm border rounded-md resize-none focus:ring-2 focus:ring-primary focus:border-transparent ${isInvalid ? 'border-red-500 border-2 bg-red-50' : 'border-gray-300'}`}
+                                                    required
+                                                />
+                                            </FormControl>
+                                            <div className="flex justify-between items-center">
+                                                <p className={`text-xs ${isInvalid ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                                                    {isInvalid ? '⚠ Required: Enter at least 10 characters to proceed' : 'Fire fighting equipment details provided'}
+                                                </p>
+                                                <span className={`text-xs font-medium ${isInvalid ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                    {charCount} chars (min. 10)
+                                                </span>
+                                            </div>
+                                        </FormItem>
+                                    );
+                                }}
                             />
-                            <label htmlFor="check-fire" className="grid gap-1.5 cursor-pointer">
-                                <div className="font-medium flex items-center gap-2">
-                                    <Flame className="w-4 h-4 text-muted-foreground" />
-                                    Fire Safety Equipment
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Extinguishers and smoke detectors installed
-                                </p>
-                            </label>
-                        </div>
-                    </div>
+                        )}
 
-                    {(!selectedAmenities["cctv"] || !selectedAmenities["fireSafety"]) && (
-                        <Alert variant="destructive" className="py-2">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle className="text-sm font-medium">Safety Requirements Incomplete</AlertTitle>
-                            <AlertDescription className="text-xs">
-                                You must confirm both CCTV and Fire Safety equipment availability to proceed.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </CardContent>
-            </Card>
+                        {(!selectedAmenities["cctv"] || !selectedAmenities["fireSafety"]) && (
+                            <Alert variant="destructive" className="py-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle className="text-sm font-medium">Safety Requirements Incomplete</AlertTitle>
+                                <AlertDescription className="text-xs">
+                                    You must confirm both CCTV and Fire Safety equipment availability to proceed.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {selectedAmenities["cctv"] && selectedAmenities["fireSafety"] && (form.watch("fireEquipmentDetails")?.trim().length || 0) < 10 && (
+                            <Alert className="py-2 border-amber-300 bg-amber-50">
+                                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                <AlertTitle className="text-sm font-medium text-amber-800">Fire Safety Details Required</AlertTitle>
+                                <AlertDescription className="text-xs text-amber-700">
+                                    Please provide details of fire fighting equipment (Annexure-I #6g) - at least 10 characters to proceed to next step.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                </Card >
+            )
+            }
         </>
     );
 }

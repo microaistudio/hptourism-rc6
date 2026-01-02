@@ -53,6 +53,7 @@ import {
   Sofa,
   AlertCircle,
   CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
 import type { User, HomestayApplication, UserProfile, ApplicationServiceContext, ApplicationKind } from "@shared/schema";
 import { ObjectUploader, type UploadedFileMetadata } from "@/components/ObjectUploader";
@@ -87,12 +88,14 @@ import {
 import { Step1PropertyDetails } from "@/components/applications/form-sections/Step1PropertyDetails";
 import { Step2OwnerInfo } from "@/components/applications/form-sections/Step2OwnerInfo";
 import { Step3RoomsCategory } from "@/components/applications/form-sections/Step3RoomsCategory";
-import { Step4DistancesAreas } from "@/components/applications/form-sections/Step4DistancesAreas";
+import { Step4DistancesAreas, getMandatoryAutoChecked, MANDATORY_CHECKLIST_COUNT, ANNEXURE_III_MANDATORY, OPTIONAL_FACILITIES } from "@/components/applications/form-sections/Step4DistancesAreas";
 import { Step5Documents } from "@/components/applications/form-sections/Step5Documents";
 import { Step6AmenitiesFees } from "@/components/applications/form-sections/Step6AmenitiesFees";
 import { Step6CancellationReview } from "@/components/applications/form-sections/Step6CancellationReview";
 import { Step6SimpleReview } from "@/components/applications/form-sections/Step6SimpleReview";
 import { applicationSchema, type ApplicationForm } from "@/lib/application-schema";
+import { ApplicationTimer, clearApplicationTimer } from "@/components/applications/ApplicationTimer";
+import { ApplicationProgress } from "@/components/applications/ApplicationProgress";
 
 const HP_STATE = DEFAULT_STATE;
 const HP_DISTRICTS = getDistricts();
@@ -415,7 +418,7 @@ const draftSchema = z.object({
   distanceCityCenter: z.number().optional(),
   distanceShopping: z.number().optional(),
   distanceBusStand: z.number().optional(),
-  projectType: z.enum(["new_rooms", "new_project"]).optional(),
+  projectType: z.enum(["new_property", "existing_property", "new_project", "new_rooms"]).optional(),
   propertyArea: z.number().optional(),
   singleBedRooms: z.number().optional(),
   singleBedBeds: z.number().optional(),
@@ -592,6 +595,7 @@ const STEP_CONFIG = [
       "ownerEmail",
       "ownerAadhaar",
       "ownerGender",
+      "guardianRelation",
       "guardianName",
       "propertyOwnership",
     ],
@@ -601,14 +605,14 @@ const STEP_CONFIG = [
     label: "Rooms & Category",
     shortLabel: "Rooms",
     icon: Bed,
-    requiredFields: ["category", "proposedRoomRate", "attachedWashrooms"],
+    requiredFields: ["category", "propertyArea", "attachedWashrooms"],
   },
   {
     id: 4,
-    label: "Distances & Areas",
-    shortLabel: "Distances",
+    label: "Distances & Facilities",
+    shortLabel: "Distances/Facilities",
     icon: MapPin,
-    requiredFields: ["distanceAirport", "distanceRailway", "distanceCityCenter", "distanceShopping", "distanceBusStand"],
+    requiredFields: ["distanceAirport", "distanceRailway", "distanceCityCenter", "distanceShopping", "distanceBusStand", "nearestHospital"],
   },
   {
     id: 5,
@@ -628,6 +632,9 @@ const STEP_CONFIG = [
 
 export default function NewApplication() {
   const [, setLocation] = useLocation();
+  const { data: userData } = useQuery<{ user: User }>({
+    queryKey: ["/api/auth/me"],
+  });
   const goToProfile = () => setLocation("/profile");
   const renderProfileManagedDescription = (fieldLabel?: string) => (
     <FormDescription>
@@ -670,7 +677,7 @@ export default function NewApplication() {
   });
   const isUpfrontPayment = paymentWorkflowData?.workflow === "upfront";
   const { data: activeExistingOwner } = useQuery<{ application: { id: string } | null }>({
-    queryKey: ["/api/existing-owners/active"],
+    queryKey: ["/api/existing-owners/active", userData?.user?.id],
     staleTime: 30 * 1000,
   });
   // Get draft ID and correction ID from URL query parameters
@@ -679,6 +686,8 @@ export default function NewApplication() {
   const correctionIdFromUrl = searchParams.get("application");
   const [draftId, setDraftId] = useState<string | null>(draftIdFromUrl);
   const [correctionId, setCorrectionId] = useState<string | null>(correctionIdFromUrl);
+  // Generate a unique session ID for this instance to prevent timer sharing between "new" applications
+  const [sessionInstanceId] = useState(() => nanoid());
   const isCategoryEnforced =
     categoryEnforcementSetting?.enforce ?? DEFAULT_CATEGORY_ENFORCEMENT.enforce;
   const lockToRecommendedCategory =
@@ -693,6 +702,7 @@ export default function NewApplication() {
     fireSafety: false,
   });
   const [selectedAttractions, setSelectedAttractions] = useState<Record<string, boolean>>({});
+  const [mandatoryChecks, setMandatoryChecks] = useState<Record<string, boolean>>(() => getMandatoryAutoChecked());
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, UploadedFileMetadata[]>>({
     revenuePapers: [],
     affidavitSection29: [],
@@ -775,9 +785,7 @@ export default function NewApplication() {
     }
   }, [isCorrectionMode]);
 
-  const { data: userData } = useQuery<{ user: User }>({
-    queryKey: ["/api/auth/me"],
-  });
+
 
   const defaultOwnerNameParts = splitFullName(userData?.user?.fullName || "");
 
@@ -811,6 +819,7 @@ export default function NewApplication() {
       familySuiteRate: 0,
       projectType: "new_project",
       propertyArea: 0,
+      propertyAreaUnit: "sqm",
       singleBedRooms: 0,
       singleBedBeds: 1,
       singleBedRoomSize: undefined,
@@ -839,7 +848,7 @@ export default function NewApplication() {
   });
 
   const { data: applicationsData } = useQuery<{ applications: HomestayApplication[] }>({
-    queryKey: ["/api/applications"],
+    queryKey: ["/api/applications", userData?.user?.id],
     enabled: !!userData?.user,
     staleTime: 30_000,
   });
@@ -885,7 +894,7 @@ export default function NewApplication() {
 
   // Fetch user profile for auto-population
   const { data: userProfile } = useQuery<UserProfile | null>({
-    queryKey: ["/api/profile"],
+    queryKey: ["/api/profile", userData?.user?.id],
     enabled: !!userData?.user,
     retry: false,
     queryFn: async ({ queryKey }) => {
@@ -958,12 +967,20 @@ export default function NewApplication() {
   const activeDraftApplication = draftApplication;
   const activeCorrectionApplication = correctionData?.application ?? null;
   const activeHydratedApplication = activeDraftApplication ?? (isCorrectionMode ? activeCorrectionApplication : null);
+  // Prepare source data
+  const source = draftIdFromUrl
+    ? activeDraftApplication
+    : (isCorrectionMode ? activeCorrectionApplication : (activeHydratedApplication || {}));
+
+  console.log("DEBUG: Component Render Source:", source);
+  // Removed accidental return check
+
   const activeApplicationKind = (activeHydratedApplication?.applicationKind as ApplicationKind | undefined) ?? "new_registration";
   const isServiceDraft = Boolean(activeDraftApplication && isServiceApplication(activeApplicationKind));
   const serviceContext = (activeDraftApplication?.serviceContext ?? null) as ApplicationServiceContext | null;
   const parentApplicationNumber = activeDraftApplication?.parentApplicationNumber ?? null;
   const parentApplicationId = activeDraftApplication?.parentApplicationId ?? null;
-  const parentCertificateNumber = activeDraftApplication?.parentCertificateNumber ?? activeDraftApplication?.certificateNumber ?? null;
+  const parentCertificateNumber = activeDraftApplication?.parentApplicationNumber ?? activeDraftApplication?.certificateNumber ?? null;
   const inheritedCertificateExpiry = activeDraftApplication?.inheritedCertificateValidUpto ?? activeDraftApplication?.certificateExpiryDate ?? null;
   const requestedRooms = serviceContext?.requestedRooms;
   const requestedRoomDelta = serviceContext?.requestedRoomDelta;
@@ -1306,8 +1323,13 @@ export default function NewApplication() {
   const tehsil = form.watch("tehsil");
   const tehsilOther = form.watch("tehsilOther");
   const pincodeValue = form.watch("pincode");
+  const propertyName = form.watch("propertyName");
+  const address = form.watch("address");
+  const gramPanchayat = form.watch("gramPanchayat");
+  // locationType already declared at line 1229
   const ownerFirstName = form.watch("ownerFirstName");
   const ownerLastName = form.watch("ownerLastName");
+  const guardianName = form.watch("guardianName");
   const ownerGender = form.watch("ownerGender");
   const propertyOwnership = form.watch("propertyOwnership") as "owned" | "leased" | undefined;
   const certificateValidityYears = form.watch("certificateValidityYears");
@@ -1516,15 +1538,16 @@ export default function NewApplication() {
         (source.ownerGender as "male" | "female" | "other") ?? defaults.ownerGender,
       ) as "male" | "female" | "other",
       ownerAadhaar: source.ownerAadhaar ?? defaults.ownerAadhaar ?? "",
-      guardianName: (source as any).guardianName ?? "",
+      guardianName: (source as any).guardianName ?? (source as any).guardian_name ?? "",
       propertyOwnership: ((source as any).propertyOwnership as "owned" | "leased") ?? defaults.propertyOwnership ?? "owned",
       category: (source.category as "diamond" | "gold" | "silver") ?? defaults.category ?? "silver",
       proposedRoomRate: coerceNumber((source as any).proposedRoomRate, defaults.proposedRoomRate ?? 0) ?? 0,
       singleBedRoomRate: coerceNumber((source as any).singleBedRoomRate, defaults.singleBedRoomRate ?? 0) ?? 0,
       doubleBedRoomRate: coerceNumber((source as any).doubleBedRoomRate, defaults.doubleBedRoomRate ?? 0) ?? 0,
       familySuiteRate: coerceNumber((source as any).familySuiteRate, defaults.familySuiteRate ?? 0) ?? 0,
-      projectType: (source.projectType as "new_rooms" | "new_project") ?? defaults.projectType ?? "new_project",
+      projectType: (source.projectType as "new_property" | "existing_property" | "new_project" | "new_rooms") ?? defaults.projectType ?? "new_project",
       propertyArea: coerceNumber((source as any).propertyArea, defaults.propertyArea ?? 0) ?? 0,
+      propertyAreaUnit: (source as any).propertyAreaUnit ?? defaults.propertyAreaUnit ?? "sqm",
       singleBedRooms: coerceNumber((source as any).singleBedRooms, defaults.singleBedRooms ?? 0) ?? 0,
       singleBedBeds: coerceNumber((source as any).singleBedBeds, defaults.singleBedBeds ?? 1) ?? 1,
       singleBedRoomSize: coerceNumber((source as any).singleBedRoomSize),
@@ -1549,6 +1572,8 @@ export default function NewApplication() {
       fireEquipmentDetails: (source as any).fireEquipmentDetails ?? defaults.fireEquipmentDetails ?? "",
       certificateValidityYears: (resolvedCertificateYears === "3" ? "3" : "1"),
       nearestHospital: (source as any).nearestHospital ?? defaults.nearestHospital ?? "",
+      keyLocationHighlight1: (source as any).keyLocationHighlight1 ?? defaults.keyLocationHighlight1 ?? "",
+      keyLocationHighlight2: (source as any).keyLocationHighlight2 ?? defaults.keyLocationHighlight2 ?? "",
     });
 
     const amenitiesSource = (source as any).amenities;
@@ -1574,6 +1599,20 @@ export default function NewApplication() {
       }
     }
 
+
+    // Load mandatory checklist from saved data
+    const mandatorySource = (source as any).mandatoryChecklist;
+    if (mandatorySource) {
+      try {
+        const parsedMandatory =
+          typeof mandatorySource === "string" ? JSON.parse(mandatorySource) : mandatorySource;
+        // Merge with auto-checked defaults to ensure critical items stick
+        setMandatoryChecks({ ...getMandatoryAutoChecked(), ...parsedMandatory });
+      } catch {
+        setMandatoryChecks(getMandatoryAutoChecked());
+      }
+    }
+
     const documentsSource = Array.isArray((source as any).documents) ? (source as any).documents : [];
     if (documentsSource.length > 0) {
       const docs: Record<string, UploadedFileMetadata[]> = {
@@ -1584,6 +1623,7 @@ export default function NewApplication() {
         commercialWaterBill: [],
       };
       const photos: UploadedFileMetadata[] = [];
+      const additionalDocs: UploadedFileMetadata[] = [];
       documentsSource.forEach((doc: any) => {
         const base: UploadedFileMetadata = {
           id: doc.id,
@@ -1591,6 +1631,7 @@ export default function NewApplication() {
           fileName: doc.fileName || doc.name || "document",
           fileSize: doc.fileSize || 0,
           mimeType: doc.mimeType || doc.type || "application/octet-stream",
+          description: doc.description || "",
         };
         switch (doc.documentType) {
           case "revenue_papers":
@@ -1611,12 +1652,16 @@ export default function NewApplication() {
           case "property_photo":
             photos.push(base);
             break;
+          case "additional_document":
+            additionalDocs.push(base);
+            break;
           default:
             break;
         }
       });
       setUploadedDocuments(docs);
       setPropertyPhotos(photos);
+      setAdditionalDocuments(additionalDocs);
     } else {
       setUploadedDocuments({
         revenuePapers: [],
@@ -1626,6 +1671,7 @@ export default function NewApplication() {
         commercialWaterBill: [],
       });
       setPropertyPhotos([]);
+      setAdditionalDocuments([]);
     }
     // Use a longer timeout to ensure district change watchers complete before we finalize values
     // Also re-apply location fields that may have been cleared by watchers
@@ -1676,8 +1722,9 @@ export default function NewApplication() {
         fileSize: file.fileSize ?? 0,
         mimeType: file.mimeType || "application/octet-stream",
         name: file.fileName,
-        type,
+        // Removed redundant 'type' property as 'documentType' already exists
         url: file.filePath,
+        description: file.description || "",
       }));
 
     return [
@@ -1687,6 +1734,7 @@ export default function NewApplication() {
       ...normalize(uploadedDocuments.commercialElectricityBill, "commercial_electricity_bill"),
       ...normalize(uploadedDocuments.commercialWaterBill, "commercial_water_bill"),
       ...normalize(propertyPhotos, "property_photo"),
+      ...normalize(additionalDocuments, "additional_document"),
     ];
   };
 
@@ -1810,15 +1858,72 @@ export default function NewApplication() {
     safetyChecklistFailed ||
     missingTariffs ||
     totalRooms === 0;
+  const allMandatoryChecked = Object.values(mandatoryChecks).filter(Boolean).length >= MANDATORY_CHECKLIST_COUNT;
+
+  // Step 1 required field check - disable Next if any mandatory fields are empty
+  // Tehsil: required, but if __other selected, tehsilOther must be filled
+  const tehsilMissing = !tehsil?.trim() || (tehsil === "__other" && !tehsilOther?.trim());
+  // GramPanchayat: required only when locationType is 'gp'
+  const gramPanchayatMissing = locationType === "gp" && !gramPanchayat?.trim();
+  const step1FieldsMissing = !propertyName?.trim() || !district?.trim() || !address?.trim() || !locationType || !pincodeIsValid || tehsilMissing || gramPanchayatMissing;
+
+  // Step 2 required field check
+  const step2FieldsMissing = !guardianName?.trim() || guardianName.trim().length < 3;
+
   const isNextDisabled = step === 1
-    ? !pincodeIsValid
+    ? step1FieldsMissing
     : step === 2
-      ? propertyOwnership === "leased"
+      ? propertyOwnership === "leased" || (step2FieldsMissing && propertyOwnership !== "leased") // Only check fields if basic ownership checks pass
       : step === 3
         ? roomGuardrailsFailed || gstinBlocking || !syncAttachedBaths
-        : step > 3
-          ? roomGuardrailsFailed
-          : false;
+        : step === 4
+          ? !allMandatoryChecked || roomGuardrailsFailed
+          : step > 4
+            ? roomGuardrailsFailed
+            : false;
+
+  // Weighted Step 4 completion calculation
+  // 50% for mandatory 18 items, 25% for distances/public areas, 25% for attractions
+
+  // Watch all relevant fields for step 4 progress
+  const step4WatchedFields = form.watch([
+    "distanceAirport", "distanceRailway", "distanceCityCenter",
+    "distanceShopping", "distanceBusStand", "nearestHospital",
+    "lobbyArea", "diningArea", "parkingArea",
+    "keyLocationHighlight1", "keyLocationHighlight2",
+    "ecoFriendlyFacilities", "differentlyAbledFacilities", "fireEquipmentDetails"
+  ]);
+
+  const step4Completion = useMemo(() => {
+    // 1. Mandatory checklist (50% weight) - 18 items
+    const mandatoryCheckedCount = Object.values(mandatoryChecks).filter(Boolean).length;
+    const mandatoryProgress = Math.min((mandatoryCheckedCount / MANDATORY_CHECKLIST_COUNT) * 50, 50);
+
+    // 2. Distances and Public Areas (25% weight)
+    const distanceFields = [
+      "distanceAirport", "distanceRailway", "distanceCityCenter",
+      "distanceShopping", "distanceBusStand", "nearestHospital",
+      "lobbyArea", "diningArea", "parkingArea"
+    ];
+    const distanceFilledCount = distanceFields.filter(field => {
+      const value = form.getValues(field as keyof typeof form.getValues);
+      return value !== undefined && value !== null && value !== "" && value !== 0;
+    }).length;
+    const distanceProgress = (distanceFilledCount / distanceFields.length) * 25;
+
+    // 3. Nearby Attractions and good-to-have (25% weight)
+    const attractionFields = [
+      "keyLocationHighlight1", "keyLocationHighlight2",
+      "ecoFriendlyFacilities", "differentlyAbledFacilities", "fireEquipmentDetails"
+    ];
+    const attractionFilledCount = attractionFields.filter(field => {
+      const value = form.getValues(field as keyof typeof form.getValues);
+      return value !== undefined && value !== null && String(value).trim() !== "";
+    }).length;
+    const attractionProgress = (attractionFilledCount / attractionFields.length) * 25;
+
+    return Math.round(mandatoryProgress + distanceProgress + attractionProgress);
+  }, [mandatoryChecks, step4WatchedFields, form]);
 
   // Smart category suggestion based on room count + weighted average rate
   const suggestedCategoryValue = totalRooms > 0 && highestRoomRate > 0
@@ -2090,7 +2195,8 @@ export default function NewApplication() {
 
 
     // Change Category: Calculate upgrade fee (difference)
-    if (activeApplicationKind === 'change_category' && parentApplication?.category) {
+    // DISABLED: Business logic requires FULL FEE for category change request effectively behaving as new registration
+    if (false && activeApplicationKind === 'change_category' && parentApplication?.category) {
       const feeBreakdown = calculateUpgradeFee(
         parentApplication.category,
         category as CategoryType,
@@ -2204,6 +2310,7 @@ export default function NewApplication() {
         ownerEmail: validatedData.ownerEmail || undefined,
         amenities: selectedAmenities,
         nearbyAttractions: selectedAttractions,
+        mandatoryChecklist: mandatoryChecks,
         // 2025 Fee Structure
         baseFee: fees.baseFee.toString(),
         totalBeforeDiscounts: fees.totalBeforeDiscounts?.toString() || "0",
@@ -2224,16 +2331,32 @@ export default function NewApplication() {
 
       if (draftId) {
         // Update existing draft
-        const response = await apiRequest("PATCH", `/api/applications/${draftId}/draft`, payload);
-        return response.json();
-      } else {
-        // Create new draft
+        try {
+          const response = await apiRequest("PATCH", `/api/applications/${draftId}/draft`, payload);
+          return response.json();
+        } catch (error: any) {
+          // DETECT 404 (Draft Not Found)
+          // If the draft ID in URL is invalid/deleted, try to create a new one instead of failing
+          if (error.message && (error.message.includes("404") || error.message.includes("not found"))) {
+            console.warn(`Draft ${draftId} not found (404). Attempting to create new draft...`);
+            // Fall through to POST logic below
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      // Create new draft
+      if (true) { // Always enter this block if we passed the above check or didn't return
         const response = await fetch("/api/applications/draft", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(payload),
         });
+
+        // ... existing POST handling ...
+
 
         if (response.status === 409) {
           const data = await response.json().catch(() => ({}));
@@ -2392,6 +2515,7 @@ export default function NewApplication() {
           familySuiteRate: formData.familySuiteRate,
           projectType: formData.projectType,
           propertyArea: formData.propertyArea,
+          propertyAreaUnit: formData.propertyAreaUnit,
           singleBedRooms: formData.singleBedRooms,
           singleBedBeds: formData.singleBedBeds,
           singleBedRoomSize: formData.singleBedRoomSize,
@@ -2487,6 +2611,10 @@ export default function NewApplication() {
         status: "submitted",
         submittedAt: new Date().toISOString(),
         documents: documentsPayload,
+        // Analytics: Time spent filling the form
+        formCompletionTimeSeconds: draftId
+          ? parseInt(localStorage.getItem(`hptourism_timer_${draftId}`) || "0", 10)
+          : 0,
       };
 
       const response = await apiRequest("POST", "/api/applications", payload);
@@ -2494,6 +2622,10 @@ export default function NewApplication() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+      // Clear timer from localStorage after successful submission
+      if (draftId) {
+        clearApplicationTimer(draftId);
+      }
       toast({
         title: isCorrectionMode ? "Application resubmitted successfully!" : "Application submitted successfully!",
         description: isCorrectionMode
@@ -2643,6 +2775,7 @@ export default function NewApplication() {
   };
 
   const nextStep = async () => {
+    console.log("Next Step Clicked:", { step, activeApplicationKind, isCorrectionMode });
     // Step 1: Validate Property Details
     if (step === 1) {
       const isValid = await form.trigger([
@@ -2675,8 +2808,24 @@ export default function NewApplication() {
       }
     }
 
+
     // Step 2: Validate Owner Information
     if (step === 2) {
+      // Manual validation for guardianRelation (since no Zod resolver is used)
+      const guardianRelationValue = form.getValues("guardianRelation");
+      if (!guardianRelationValue) {
+        form.setError("guardianRelation", {
+          type: "manual",
+          message: "Relationship is required"
+        });
+        toast({
+          title: "Relationship Required",
+          description: "Please select a relationship (S/O, D/O, W/O, or C/O)",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Manual validation for guardianName (since no Zod resolver is used)
       const guardianNameValue = form.getValues("guardianName")?.trim() || "";
       if (guardianNameValue.length < 3) {
@@ -2700,6 +2849,7 @@ export default function NewApplication() {
         "ownerEmail",
         "ownerAadhaar",
         "ownerGender",
+        "guardianRelation",
         "propertyOwnership"
       ]);
       if (!isValid) {
@@ -2714,6 +2864,37 @@ export default function NewApplication() {
 
     // Step 3: Validate Room Details & Category
     if (step === 3) {
+      // SPECIAL HANDLING FOR DELETE_ROOMS: Skip full validation
+      if (activeApplicationKind === 'delete_rooms') {
+        // Only validate room counts
+        const isValid = await form.trigger([
+          "singleBedRooms", "doubleBedRooms", "familySuites",
+          "singleBedBeds", "doubleBedBeds", "familySuiteBeds"
+        ]);
+
+        if (!isValid) {
+          toast({
+            title: "Invalid room configuration",
+            description: "Please check your room and bed counts.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Auto-save draft
+        if (!isCorrectionMode) {
+          const formData = form.getValues();
+          saveDraftMutation.mutate({
+            ...formData,
+            currentPage: 6
+          });
+        }
+        setStep(6);
+        setMaxStepReached(6);
+        window.scrollTo(0, 0);
+        return;
+      }
+
       const category = form.getValues("category");
       const fieldsToValidate: Array<keyof ApplicationForm> = [
         "category",
@@ -2775,12 +2956,20 @@ export default function NewApplication() {
 
 
 
-      if (!selectedAmenities.cctv || !selectedAmenities.fireSafety) {
+      if ((!selectedAmenities.cctv || !selectedAmenities.fireSafety) && activeApplicationKind !== 'delete_rooms') {
         toast({
           title: "Mandatory safety items missing",
           description: "Install CCTV coverage and fire-safety equipment before continuing.",
           variant: "destructive",
         });
+        return;
+      }
+
+      // Validate fire equipment details are provided (Annexure-I #6g)
+      // Inline warning is shown in Step3RoomsCategory component
+      const fireEquipmentDetails = form.getValues("fireEquipmentDetails")?.trim() || "";
+      if (fireEquipmentDetails.length < 10 && activeApplicationKind !== 'delete_rooms') {
+        // Block silently - inline warning in Step3 component shows the requirement
         return;
       }
 
@@ -2814,11 +3003,22 @@ export default function NewApplication() {
         return;
       }
 
+
     }
 
-    // Step 4: Validate Distances & Public Areas (all optional, can proceed)
-    if (step === 4) {
-      // No mandatory fields on this step, can proceed
+
+
+    // Step 4: Validate Distances & Mandatory Checklist (Annexure-III)
+    if (step === 4 && activeApplicationKind !== 'delete_rooms') {
+      const checkedCount = Object.values(mandatoryChecks).filter(Boolean).length;
+      if (checkedCount < MANDATORY_CHECKLIST_COUNT) {
+        toast({
+          title: "Mandatory Checklist Incomplete",
+          description: `Please confirm all ${MANDATORY_CHECKLIST_COUNT} mandatory facilities. You have confirmed ${checkedCount} so far.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Step 5: Validate Documents (ANNEXURE-II)
@@ -2861,6 +3061,10 @@ export default function NewApplication() {
   };
 
   const prevStep = () => {
+    if (step === 6 && activeApplicationKind === 'delete_rooms') {
+      setStep(3);
+      return;
+    }
     if (step > 1) setStep(step - 1);
   };
 
@@ -2910,8 +3114,18 @@ export default function NewApplication() {
       ? "DA"
       : "Review team";
 
+
+  // FAILSAFE: If for any reason we end up on Step 4 or 5 and it is delete_rooms, force step 6
+  useEffect(() => {
+    if (activeApplicationKind === 'delete_rooms' && (step === 4 || step === 5)) {
+      console.warn("Failsafe: forcing step 6 for delete_rooms");
+      setStep(6);
+      setMaxStepReached(6);
+    }
+  }, [step, activeApplicationKind]);
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 relative">
       <div className="max-w-5xl mx-auto">
         {isCorrectionMode && correctionId && (
           <div className="mb-6 border border-amber-200 bg-amber-50/80 rounded-lg p-4 space-y-3">
@@ -3018,18 +3232,34 @@ export default function NewApplication() {
               Application #:{" "}
               <span className="font-semibold text-foreground">{applicationNumber}</span>
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="gap-2"
-              onClick={copyApplicationNumber}
-              type="button"
-            >
-              <Copy className="h-4 w-4" />
-              Copy
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="gap-2"
+                onClick={copyApplicationNumber}
+                type="button"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
           </div>
         )}
+
+        {/* Progress & Timer - Always visible during form filling */}
+        <div className="flex justify-end items-center gap-4 mb-6 mt-2">
+          <ApplicationProgress
+            formData={combinedFormData}
+            currentStep={step}
+            totalSteps={totalSteps}
+            mandatoryChecks={mandatoryChecks}
+          />
+          <ApplicationTimer
+            applicationId={draftId || sessionInstanceId}
+            isSubmitted={false}
+          />
+        </div>
 
         <ApplicationStepper
           currentStep={step}
@@ -3038,6 +3268,7 @@ export default function NewApplication() {
           formData={combinedFormData}
           onStepClick={handleStepClick}
           steps={STEP_CONFIG}
+          step4Completion={step4Completion}
         />
 
         <Form {...form}>
@@ -3052,6 +3283,7 @@ export default function NewApplication() {
                 locationType={locationType}
                 pincodeSuffixValue={pincodeSuffixValue}
                 showPincodeHint={showPincodeHint}
+                showRequiredWarning={step1FieldsMissing}
                 gramFieldConfig={gramFieldConfig}
                 urbanBodyConfig={urbanBodyConfig}
               />
@@ -3062,6 +3294,7 @@ export default function NewApplication() {
                 form={form}
                 ownerGender={ownerGender}
                 propertyOwnership={propertyOwnership}
+                showRequiredWarning={step2FieldsMissing}
                 goToProfile={goToProfile}
                 renderProfileManagedDescription={renderProfileManagedDescription}
               />
@@ -3101,7 +3334,13 @@ export default function NewApplication() {
 
             {
               step === 4 && (
-                <Step4DistancesAreas form={form} selectedAttractions={selectedAttractions} setSelectedAttractions={setSelectedAttractions} />
+                <Step4DistancesAreas
+                  form={form}
+                  selectedAttractions={selectedAttractions}
+                  setSelectedAttractions={setSelectedAttractions}
+                  mandatoryChecks={mandatoryChecks}
+                  setMandatoryChecks={setMandatoryChecks}
+                />
               )
             }
 
@@ -3570,19 +3809,122 @@ export default function NewApplication() {
                   </div>
                 </div>
 
-                {/* Amenities */}
-                <div className="rounded-xl border p-5">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Selected Amenities</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {AMENITIES.filter(a => selectedAmenities[a.id]).map(a => (
-                      <Badge key={a.id} variant="secondary" className="px-3 py-1">
-                        {a.label}
+                {/* Amenities - Stylish Preview */}
+                <div className="rounded-xl border p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-emerald-600" />
+                      Amenities & Safety
+                    </h3>
+                  </div>
+
+                  {/* Mandatory Safety Section */}
+                  <div className="bg-emerald-50/50 rounded-lg p-4 border border-emerald-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-emerald-800 flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4" />
+                        Mandatory Safety Compliance
+                      </h4>
+                      <Badge variant={
+                        AMENITIES.filter(a => MANDATORY_AMENITY_IDS.has(a.id) && selectedAmenities[a.id]).length === MANDATORY_AMENITY_IDS.size
+                          ? "default"
+                          : "destructive"
+                      } className={
+                        AMENITIES.filter(a => MANDATORY_AMENITY_IDS.has(a.id) && selectedAmenities[a.id]).length === MANDATORY_AMENITY_IDS.size
+                          ? "bg-emerald-600 hover:bg-emerald-700"
+                          : ""
+                      }>
+                        {AMENITIES.filter(a => MANDATORY_AMENITY_IDS.has(a.id) && selectedAmenities[a.id]).length} / {MANDATORY_AMENITY_IDS.size} Selected
                       </Badge>
-                    ))}
-                    {AMENITIES.filter(a => selectedAmenities[a.id]).length === 0 && (
-                      <span className="text-sm text-slate-400">No amenities selected</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {AMENITIES.filter(a => MANDATORY_AMENITY_IDS.has(a.id)).map(a => {
+                        const isSelected = selectedAmenities[a.id];
+                        const Icon = a.icon;
+                        return (
+                          <div key={a.id} className={`flex items-center gap-3 p-2 rounded-md border ${isSelected ? "bg-white border-emerald-200" : "bg-gray-50 border-gray-200 opacity-60"}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSelected ? "bg-emerald-100 text-emerald-600" : "bg-gray-200 text-gray-400"}`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <span className={`text-sm font-medium ${isSelected ? "text-slate-700" : "text-slate-500"}`}>
+                              {a.label}
+                            </span>
+                            {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-600 ml-auto" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Other Amenities */}
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 mb-3 ml-1">Comfort & Convenience</h4>
+                    {AMENITIES.filter(a => !MANDATORY_AMENITY_IDS.has(a.id) && selectedAmenities[a.id]).length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {AMENITIES.filter(a => !MANDATORY_AMENITY_IDS.has(a.id) && selectedAmenities[a.id]).map(a => {
+                          const Icon = a.icon;
+                          return (
+                            <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg border bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                              <Icon className="w-4 h-4 text-slate-500" />
+                              <span className="text-sm text-slate-600">{a.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-400 italic pl-1">No additional amenities selected</p>
                     )}
                   </div>
+                </div>
+
+                {/* Regulatory Checklist (Annexure-III) */}
+                <div className="rounded-xl border p-5 space-y-4 bg-slate-50/50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      Regulatory Checklist
+                    </h3>
+                    <Badge className="bg-emerald-600 hover:bg-emerald-700">
+                      18 / 18 Verified
+                    </Badge>
+                  </div>
+
+                  {/* Mandatory Facilities Grid */}
+                  <div className="bg-white rounded-lg border p-4">
+                    <p className="text-sm font-medium text-slate-700 mb-3 border-b pb-2">Mandatory Facilities (Annexure-III)</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2">
+                      {ANNEXURE_III_MANDATORY.map((item, idx) => (
+                        <div key={item.id} className="flex items-start gap-2 text-xs text-slate-600">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
+                          <span>{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Optional Facilities */}
+                  {(() => {
+                    const ecoVal = form.watch("ecoFriendlyFacilities") || "";
+                    const diffVal = form.watch("differentlyAbledFacilities") || "";
+                    const allText = (ecoVal + "," + diffVal).toLowerCase();
+                    const selectedOptional = OPTIONAL_FACILITIES.filter(f => allText.includes(f.label.toLowerCase()));
+
+                    if (selectedOptional.length > 0) {
+                      return (
+                        <div className="bg-white rounded-lg border p-4">
+                          <p className="text-sm font-medium text-slate-700 mb-3 border-b pb-2">Desirable Facilities</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedOptional.map(f => (
+                              <Badge key={f.id} variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
+                                {f.label}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* Documents Summary */}

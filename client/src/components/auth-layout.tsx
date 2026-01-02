@@ -15,7 +15,7 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   const [location, setLocation] = useLocation();
-  
+
   const { data: userData } = useQuery<{ user: User }>({
     queryKey: ["/api/auth/me"],
   });
@@ -46,7 +46,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="fixed inset-0 flex w-full overflow-hidden">
+      <div className="layout-container fixed inset-0 flex w-full overflow-hidden">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-h-0">
           <header className="flex items-center justify-between gap-2 p-3 border-b bg-background">
@@ -62,7 +62,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
                 Home
               </Button>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -75,8 +75,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
               </Button>
             </div>
           </header>
-          
-          <main className="flex-1 overflow-y-auto">
+
+          <main className="main-content flex-1 overflow-y-auto">
             {children}
           </main>
         </div>

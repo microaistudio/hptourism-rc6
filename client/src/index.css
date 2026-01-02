@@ -14,7 +14,8 @@
     margin: 14mm 18mm 18mm 18mm;
   }
 
-  html, body {
+  html,
+  body {
     margin: 0;
     padding: 0;
     background: #ffffff !important;
@@ -23,8 +24,19 @@
     overflow: visible !important;
   }
 
+  /* Reset layout containers to avoid scrollbars in print */
+  .layout-container,
+  .main-content,
+  .layout-container>div {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+    display: block !important;
+  }
+
   #root,
-  #root > div {
+  #root>div {
     min-height: auto !important;
     height: auto !important;
     overflow: visible !important;
@@ -37,8 +49,8 @@
   .print-hidden,
   .print-screen-only,
   .sidebar,
-  .sidebar + div > header,
-  .sidebar + div > nav {
+  .sidebar+div>header,
+  .sidebar+div>nav {
     display: none !important;
   }
 
@@ -71,15 +83,16 @@
 
 /* LIGHT MODE - Clean HP Tourism Design with Pine Green (With Hero Image) */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(0, 0, 0, .10);
+  --badge-outline: rgba(0, 0, 0, .05);
 
   /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  --opaque-button-border-intensity: -8;
+  /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(0, 0, 0, .03);
+  --elevate-2: rgba(0, 0, 0, .08);
 
   --background: 152 20% 98%;
 
@@ -146,7 +159,8 @@
   --font-sans: Open Sans, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: .5rem; /* 8px */
+  --radius: .5rem;
+  /* 8px */
   --shadow-2xs: 0px 1px 2px 0px hsl(150 10% 15% / 0.05);
   --shadow-xs: 0px 1px 2px 0px hsl(150 10% 15% / 0.06);
   --shadow-sm: 0px 1px 3px 0px hsl(150 10% 15% / 0.10), 0px 1px 2px -1px hsl(150 10% 15% / 0.10);
@@ -190,14 +204,15 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, .10);
+  --badge-outline: rgba(255, 255, 255, .05);
 
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
+  --opaque-button-border-intensity: 9;
+  /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, .04);
+  --elevate-2: rgba(255, 255, 255, .09);
 
   --background: 150 4% 8%;
 
@@ -473,30 +488,30 @@
 [data-theme="professional-blue"] {
   --background: 0 0% 98%;
   --foreground: 220 25% 20%;
-  
+
   --card: 0 0% 100%;
   --card-foreground: 220 25% 20%;
   --card-border: 220 20% 85%;
-  
+
   --primary: 220 90% 45%;
   --primary-foreground: 0 0% 100%;
-  
+
   --secondary: 220 15% 92%;
   --secondary-foreground: 220 25% 20%;
-  
+
   --muted: 220 15% 94%;
   --muted-foreground: 220 15% 45%;
-  
+
   --accent: 220 20% 95%;
   --accent-foreground: 220 90% 35%;
-  
+
   --destructive: 0 72% 50%;
   --destructive-foreground: 0 0% 100%;
-  
+
   --border: 220 20% 85%;
   --input: 220 15% 88%;
   --ring: 220 90% 45%;
-  
+
   --chart-1: 220 90% 45%;
   --chart-2: 210 85% 50%;
   --chart-3: 25 95% 53%;
@@ -508,30 +523,30 @@
 [data-theme="mountain-sky"] {
   --background: 200 100% 98%;
   --foreground: 200 25% 20%;
-  
+
   --card: 0 0% 100%;
   --card-foreground: 200 25% 20%;
   --card-border: 200 30% 85%;
-  
+
   --primary: 200 80% 50%;
   --primary-foreground: 0 0% 100%;
-  
+
   --secondary: 200 20% 92%;
   --secondary-foreground: 200 25% 20%;
-  
+
   --muted: 200 20% 94%;
   --muted-foreground: 200 20% 45%;
-  
+
   --accent: 200 30% 95%;
   --accent-foreground: 200 80% 40%;
-  
+
   --destructive: 0 72% 50%;
   --destructive-foreground: 0 0% 100%;
-  
+
   --border: 200 30% 85%;
   --input: 200 20% 88%;
   --ring: 200 80% 50%;
-  
+
   --chart-1: 200 80% 50%;
   --chart-2: 180 70% 45%;
   --chart-3: 160 60% 45%;
@@ -544,4 +559,122 @@
 /* Smooth transitions for theme changes */
 * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ============================================================================
+ * DA/DTDO DASHBOARD ANIMATIONS (can be removed if not liked)
+ * Added: 2026-01-01
+ * Git revert cmd: git checkout 6acfdba -- client/src/index.css
+ * ============================================================================ */
+
+/* Shimmer bar animation - appears on top of cards with pending items */
+@keyframes dashboard-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.dashboard-card-shimmer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), hsl(var(--primary)), hsl(var(--primary) / 0.3), transparent);
+  background-size: 200% 100%;
+  animation: dashboard-shimmer 2s ease-in-out infinite;
+  border-radius: inherit;
+  z-index: 10;
+}
+
+.dashboard-card-shimmer-amber::before {
+  background: linear-gradient(90deg, transparent, hsl(45 93% 47% / 0.3), hsl(45 93% 47%), hsl(45 93% 47% / 0.3), transparent);
+  background-size: 200% 100%;
+  animation: dashboard-shimmer 2s ease-in-out infinite;
+}
+
+/* Pulse animation for count badges */
+@keyframes dashboard-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.dashboard-count-pulse {
+  animation: dashboard-pulse 2s ease-in-out infinite;
+}
+
+/* Subtle pulse animation for bar items with pending count */
+@keyframes pulse-subtle {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2.5s ease-in-out infinite;
+}
+
+/* Hover lift effect for cards - slightly more pronounced */
+.dashboard-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -8px hsl(var(--primary) / 0.15);
+}
+
+/* Icon scale on hover */
+.dashboard-card-hover:hover .dashboard-card-icon {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* Compact card styling - reduces vertical padding */
+.dashboard-card-compact {
+  padding: 0.75rem 1rem !important;
+}
+
+.dashboard-card-compact .dashboard-card-title {
+  font-size: 0.65rem;
+}
+
+.dashboard-card-compact .dashboard-card-count {
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+/* Compact application row styling (Option B table style) */
+.dashboard-app-row-compact {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.dashboard-app-row-compact:last-child {
+  border-bottom: none;
+}
+
+.dashboard-app-row-compact:hover {
+  background-color: hsl(var(--muted) / 0.5);
 }

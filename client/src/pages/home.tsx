@@ -31,7 +31,8 @@ import heroImageRiver from "@assets/stock_images/beautiful_scenic_him_10b034ba.j
 import heroImageVillage from "@assets/stock_images/beautiful_scenic_him_3e373e25.jpg";
 import heroImageSnow from "@assets/stock_images/beautiful_scenic_him_799557d0.jpg";
 import hpsedcLogo from "@/assets/logos/hpsedc.svg";
-import vCliqLogo from "@/assets/logos/v-cliq-logo.jpg";
+import vCliqLogoFinal from "@/assets/vcliq/vcliq_final.jpg";
+import { VCliqFab } from "@/components/vcliq/VCliqFab";
 import { CATEGORY_REQUIREMENTS, MAX_ROOMS_ALLOWED, MAX_BEDS_ALLOWED } from "@shared/fee-calculator";
 
 // Fallback stats if the production scraper cannot load (values from today's prod snapshot)
@@ -141,6 +142,7 @@ export default function HomePage() {
             </Button>
           </div>
         }
+        floatingComponent={<VCliqFab className="static" />}
       />
 
       {/* Hero Section - Carousel on themes with images, simple gradient on others */}
@@ -157,21 +159,6 @@ export default function HomePage() {
 
               overlayClassName={overlayClass}
             />
-            {/* V-CLIQ Campaign Badge */}
-            <div
-              onClick={() => setLogoPosition(prev => prev === "top" ? "bottom" : "top")}
-              className={`absolute right-4 z-20 md:right-8 transition-all duration-1000 ease-in-out cursor-pointer hover:scale-105 active:scale-95 ${logoPosition === "top"
-                ? "top-4 md:top-5"
-                : "bottom-4 md:bottom-16"
-                }`}
-              title="Click to toggle position"
-            >
-              <img
-                src={vCliqLogo}
-                alt="V CLIQ - We Click"
-                className="w-20 h-auto md:w-32 object-contain drop-shadow-2xl rounded-lg border-2 border-white/20 shadow-black/20"
-              />
-            </div>
           </div>
         )}
 
@@ -429,10 +416,35 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* V CLIQ Tourism Campaign - Warm Earth Tones */}
+      <section className="py-12 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-8 border border-amber-200 shadow-md">
+            <div className="bg-white rounded-xl p-3 shadow-lg border border-amber-100">
+              <img
+                src={vCliqLogoFinal}
+                alt="V CLIQ - A Tourism Awareness Campaign"
+                className="h-24 md:h-28 w-auto rounded-lg"
+              />
+            </div>
+            <div className="text-center md:text-left">
+              <div className="text-xs uppercase tracking-wider text-[#D2691E] font-bold mb-1">
+                2025 Tourism Policy Update
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">V CLIQ Campaign</h3>
+              <p className="text-gray-700 max-w-lg">
+                Under the 2025 Homestay Policy, the Department promotes responsible tourism through authentic homestay experiences, classified into three categories as detailed below.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Homestay Categories */}
-      <section className="py-16 px-4">
+      <section className="py-16 px-4 bg-muted/20">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">2025 Homestay Categories</h2>
+          <h2 className="text-3xl font-bold text-center mb-4">2025 Homestay Categories</h2>
+          <p className="text-center text-muted-foreground mb-12">Under the V CLIQ Initiative</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Diamond Category */}
@@ -555,6 +567,8 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+
     </div >
   );
 }

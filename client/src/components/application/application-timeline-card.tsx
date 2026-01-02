@@ -111,7 +111,7 @@ export const ACTION_META: Record<
   },
   dtdo_revert: {
     icon: Undo2,
-    label: "Returned by DTDO",
+    label: "Returned by Prescribed Authority",
     description: "Application was reverted for further corrections",
     tone: "warning",
   },
@@ -150,6 +150,18 @@ export const ACTION_META: Record<
     label: "Application rejected",
     description: "Application was rejected at the district level",
     tone: "danger",
+  },
+  dtdo_correction: {
+    icon: ClipboardCheck,
+    label: "RC corrected",
+    description: "DTDO made corrections to the registration",
+    tone: "warning",
+  },
+  approved: {
+    icon: CheckCircle2,
+    label: "Approved",
+    description: "Application approved",
+    tone: "primary",
   },
 };
 
@@ -277,10 +289,49 @@ export function ApplicationTimelineCard({
       return <p className="text-sm text-muted-foreground">No workflow updates have been recorded yet.</p>;
     }
 
+    // Helper to format DTDO correction feedback nicely
+    const formatFeedback = (entry: TimelineEntry) => {
+      if (!entry.feedback) return null;
+
+      // Try to parse JSON for dtdo_correction
+      if (entry.action === 'dtdo_correction') {
+        try {
+          const data = JSON.parse(entry.feedback);
+          if (data.type === 'dtdo_correction' && data.changes) {
+            return (
+              <div className="text-xs space-y-1">
+                <div className="font-medium text-amber-700 dark:text-amber-400">
+                  Reason: {data.reason}
+                </div>
+                <div className="grid gap-1">
+                  {data.changes.map((change: { field: string; oldValue: string; newValue: string }, i: number) => (
+                    <div key={i} className="flex items-center gap-1 text-muted-foreground">
+                      <span className="font-medium">{change.field.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                      <span className="line-through text-red-500/70">{change.oldValue || 'empty'}</span>
+                      <span>→</span>
+                      <span className="text-green-600 dark:text-green-400">{change.newValue}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+        } catch {
+          // Not JSON, fall through
+        }
+      }
+
+      // Default: just show the text (truncate if too long)
+      const text = entry.feedback.length > 200
+        ? entry.feedback.slice(0, 200) + '...'
+        : entry.feedback;
+      return <span>{text}</span>;
+    };
+
     return (
       <div className="relative pl-4">
-        <div className="absolute left-1 top-3 bottom-3 w-px bg-border" />
-        <div className="space-y-6">
+        <div className="absolute left-1 top-2 bottom-2 w-px bg-border" />
+        <div className="space-y-3">
           {timelineEntries.map((entry) => {
             const meta = ACTION_META[entry.action] ?? {
               icon: ShieldAlert,
@@ -292,47 +343,39 @@ export function ApplicationTimelineCard({
             const timestamp = entry.createdAt ? new Date(entry.createdAt) : null;
             const previousStatus = formatStatusLabel(entry.previousStatus);
             const newStatus = formatStatusLabel(entry.newStatus);
-            const hasStatusChange = previousStatus || newStatus;
+            // Only show status change if they're actually different
+            const hasStatusChange = previousStatus && newStatus && previousStatus !== newStatus;
 
             return (
-              <div key={entry.id} className="relative pl-6">
-                <span className={cn("absolute left-0 top-2 h-3 w-3 rounded-full border-2", tone.dot)} />
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2 font-semibold">
-                        <meta.icon className={cn("h-4 w-4", tone.icon)} />
-                        <span>{meta.label}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{meta.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{formatActorLabel(entry.actor)}</p>
+              <div key={entry.id} className="relative pl-5">
+                <span className={cn("absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full border-2", tone.dot)} />
+                <div className="flex flex-col gap-1">
+                  {/* Header row - title + timestamp */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-sm font-medium">
+                      <meta.icon className={cn("h-3.5 w-3.5", tone.icon)} />
+                      <span>{meta.label}</span>
+                      {hasStatusChange && newStatus !== "Submitted" && (
+                        <span className="text-xs font-normal text-muted-foreground">
+                          ({previousStatus} → {newStatus})
+                        </span>
+                      )}
                     </div>
                     {timestamp && (
-                      <div className="text-right text-xs text-muted-foreground">
-                        <div>{format(timestamp, "PPp")}</div>
-                        <div>{formatDistanceToNow(timestamp, { addSuffix: true })}</div>
+                      <div className="text-[10px] text-muted-foreground text-right shrink-0 leading-tight">
+                        <div>{format(timestamp, "MMM d, h:mm a")}</div>
+                        <div className="opacity-70">{formatDistanceToNow(timestamp, { addSuffix: true })}</div>
                       </div>
                     )}
                   </div>
 
-                  {hasStatusChange && (
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      {previousStatus && (
-                        <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-                          Prev: {previousStatus}
-                        </Badge>
-                      )}
-                      {newStatus && (
-                        <Badge className={tone.badge}>
-                          New: {newStatus}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
+                  {/* Actor - compact */}
+                  <p className="text-[11px] text-muted-foreground">{formatActorLabel(entry.actor)}</p>
 
+                  {/* Feedback/Remarks - formatted */}
                   {entry.feedback && (
-                    <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground whitespace-pre-line">
-                      {entry.feedback}
+                    <div className="rounded border bg-muted/30 px-2 py-1.5 text-xs text-muted-foreground">
+                      {formatFeedback(entry)}
                     </div>
                   )}
                 </div>

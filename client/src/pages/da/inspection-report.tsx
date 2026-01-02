@@ -29,7 +29,7 @@ const inspectionReportSchema = z.object({
   actualRoomCount: z.number().int().min(0).optional(),
   categoryMeetsStandards: z.boolean().optional(),
   recommendedCategory: z.enum(['diamond', 'gold', 'silver']).optional(),
-  
+
   // ANNEXURE-III Mandatory Checklist (18 points)
   mandatoryChecklist: z.object({
     applicationForm: z.boolean(),
@@ -52,7 +52,7 @@ const inspectionReportSchema = z.object({
     cctvCameras: z.boolean(),
   }),
   mandatoryRemarks: z.string().optional(),
-  
+
   // ANNEXURE-III Desirable Checklist (18 points)
   desirableChecklist: z.object({
     parking: z.boolean(),
@@ -75,7 +75,7 @@ const inspectionReportSchema = z.object({
     rainwaterHarvesting: z.boolean(),
   }),
   desirableRemarks: z.string().optional(),
-  
+
   // Legacy fields for compatibility
   fireSafetyCompliant: z.boolean().optional(),
   structuralSafety: z.boolean().optional(),
@@ -776,240 +776,225 @@ export default function DAInspectionReport() {
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
                 ANNEXURE-III Compliance Checklist
-          </CardTitle>
-          <CardDescription>
-            HP Homestay Rules 2025 - Official Inspection Requirements
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className={`rounded-xl border p-4 text-sm shadow-sm ${mandatoryBannerTone}`}>
-            {requiresFullChecklist ? (
-              <>
-                <p className="text-base font-semibold">
-                  {mandatoryCheckedCount}/{mandatoryTotal} mandatory checks ON
-                </p>
-                <p>
-                  {mandatoryComplete
-                    ? "All mandatory requirements are ON. You can recommend verification."
-                    : "Turn on the remaining mandatory checks before recommending verification."}
-                </p>
-                <div className="mt-3 grid grid-cols-6 gap-1">
-                  {mandatorySegments.map((segment, index) => (
-                    <span
-                      key={`mandatory-segment-${segment.threshold}`}
-                      className={`h-2 w-full rounded-full border transition-colors ${
-                        segment.active ? segment.tone : "bg-white/70 border-white/80 dark:bg-slate-900/30 dark:border-slate-800"
-                      }`}
-                      aria-label={`Mandatory checkpoints ${(index * 3) + 1} to ${Math.min(segment.threshold, mandatoryTotal)} ${
-                        segment.active ? "complete" : "pending"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-base font-semibold">Submitting with objections</p>
-                <p>Mandatory checks can stay OFF while you document the issues below.</p>
-                <div className="mt-3 grid grid-cols-6 gap-1 opacity-70">
-                  {mandatorySegments.map((segment, index) => (
-                    <span
-                      key={`mandatory-segment-override-${segment.threshold}`}
-                      className={`h-2 w-full rounded-full border ${
-                        segment.active ? segment.tone : "bg-white/70 border-white/80 dark:bg-slate-900/30 dark:border-slate-800"
-                      }`}
-                      aria-label={`Mandatory checkpoints ${(index * 3) + 1} to ${Math.min(segment.threshold, mandatoryTotal)} progress`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-          <Tabs defaultValue="mandatory" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="mandatory" className="flex items-center gap-2" data-testid="tab-mandatory">
-                <Shield className="w-4 h-4" />
-                <span>Section A: Mandatory</span>
-                <Badge variant="outline" className="ml-auto">
-                  {mandatoryCheckedCount}/{mandatoryTotal}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="desirable" className="flex items-center gap-2" data-testid="tab-desirable">
-                <Star className="w-4 h-4" />
-                <span>Section B: Desirable</span>
-                <Badge variant="outline" className="ml-auto">
-                  {desirableCheckedCount}/{desirableTotal}
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
+              </CardTitle>
+              <CardDescription>
+                HP Homestay Rules 2025 - Official Inspection Requirements
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className={`rounded-xl border p-4 text-sm shadow-sm ${mandatoryBannerTone}`}>
+                {requiresFullChecklist ? (
+                  <>
+                    <p className="text-base font-semibold">
+                      {mandatoryCheckedCount}/{mandatoryTotal} mandatory checks ON
+                    </p>
+                    <p>
+                      {mandatoryComplete
+                        ? "All mandatory requirements are ON. You can recommend verification."
+                        : "Turn on the remaining mandatory checks before recommending verification."}
+                    </p>
+                    <div className="mt-3 grid grid-cols-6 gap-1">
+                      {mandatorySegments.map((segment, index) => (
+                        <span
+                          key={`mandatory-segment-${segment.threshold}`}
+                          className={`h-2 w-full rounded-full border transition-colors ${segment.active ? segment.tone : "bg-white/70 border-white/80 dark:bg-slate-900/30 dark:border-slate-800"
+                            }`}
+                          aria-label={`Mandatory checkpoints ${(index * 3) + 1} to ${Math.min(segment.threshold, mandatoryTotal)} ${segment.active ? "complete" : "pending"
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-semibold">Submitting with objections</p>
+                    <p>Mandatory checks can stay OFF while you document the issues below.</p>
+                    <div className="mt-3 grid grid-cols-6 gap-1 opacity-70">
+                      {mandatorySegments.map((segment, index) => (
+                        <span
+                          key={`mandatory-segment-override-${segment.threshold}`}
+                          className={`h-2 w-full rounded-full border ${segment.active ? segment.tone : "bg-white/70 border-white/80 dark:bg-slate-900/30 dark:border-slate-800"
+                            }`}
+                          aria-label={`Mandatory checkpoints ${(index * 3) + 1} to ${Math.min(segment.threshold, mandatoryTotal)} progress`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+              <Tabs defaultValue="mandatory" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="mandatory" className="flex items-center gap-2" data-testid="tab-mandatory">
+                    <Shield className="w-4 h-4" />
+                    <span>Section A: Mandatory</span>
+                    <Badge variant="outline" className="ml-auto">
+                      {mandatoryCheckedCount}/{mandatoryTotal}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="desirable" className="flex items-center gap-2" data-testid="tab-desirable">
+                    <Star className="w-4 h-4" />
+                    <span>Section B: Desirable</span>
+                    <Badge variant="outline" className="ml-auto">
+                      {desirableCheckedCount}/{desirableTotal}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
 
                 <TabsContent value="mandatory" className="space-y-4 mt-6">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/50 dark:bg-rose-950/30">
-                <div>
-                  <p className="text-sm font-semibold">Mandatory requirements</p>
-                  <p className="text-xs text-muted-foreground">
-                    All {mandatoryTotal} switches must be ON to recommend verification.
-                  </p>
-                </div>
-                <Badge variant={mandatoryComplete ? "default" : "destructive"}>
-                  {mandatoryCheckedCount}/{mandatoryTotal}
-                </Badge>
-              </div>
+                  <div className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 transition-colors ${mandatoryComplete ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"}`}>
+                    <div>
+                      <p className="text-sm font-semibold">Mandatory requirements</p>
+                      <p className="text-xs text-muted-foreground">
+                        All {mandatoryTotal} switches must be ON to recommend verification.
+                      </p>
+                    </div>
+                    <Badge variant={mandatoryComplete ? "default" : "destructive"}>
+                      {mandatoryCheckedCount}/{mandatoryTotal}
+                    </Badge>
+                  </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                <p>Toggle each clause to mark compliance.</p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAllMandatory}
-                    data-testid="button-select-all-mandatory"
-                  >
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    Mark all Yes
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearAllMandatory}
-                    data-testid="button-clear-all-mandatory"
-                  >
-                    <SquareX className="w-4 h-4 mr-2" />
-                    Clear all
-                  </Button>
-                </div>
-              </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <p>Toggle each clause to mark compliance.</p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAllMandatory}
+                        data-testid="button-select-all-mandatory"
+                      >
+                        <CheckSquare className="w-4 h-4 mr-2" />
+                        Mark all Yes
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearAllMandatory}
+                        data-testid="button-clear-all-mandatory"
+                      >
+                        <SquareX className="w-4 h-4 mr-2" />
+                        Clear all
+                      </Button>
+                    </div>
+                  </div>
 
-              <div className="space-y-3">
-                {MANDATORY_CHECKPOINTS.map((checkpoint, index) => (
-                  <FormField
-                    key={checkpoint.key}
-                    control={form.control}
-                    name={`mandatoryChecklist.${checkpoint.key}`}
-                    render={({ field }) => (
-                      <FormItem className="rounded-lg border p-3 flex items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            <span className="text-muted-foreground text-xs font-mono">
-                              #{String(index + 1).padStart(2, '0')}
-                            </span>
-                            {checkpoint.label}
-                          </FormLabel>
-                          <p className="text-xs text-muted-foreground">
-                            Tap the switch to confirm availability.
-                          </p>
-                        </div>
-                        <FormControl>
-                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
-                            <span className={field.value ? "text-emerald-600" : "text-rose-600"}>
-                              {field.value ? "Yes" : "No"}
-                            </span>
-                            <Switch
-                              checked={field.value === true}
-                              onCheckedChange={(checked) => field.onChange(checked)}
-                            />
-                          </div>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </TabsContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {MANDATORY_CHECKPOINTS.map((checkpoint, index) => (
+                      <FormField
+                        key={checkpoint.key}
+                        control={form.control}
+                        name={`mandatoryChecklist.${checkpoint.key}`}
+                        render={({ field }) => (
+                          <FormItem className="rounded-lg border p-3 flex items-center justify-between gap-4">
+                            <FormLabel className="flex-1 text-sm font-medium flex items-center gap-2 cursor-pointer pt-1.5 pb-1.5">
+                              <span className="text-muted-foreground font-medium min-w-[1.5rem]">
+                                {index + 1}.
+                              </span>
+                              {checkpoint.label}
+                            </FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                                <span className={field.value ? "text-emerald-600" : "text-rose-600"}>
+                                  {field.value ? "Yes" : "No"}
+                                </span>
+                                <Switch
+                                  checked={field.value === true}
+                                  onCheckedChange={(checked) => field.onChange(checked)}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </TabsContent>
 
-            <TabsContent value="desirable" className="space-y-4 mt-6">
-              <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 shadow-sm ${desirableBannerTone}`}>
-                <div>
-                  <p className="text-sm font-semibold">Desirable enhancements</p>
-                  <p className="text-xs text-muted-foreground">
-                    Recommended improvements for guest comfort (optional).
-                  </p>
-                </div>
-                <Badge variant="secondary">
-                  {desirableCheckedCount}/{desirableTotal}
-                </Badge>
-              </div>
-              <div className="grid grid-cols-6 gap-1">
-                {desirableSegments.map((segment, index) => (
-                  <span
-                    key={`desirable-segment-${segment.threshold}`}
-                    className={`h-2 rounded-full border ${
-                      segment.active
-                        ? segment.tone
-                        : "bg-white/60 border-white/70 dark:bg-slate-900/30 dark:border-slate-800"
-                    }`}
-                    aria-label={`Desirable checkpoints ${(index * 3) + 1} to ${Math.min(segment.threshold, desirableTotal)} ${
-                      segment.active ? "available" : "pending"
-                    }`}
-                  />
-                ))}
-              </div>
+                <TabsContent value="desirable" className="space-y-4 mt-6">
+                  <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 shadow-sm ${desirableBannerTone}`}>
+                    <div>
+                      <p className="text-sm font-semibold">Desirable enhancements</p>
+                      <p className="text-xs text-muted-foreground">
+                        Recommended improvements for guest comfort (optional).
+                      </p>
+                    </div>
+                    <Badge variant="secondary">
+                      {desirableCheckedCount}/{desirableTotal}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-6 gap-1">
+                    {desirableSegments.map((segment, index) => (
+                      <span
+                        key={`desirable-segment-${segment.threshold}`}
+                        className={`h-2 rounded-full border ${segment.active
+                          ? segment.tone
+                          : "bg-white/60 border-white/70 dark:bg-slate-900/30 dark:border-slate-800"
+                          }`}
+                        aria-label={`Desirable checkpoints ${(index * 3) + 1} to ${Math.min(segment.threshold, desirableTotal)} ${segment.active ? "available" : "pending"
+                          }`}
+                      />
+                    ))}
+                  </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                <p>Mark what is available today.</p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAllDesirable}
-                    data-testid="button-select-all-desirable"
-                  >
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    Mark all Yes
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearAllDesirable}
-                    data-testid="button-clear-all-desirable"
-                  >
-                    <SquareX className="w-4 h-4 mr-2" />
-                    Clear all
-                  </Button>
-                </div>
-              </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <p>Mark what is available today.</p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAllDesirable}
+                        data-testid="button-select-all-desirable"
+                      >
+                        <CheckSquare className="w-4 h-4 mr-2" />
+                        Mark all Yes
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearAllDesirable}
+                        data-testid="button-clear-all-desirable"
+                      >
+                        <SquareX className="w-4 h-4 mr-2" />
+                        Clear all
+                      </Button>
+                    </div>
+                  </div>
 
-              <div className="space-y-3">
-                {DESIRABLE_CHECKPOINTS.map((checkpoint, index) => (
-                  <FormField
-                    key={checkpoint.key}
-                    control={form.control}
-                    name={`desirableChecklist.${checkpoint.key}`}
-                    render={({ field }) => (
-                      <FormItem className="rounded-lg border p-3 flex items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            <span className="text-muted-foreground text-xs font-mono">
-                              #{String(index + 1).padStart(2, '0')}
-                            </span>
-                            {checkpoint.label}
-                          </FormLabel>
-                          <p className="text-xs text-muted-foreground">
-                            Optional comfort upgrade.
-                          </p>
-                        </div>
-                        <FormControl>
-                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
-                            <span className={field.value ? "text-emerald-600" : "text-muted-foreground"}>
-                              {field.value ? "Yes" : "No"}
-                            </span>
-                            <Switch
-                              checked={field.value === true}
-                              onCheckedChange={(checked) => field.onChange(checked)}
-                            />
-                          </div>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {DESIRABLE_CHECKPOINTS.map((checkpoint, index) => (
+                      <FormField
+                        key={checkpoint.key}
+                        control={form.control}
+                        name={`desirableChecklist.${checkpoint.key}`}
+                        render={({ field }) => (
+                          <FormItem className="rounded-lg border p-3 flex items-center justify-between gap-4">
+                            <FormLabel className="flex-1 text-sm font-medium flex items-center gap-2 cursor-pointer pt-1.5 pb-1.5">
+                              <span className="text-muted-foreground font-medium min-w-[1.5rem]">
+                                {index + 1}.
+                              </span>
+                              {checkpoint.label}
+                            </FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                                <span className={field.value ? "text-emerald-600" : "text-muted-foreground"}>
+                                  {field.value ? "Yes" : "No"}
+                                </span>
+                                <Switch
+                                  checked={field.value === true}
+                                  onCheckedChange={(checked) => field.onChange(checked)}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
@@ -1172,9 +1157,9 @@ export default function DAInspectionReport() {
                 variant="outline"
                 onClick={() => setLocation('/da/inspections')}
                 data-testid="button-cancel"
-            >
-              Cancel
-            </Button>
+              >
+                Cancel
+              </Button>
               <Button
                 type="submit"
                 disabled={!canSubmit || submitReportMutation.isPending}
@@ -1195,7 +1180,7 @@ export default function DAInspectionReport() {
             </div>
           </div>
         </form>
-      </Form>
-    </div>
+      </Form >
+    </div >
   );
 }

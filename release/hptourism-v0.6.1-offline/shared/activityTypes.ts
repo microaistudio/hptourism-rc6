@@ -10,7 +10,7 @@
 export const APPLICATION_TYPES = {
     HOMESTAY: 'homestay',
     WATER_SPORTS: 'water_sports',
-    // Future: ADVENTURE_SPORTS, CAMPING, etc.
+    ADVENTURE_SPORTS: 'adventure_sports',
 } as const;
 
 export type ApplicationType = typeof APPLICATION_TYPES[keyof typeof APPLICATION_TYPES];
@@ -18,6 +18,7 @@ export type ApplicationType = typeof APPLICATION_TYPES[keyof typeof APPLICATION_
 export const APPLICATION_TYPE_LABELS: Record<ApplicationType, string> = {
     homestay: 'Homestay / B&B',
     water_sports: 'Water Sports & Allied Activities',
+    adventure_sports: 'Adventure Tourism Operator',
 };
 
 // ============================================
@@ -400,3 +401,111 @@ export function calculateWaterSportsFee(
             return 0;
     }
 }
+
+// ============================================
+// Adventure Sports Activities (HP Tourism Rules)
+// ============================================
+
+export interface AdventureSportsActivity {
+    id: string;
+    name: string;
+    category: 'trekking' | 'water_adventure' | 'air_sports' | 'mountain_sports' | 'winter_sports' | 'cycling';
+    baseFee: number; // Annual registration fee in INR
+    insuranceRequired: number; // Minimum insurance coverage in INR
+    requiresCertification: boolean;
+    certificationTypes?: string[];
+    minAge?: number;
+    requiresRescueTeam?: boolean;
+}
+
+export const ADVENTURE_SPORTS_ACTIVITIES: AdventureSportsActivity[] = [
+    {
+        id: 'trekking_hiking',
+        name: 'Trekking & Hiking',
+        category: 'trekking',
+        baseFee: 25000,
+        insuranceRequired: 5000000, // ₹50 lakh
+        requiresCertification: true,
+        certificationTypes: ['Basic Mountaineering', 'Wilderness First Aid'],
+        requiresRescueTeam: true,
+    },
+    {
+        id: 'river_rafting',
+        name: 'River Rafting',
+        category: 'water_adventure',
+        baseFee: 50000,
+        insuranceRequired: 10000000, // ₹1 crore
+        requiresCertification: true,
+        certificationTypes: ['River Rafting Guide', 'Swift Water Rescue'],
+        minAge: 18,
+        requiresRescueTeam: true,
+    },
+    {
+        id: 'paragliding',
+        name: 'Paragliding',
+        category: 'air_sports',
+        baseFee: 75000,
+        insuranceRequired: 20000000, // ₹2 crore
+        requiresCertification: true,
+        certificationTypes: ['APPI/BHPA Pilot License', 'Tandem Pilot Rating'],
+        minAge: 18,
+        requiresRescueTeam: true,
+    },
+    {
+        id: 'rock_climbing',
+        name: 'Rock Climbing & Rappelling',
+        category: 'mountain_sports',
+        baseFee: 30000,
+        insuranceRequired: 7500000, // ₹75 lakh
+        requiresCertification: true,
+        certificationTypes: ['Rock Climbing Instructor', 'Rope Access Technician'],
+        requiresRescueTeam: true,
+    },
+    {
+        id: 'skiing_snowboarding',
+        name: 'Skiing & Snowboarding',
+        category: 'winter_sports',
+        baseFee: 40000,
+        insuranceRequired: 10000000, // ₹1 crore
+        requiresCertification: true,
+        certificationTypes: ['Ski Instructor', 'Avalanche Safety'],
+        requiresRescueTeam: true,
+    },
+    {
+        id: 'mountain_biking',
+        name: 'Mountain Biking',
+        category: 'cycling',
+        baseFee: 20000,
+        insuranceRequired: 5000000, // ₹50 lakh
+        requiresCertification: true,
+        certificationTypes: ['Mountain Bike Guide', 'First Aid'],
+        requiresRescueTeam: false,
+    },
+];
+
+// ============================================
+// Adventure Sports Helper Functions
+// ============================================
+
+export function getAdventureActivitiesByCategory(category: string): AdventureSportsActivity[] {
+    return ADVENTURE_SPORTS_ACTIVITIES.filter(a => a.category === category);
+}
+
+export function getAdventureActivityById(id: string): AdventureSportsActivity | undefined {
+    return ADVENTURE_SPORTS_ACTIVITIES.find(a => a.id === id);
+}
+
+export function calculateAdventureSportsFee(activityIds: string[]): number {
+    return activityIds.reduce((total, id) => {
+        const activity = getAdventureActivityById(id);
+        return total + (activity?.baseFee || 0);
+    }, 0);
+}
+
+export function getMaxInsuranceRequired(activityIds: string[]): number {
+    return Math.max(...activityIds.map(id => {
+        const activity = getAdventureActivityById(id);
+        return activity?.insuranceRequired || 0;
+    }));
+}
+

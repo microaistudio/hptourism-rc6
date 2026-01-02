@@ -151,9 +151,8 @@ export default function DAInspections() {
       </div>
 
       <div
-        className={`relative overflow-hidden rounded-2xl border shadow-sm transition-colors ${
-          hasNewInspections ? "border-amber-200 bg-amber-50" : "border-border bg-muted/20"
-        }`}
+        className={`relative overflow-hidden rounded-2xl border shadow-sm transition-colors ${hasNewInspections ? "border-amber-200 bg-amber-50" : "border-border bg-muted/20"
+          }`}
         data-testid="bubble-new-inspections"
       >
         <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
@@ -199,9 +198,8 @@ export default function DAInspections() {
               setActiveFilter('new');
             }
           }}
-          className={`cursor-pointer transition-all hover-elevate active-elevate-2 border-2 ${
-            hasNewInspections ? "border-amber-300 bg-amber-50" : "border-border bg-card"
-          } ${activeFilter === 'new' ? "ring-2 ring-amber-500" : ""}`}
+          className={`cursor-pointer transition-all hover-elevate active-elevate-2 border-2 ${hasNewInspections ? "border-amber-300 bg-amber-50" : "border-border bg-card"
+            } ${activeFilter === 'new' ? "ring-2 ring-amber-500" : ""}`}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -238,9 +236,8 @@ export default function DAInspections() {
               setActiveFilter('pending');
             }
           }}
-          className={`cursor-pointer transition-all hover-elevate active-elevate-2 ${
-            activeFilter === 'pending' ? "ring-2 ring-primary" : ""
-          }`}
+          className={`cursor-pointer transition-all hover-elevate active-elevate-2 ${activeFilter === 'pending' ? "ring-2 ring-primary" : ""
+            }`}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Inspections</CardTitle>
@@ -263,9 +260,8 @@ export default function DAInspections() {
               setActiveFilter('completed');
             }
           }}
-          className={`cursor-pointer transition-all hover-elevate active-elevate-2 ${
-            activeFilter === 'completed' ? "ring-2 ring-primary" : ""
-          }`}
+          className={`cursor-pointer transition-all hover-elevate active-elevate-2 ${activeFilter === 'completed' ? "ring-2 ring-primary" : ""
+            }`}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
@@ -328,90 +324,70 @@ export default function DAInspections() {
             </div>
           ) : inspections && inspections.length > 0 ? (
             sortedInspections.length > 0 ? (
-              <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
                 {sortedInspections.map((inspection) => (
-                  <Card
+                  <div
                     key={inspection.id}
-                    className="cursor-pointer transition-all hover-elevate active-elevate-2"
+                    className="px-4 py-3 border-b border-border hover:bg-muted/30 cursor-pointer transition-colors last:border-b-0"
                     onClick={() => setLocation(`/da/inspections/${inspection.id}`)}
                     data-testid={`card-inspection-${inspection.id}`}
                   >
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="flex-1 space-y-3">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg">
-                                {inspection.application?.propertyName || 'Property Name Unavailable'}
-                              </h3>
-                              <div className="flex flex-wrap items-center gap-2 mt-1">
-                                <span className="text-sm text-muted-foreground">
-                                  {inspection.application?.applicationNumber || 'N/A'}
-                                </span>
-                                {inspection.application?.category && getCategoryBadge(inspection.application.category)}
-                                {getStatusBadge(inspection.status, inspection.reportSubmitted)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">Scheduled:</span>
-                              <span className="font-medium">
-                                {format(new Date(inspection.inspectionDate), 'PPP')}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">Owner:</span>
-                              <span className="font-medium">
-                                {inspection.owner?.fullName || 'N/A'}
-                              </span>
-                            </div>
-
-                            <div className="flex items-start gap-2 md:col-span-2">
-                              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                              <div>
-                                <span className="text-muted-foreground">Address: </span>
-                                <span className="font-medium">{inspection.inspectionAddress}</span>
-                              </div>
-                            </div>
-
-                            {inspection.application?.dtdoRemarks && (
-                              <div className="flex items-start gap-2 md:col-span-2">
-                                <ClipboardCheck className="w-4 h-4 text-sky-600 mt-0.5" />
-                                <div>
-                                  <span className="text-sky-700 font-medium">DTDO Instructions:</span>{" "}
-                                  <span>{inspection.application.dtdoRemarks}</span>
-                                </div>
-                              </div>
-                            )}
-
-                            {inspection.specialInstructions && (
-                              <div className="flex items-start gap-2 md:col-span-2">
-                                <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
-                                <div>
-                                  <span className="text-orange-600 font-medium">Owner Message: </span>
-                                  <span>{inspection.specialInstructions}</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Left side: Icon + Property info */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {/* Home icon */}
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${inspection.reportSubmitted
+                            ? "bg-green-100"
+                            : "bg-amber-100"
+                          }`}>
+                          <ClipboardCheck className={`w-5 h-5 ${inspection.reportSubmitted
+                              ? "text-green-600"
+                              : "text-amber-600"
+                            }`} />
                         </div>
 
-                        <div className="flex items-center">
-                          <Button
-                            variant={inspection.reportSubmitted ? "outline" : "default"}
-                            data-testid={`button-view-inspection-${inspection.id}`}
-                          >
-                            {inspection.reportSubmitted ? 'View Report' : 'Submit Report'}
-                          </Button>
+                        <div className="min-w-0 flex-1">
+                          {/* Line 1: Property name + badges */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">{inspection.application?.propertyName || 'Property Name Unavailable'}</span>
+                            {inspection.application?.category && getCategoryBadge(inspection.application.category)}
+                            {getStatusBadge(inspection.status, inspection.reportSubmitted)}
+                          </div>
+
+                          {/* Line 2: App number, schedule date, owner, address */}
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                            <span className="font-mono">{inspection.application?.applicationNumber || '—'}</span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {format(new Date(inspection.inspectionDate), 'MMM dd, yyyy')}
+                            </span>
+                            <span className="hidden sm:flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {inspection.owner?.fullName || 'N/A'}
+                            </span>
+                            <span className="hidden md:flex items-center gap-1 truncate max-w-[200px]">
+                              <MapPin className="w-3 h-3" />
+                              {inspection.inspectionAddress}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+
+                      {/* Right side: Action button */}
+                      <Button
+                        size="sm"
+                        variant={inspection.reportSubmitted ? "outline" : "default"}
+                        className="flex-shrink-0"
+                        data-testid={`button-view-inspection-${inspection.id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation(`/da/inspections/${inspection.id}`);
+                        }}
+                      >
+                        {inspection.reportSubmitted ? 'View Report' : 'Submit Report'}
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (

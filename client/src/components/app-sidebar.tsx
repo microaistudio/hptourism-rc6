@@ -20,6 +20,7 @@ import { useServiceOptional } from "@/contexts/service-context";
 import type { User, HomestayApplication } from "@shared/schema";
 
 export function AppSidebar() {
+  // Sidebar component for navigation
   const [location, setLocation] = useLocation();
 
   const { data: userData } = useQuery<{ user: User }>({

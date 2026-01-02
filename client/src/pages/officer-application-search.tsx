@@ -88,7 +88,7 @@ const statusOptions = [
   { value: "inspection_complete", label: "Inspection Complete" },
   { value: "payment_pending", label: "Payment Pending" },
   { value: "approved", label: "Approved" },
-  { value: "reverted_by_dtdo", label: "Reverted by DTDO" },
+  { value: "reverted_by_dtdo", label: "Reverted by Prescribed Authority" },
   { value: "objection_raised", label: "DTDO Objection" },
   { value: "reverted_to_applicant", label: "Reverted to Applicant" },
   { value: "rejected", label: "Rejected" },
@@ -327,8 +327,8 @@ export default function OfficerApplicationSearch() {
                 <p className="text-xs text-muted-foreground">
                   Fetch the newest entries with no other filters. This overrides the month/year and date range selections.
                 </p>
-             </div>
-           </div>
+              </div>
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
@@ -432,10 +432,10 @@ export default function OfficerApplicationSearch() {
                       <TableCell>
                         {application.createdAt
                           ? new Date(application.createdAt).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">

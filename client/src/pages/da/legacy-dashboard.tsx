@@ -11,7 +11,7 @@ import { ApplicationPipelineRow, type PipelineApplication } from "@/components/a
 import { isCorrectionRequiredStatus } from "@/constants/workflow";
 import { formatDistanceToNow } from "date-fns";
 
- type ApplicationWithOwner = PipelineApplication;
+type ApplicationWithOwner = PipelineApplication;
 type SortOrder = "newest" | "oldest";
 
 interface StageConfig {
@@ -164,7 +164,7 @@ export default function DALegacyDashboard() {
           },
           {
             value: "legacy-returned",
-            label: "Returned by DTDO",
+            label: "Returned by Prescribed Authority",
             count: returnedFromDtdo.length,
             description: "Cases DTDO sent back for DA review.",
             applications: returnedFromDtdo,

@@ -438,6 +438,54 @@ export default function OwnerDashboardNew() {
                 </Card>
             </div>
 
+            {/* Useful Formats Section */}
+            <div className="mb-8">
+                <Card className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-background border-slate-200 dark:border-slate-800">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center gap-2">
+                            <ScrollText className="w-5 h-5 text-slate-600" />
+                            <CardTitle className="text-lg">Useful Formats</CardTitle>
+                        </div>
+                        <CardDescription>
+                            Downloadable formats for required documents.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-wrap gap-4">
+                            <a
+                                href="/print/affidavit"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-white hover:bg-slate-50 transition-colors group"
+                            >
+                                <div className="p-2 rounded-full bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                                    <FileText className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">Affidavit Format</span>
+                                    <span className="text-xs text-muted-foreground group-hover:text-emerald-600 transition-colors">Section 29 Declaration</span>
+                                </div>
+                            </a>
+
+                            <a
+                                href="/print/undertaking"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-white hover:bg-slate-50 transition-colors group"
+                            >
+                                <div className="p-2 rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                                    <FileText className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">Undertaking Format</span>
+                                    <span className="text-xs text-muted-foreground group-hover:text-blue-600 transition-colors">Form-C Acceptance</span>
+                                </div>
+                            </a>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             {/* Current Application Status */}
             {primaryApplication ? (
                 <Card>
@@ -600,12 +648,24 @@ export default function OwnerDashboardNew() {
                             <ClipboardCheck className="w-6 h-6 text-emerald-600" />
                             Documents Checklist
                         </DialogTitle>
-                        <DialogDescription>
-                            Keep these documents ready before you start your application. Having them ready will save time.
+                        <DialogDescription className="text-lg">
+                            Keep these documents ready before you start your application.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-6 py-4">
+                        {/* File Size Note */}
+                        <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
+                            <div>
+                                <h4 className="font-semibold text-emerald-800 text-sm">File Size Limits</h4>
+                                <p className="text-sm text-emerald-700">
+                                    • <strong>Documents (PDF)</strong>: Max 5 MB per file.<br />
+                                    • <strong>Photos</strong>: Max 10 MB per file (we will optimize them for you).
+                                </p>
+                            </div>
+                        </div>
+
                         {/* Photo Requirements */}
                         <div className="p-4 rounded-lg border bg-amber-50 dark:bg-amber-950/20 border-amber-200">
                             <div className="flex items-start gap-3">
@@ -626,7 +686,7 @@ export default function OwnerDashboardNew() {
                         <div className="space-y-4">
                             <h3 className="font-semibold flex items-center gap-2">
                                 <ScrollText className="w-5 h-5 text-slate-600" />
-                                Required Documents (All Categories)
+                                Required Documents <span className="text-xs font-normal text-muted-foreground">(Rule 4, ANNEXURE-II)</span>
                             </h3>
 
                             <div className="grid gap-3">
@@ -634,7 +694,7 @@ export default function OwnerDashboardNew() {
                                     <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                                     <div className="flex-1">
                                         <p className="font-bold text-sm">Revenue Papers (Jamabandi/Tatima)</p>
-                                        <p className="text-xs text-muted-foreground">Land ownership proof from Tehsil office</p>
+                                        <p className="text-xs text-muted-foreground">Land ownership proof [ANNEXURE-II, Sl.3]</p>
                                     </div>
                                 </div>
 
@@ -642,10 +702,10 @@ export default function OwnerDashboardNew() {
                                     <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                                     <div className="flex-1">
                                         <p className="font-bold text-sm">Affidavit (Section 29)</p>
-                                        <p className="text-xs text-muted-foreground">Self-declaration affidavit as per rules</p>
+                                        <p className="text-xs text-muted-foreground">Self-declaration [ANNEXURE-II, Sl.4]</p>
                                     </div>
                                     <a
-                                        href="/templates/affidavit-section-29.html"
+                                        href="/print/affidavit"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded transition-colors shrink-0"
@@ -658,10 +718,10 @@ export default function OwnerDashboardNew() {
                                     <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                                     <div className="flex-1">
                                         <p className="font-bold text-sm">Undertaking (Form-C)</p>
-                                        <p className="text-xs text-muted-foreground">Declaration of compliance with regulations</p>
+                                        <p className="text-xs text-muted-foreground">Compliance declaration [ANNEXURE-II, Sl.5]</p>
                                     </div>
                                     <a
-                                        href="/templates/form-c-undertaking.html"
+                                        href="/print/undertaking"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded transition-colors shrink-0"
@@ -674,7 +734,7 @@ export default function OwnerDashboardNew() {
                                     <FileCheck className="w-5 h-5 text-slate-500 shrink-0" />
                                     <div className="flex-1">
                                         <p className="font-bold text-sm text-slate-700 dark:text-slate-300">Co-sharer Affidavit <span className="text-xs font-normal text-amber-600">(If joint ownership)</span></p>
-                                        <p className="text-xs text-muted-foreground">Required if property has multiple owners</p>
+                                        <p className="text-xs text-muted-foreground">For joint holding [ANNEXURE-I, 6b]</p>
                                     </div>
                                     <a
                                         href="/templates/co-sharer-affidavit.html"

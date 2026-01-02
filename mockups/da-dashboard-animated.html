@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DA Dashboard - Enhanced with Animations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #333;
+        }
+
+        /* Header Banner */
+        .revision-banner {
+            background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
+            color: white;
+            padding: 16px 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .revision-banner h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .revision-banner .badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Layout */
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 60px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            padding: 16px 0;
+            height: calc(100vh - 60px);
+            position: fixed;
+            left: 0;
+            top: 60px;
+            overflow-y: auto;
+        }
+
+        .brand {
+            padding: 12px 16px;
+            background: #4a6741;
+            color: white;
+            margin: 0 12px 16px;
+            border-radius: 8px;
+        }
+
+        .brand h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .brand span {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .section-header {
+            font-size: 10px;
+            font-weight: 600;
+            color: #888;
+            padding: 12px 16px 6px;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            color: #333;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: #f5f5f5;
+            padding-left: 20px;
+        }
+
+        .nav-item.active {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #2e7d32;
+        }
+
+        .nav-item .icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: #ef5350;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            animation: pulse-badge 2s infinite;
+        }
+
+        @keyframes pulse-badge {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.15);
+            }
+        }
+
+        .nav-badge.legacy {
+            background: #9c27b0;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 220px;
+            padding: 24px;
+        }
+
+        .header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Stats Grid - 5 CARDS with Animations */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        /* Hover Effect - Lift and Shadow */
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #4a6741;
+        }
+
+        /* Card with pending items - Subtle glow */
+        .stat-card.has-items {
+            border-color: #4a6741;
+            background: linear-gradient(to bottom, #ffffff 0%, #f8fff8 100%);
+        }
+
+        .stat-card.has-items::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4caf50, #8bc34a, #4caf50);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Urgency indicator for inspections */
+        .stat-card.needs-attention {
+            border-color: #ff9800;
+            background: linear-gradient(to bottom, #ffffff 0%, #fffbf5 100%);
+        }
+
+        .stat-card.needs-attention::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff9800, #ffc107, #ff9800);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s linear infinite;
+        }
+
+        .stat-card .label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #666;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+        }
+
+        .stat-card .label-icon {
+            font-size: 14px;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover .label-icon {
+            transform: scale(1.2);
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        .stat-card.has-items .value {
+            color: #2e7d32;
+        }
+
+        .stat-card.needs-attention .value {
+            color: #f57c00;
+        }
+
+        /* Animated counter effect */
+        .stat-card:hover .value {
+            transform: scale(1.05);
+        }
+
+        .stat-card .description {
+            font-size: 11px;
+            color: #888;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .stat-card .sub-items {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .stat-card .sub-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            margin: 4px 0;
+            background: #f8f8f8;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Sub-item hover with slide effect */
+        .stat-card .sub-item::before {
+            content: '';
+            position: absolute;
+            left: -100%;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(76, 175, 80, 0.1), transparent);
+            transition: left 0.4s;
+        }
+
+        .stat-card .sub-item:hover::before {
+            left: 100%;
+        }
+
+        .stat-card .sub-item:hover {
+            background: #e8f5e9;
+            padding-left: 14px;
+        }
+
+        .stat-card .sub-item .count {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 10px;
+            border: 1px solid #eee;
+            transition: all 0.2s;
+        }
+
+        .stat-card .sub-item:hover .count {
+            transform: scale(1.1);
+        }
+
+        .stat-card .sub-item .count.highlight {
+            background: #4a6741;
+            color: white;
+            border: none;
+            animation: pulse-count 2s infinite;
+        }
+
+        @keyframes pulse-count {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(74, 103, 65, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 4px rgba(74, 103, 65, 0);
+            }
+        }
+
+        /* Time Filter with animation */
+        .time-filter {
+            margin-top: 10px;
+        }
+
+        .time-filter select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 11px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-filter select:hover {
+            border-color: #2196f3;
+        }
+
+        .time-filter select:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        /* Completed card special styling */
+        .stat-card.completed-card {
+            border-color: #e0e0e0;
+        }
+
+        .stat-card.completed-card .label {
+            color: #1565c0;
+        }
+
+        /* Tabs with animation */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 18px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(74, 103, 65, 0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s;
+        }
+
+        .tab:hover::before {
+            width: 200px;
+            height: 200px;
+        }
+
+        .tab:hover {
+            border-color: #4a6741;
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background: #4a6741;
+            color: white;
+            border-color: #4a6741;
+            box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+        }
+
+        /* Sub-tabs for Amendments */
+        .sub-tabs {
+            display: flex;
+            gap: 6px;
+            margin-left: 20px;
+            padding: 8px 0;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sub-tab {
+            padding: 6px 14px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            font-size: 11px;
+            cursor: pointer;
+            background: #f5f5f5;
+            transition: all 0.2s;
+        }
+
+        .sub-tab:hover {
+            background: #e8f5e9;
+            border-color: #4a6741;
+        }
+
+        .sub-tab.active {
+            background: #81c784;
+            color: white;
+            border-color: #81c784;
+        }
+
+        /* Alert Banner with animation */
+        .alert-banner {
+            background: linear-gradient(90deg, #fff3e0 0%, #ffe0b2 100%);
+            border: none;
+            border-left: 4px solid #ff9800;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.5s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert-banner::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #ff9800;
+            animation: alert-pulse 2s infinite;
+        }
+
+        @keyframes alert-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            margin-right: 12px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+
+        .alert-text h4 {
+            font-size: 13px;
+            color: #e65100;
+            font-weight: 600;
+        }
+
+        .alert-text p {
+            font-size: 11px;
+            color: #ef6c00;
+            margin-top: 2px;
+        }
+
+        .alert-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #ffcc80;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .alert-btn:hover {
+            background: #ff9800;
+            color: white;
+            border-color: #ff9800;
+            transform: scale(1.05);
+        }
+
+        /* Animation Effects Legend */
+        .effects-legend {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .effects-legend h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .effect-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            font-size: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .effect-item:last-child {
+            border-bottom: none;
+        }
+
+        .effect-demo {
+            width: 40px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .effect-demo.shimmer {
+            background: linear-gradient(90deg, #4caf50, #8bc34a, #4caf50);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+            color: white;
+        }
+
+        .effect-demo.pulse {
+            background: #4a6741;
+            color: white;
+            animation: pulse-count 2s infinite;
+        }
+
+        .effect-demo.hover-lift {
+            background: #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .effect-demo.hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="revision-banner">
+        <h2>✨ DA Dashboard - Enhanced with Subtle Animations</h2>
+        <span class="badge">Hover over cards to see effects!</span>
+    </div>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="brand">
+                <h3>HP Tourism</h3>
+                <span>eServices Portal</span>
+            </div>
+
+            <div class="section-header">HOME</div>
+            <a href="#" class="nav-item active">
+                <span class="icon">📊</span>
+                Dashboard
+            </a>
+
+            <div class="section-header">WORK QUEUES</div>
+            <a href="#" class="nav-item">
+                <span class="icon">📝</span>
+                New Applications
+            </a>
+            <a href="#" class="nav-item">
+                <span class="icon">📋</span>
+                Existing RC (Legacy)
+                <span class="nav-badge legacy">1</span>
+            </a>
+
+            <div class="section-header">INSIGHTS</div>
+            <a href="#" class="nav-item">
+                <span class="icon">📈</span>
+                Analytics
+            </a>
+
+            <div class="section-header">TOOLS</div>
+            <a href="#" class="nav-item">
+                <span class="icon">🔎</span>
+                Inspections
+                <span class="nav-badge">1</span>
+            </a>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <div>
+                    <h1>Dealing Assistant Dashboard</h1>
+                    <p>Shimla Division – Scrutiny + Inspection Workflow</p>
+                </div>
+            </div>
+
+            <!-- 5-Card Stats Grid with Animations -->
+            <div class="stats-grid">
+
+                <!-- Card 1: INCOMING QUEUE (has items - green shimmer) -->
+                <div class="stat-card has-items">
+                    <div class="label">
+                        <span class="label-icon">📥</span>
+                        INCOMING QUEUE
+                    </div>
+                    <div class="value">2</div>
+                    <div class="description">New submissions ready for scrutiny.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>New Registration</span>
+                            <span class="count highlight">2</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Renewals</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Amendments</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Cancellation</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: IN PROGRESS (empty - neutral) -->
+                <div class="stat-card">
+                    <div class="label">
+                        <span class="label-icon">⚙️</span>
+                        IN PROGRESS
+                    </div>
+                    <div class="value">0</div>
+                    <div class="description">Files currently being processed.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Under Screening</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Forwarded to DTDO</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: AWAITING RESPONSE -->
+                <div class="stat-card">
+                    <div class="label">
+                        <span class="label-icon">⏳</span>
+                        AWAITING RESPONSE
+                    </div>
+                    <div class="value">0</div>
+                    <div class="description">Sent back for corrections.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Sent Back to Applicant</span>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Resubmitted to DTDO</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: INSPECTIONS (needs attention - amber shimmer) -->
+                <div class="stat-card needs-attention">
+                    <div class="label">
+                        <span class="label-icon">🔎</span>
+                        INSPECTIONS
+                    </div>
+                    <div class="value">1</div>
+                    <div class="description">Field inspections assigned.</div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Scheduled</span>
+                            <span class="count highlight" style="background:#ff9800;">1</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Report Submitted</span>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 5: COMPLETED -->
+                <div class="stat-card completed-card">
+                    <div class="label">
+                        <span class="label-icon">✅</span>
+                        COMPLETED
+                    </div>
+                    <div class="value">3</div>
+                    <div class="description">Decisions recorded.</div>
+                    <div class="time-filter">
+                        <select>
+                            <option>This Week</option>
+                            <option selected>This Month</option>
+                            <option>Last 30 Days</option>
+                        </select>
+                    </div>
+                    <div class="sub-items">
+                        <div class="sub-item">
+                            <span>Approved</span>
+                            <span class="count" style="background:#4caf50;color:white;border:none;">2</span>
+                        </div>
+                        <div class="sub-item">
+                            <span>Rejected</span>
+                            <span class="count" style="background:#f44336;color:white;border:none;">1</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tabs with Sub-tabs demo -->
+            <div class="tabs">
+                <button class="tab active">New Registration <span>●</span></button>
+                <button class="tab">Renewals <span>0</span></button>
+                <button class="tab" id="amendments-tab" onclick="toggleSubTabs()">Amendments ▼ <span>0</span></button>
+                <button class="tab">Cancellation <span>0</span></button>
+            </div>
+
+            <!-- Sub-tabs (shown when Amendments clicked) -->
+            <div class="sub-tabs" id="sub-tabs" style="display: none;">
+                <button class="sub-tab active">Add Room (0)</button>
+                <button class="sub-tab">Delete Room (0)</button>
+                <button class="sub-tab">Upgrade Category (0)</button>
+            </div>
+
+            <!-- Alert with animation -->
+            <div class="alert-banner">
+                <span class="alert-icon">⚠️</span>
+                <div class="alert-text">
+                    <h4>Inspections need attention</h4>
+                    <p>1 inspection is awaiting field report submission.</p>
+                </div>
+                <button class="alert-btn">View inspection queue →</button>
+            </div>
+
+            <!-- Animation Effects Legend -->
+            <div class="effects-legend">
+                <h4>🎨 Animation Effects Applied</h4>
+                <div class="effect-item">
+                    <div class="effect-demo shimmer"></div>
+                    <span><strong>Shimmer bar:</strong> Cards with pending items have animated top border (green = new
+                        work, amber = attention needed)</span>
+                </div>
+                <div class="effect-item">
+                    <div class="effect-demo pulse">2</div>
+                    <span><strong>Pulse count:</strong> Count badges with items pulse gently to draw attention</span>
+                </div>
+                <div class="effect-item">
+                    <div class="effect-demo hover-lift">↑</div>
+                    <span><strong>Hover lift:</strong> Cards lift up with shadow on hover, icons scale slightly</span>
+                </div>
+                <div class="effect-item">
+                    <div class="effect-demo" style="background:#e8f5e9;padding:0 8px;">→</div>
+                    <span><strong>Sub-item slide:</strong> Hover on sub-items slides them right with sweep effect</span>
+                </div>
+                <div class="effect-item">
+                    <div class="effect-demo" style="background:#ff9800;color:white;">!</div>
+                    <span><strong>Alert bounce:</strong> Warning icon bounces gently to catch attention</span>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        function toggleSubTabs() {
+            const subTabs = document.getElementById('sub-tabs');
+            const amendmentsTab = document.getElementById('amendments-tab');
+
+            if (subTabs.style.display === 'none') {
+                subTabs.style.display = 'flex';
+                amendmentsTab.innerHTML = 'Amendments ▲ <span>0</span>';
+            } else {
+                subTabs.style.display = 'none';
+                amendmentsTab.innerHTML = 'Amendments ▼ <span>0</span>';
+            }
+        }
+    </script>
+</body>
+
+</html>

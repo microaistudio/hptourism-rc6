@@ -4,7 +4,7 @@ import type { ApplicationKind, HomestayApplication } from "@shared/schema";
 import { ApplicationKindBadge, getApplicationKindLabel, isServiceApplication } from "@/components/application/application-kind-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Home, Phone, MapPin, Calendar, User } from "lucide-react";
 import { useLocation } from "wouter";
 import { isCorrectionRequiredStatus } from "@/constants/workflow";
 import { cn } from "@/lib/utils";
@@ -112,87 +112,71 @@ export function ApplicationPipelineRow({ application, actionLabel, applicationId
 
   return (
     <div
-      className="p-4 border rounded-2xl hover-elevate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer flex items-center justify-between"
+      className="px-4 py-3 border-b border-border hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset cursor-pointer transition-colors"
       tabIndex={0}
       role="button"
       onClick={handleNavigate}
       onKeyDown={handleKeyDown}
     >
-      <div>
-        <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-          <span className="text-lg font-semibold">{application.propertyName || "Untitled Homestay"}</span>
-          {renderCategoryBadge(application.category)}
-          {renderStatusBadge(application.status)}
-          {correctionState && (
-            <Badge className={`${correctionState.className} border`}>
-              {correctionState.label}
-            </Badge>
-          )}
-          {legacyOnboarding ? (
-            <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30">
-              RC Registration
-            </Badge>
-          ) : (
-            <ApplicationKindBadge kind={applicationKind} />
-          )}
+      <div className="flex items-center justify-between gap-4">
+        {/* Left side: Icon + Property info */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Home icon */}
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+            <Home className="w-5 h-5 text-amber-600" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            {/* Line 1: Property name + badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold">{application.propertyName || "Untitled Homestay"}</span>
+              {renderCategoryBadge(application.category)}
+              {renderStatusBadge(application.status)}
+              {correctionState && (
+                <Badge className={`${correctionState.className} border text-[10px] px-1.5 py-0`}>
+                  {correctionState.label}
+                </Badge>
+              )}
+            </div>
+
+            {/* Line 2: Owner, mobile, location, date */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+              <span className="flex items-center gap-1">
+                <User className="w-3 h-3" />
+                {application.ownerName}
+              </span>
+              <span className="hidden sm:flex items-center gap-1">
+                <Phone className="w-3 h-3" />
+                {application.ownerMobile}
+              </span>
+              <span className="hidden md:flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {application.district}
+              </span>
+              <span className="hidden lg:flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {application.submittedAt ? format(new Date(application.submittedAt), "MMM dd, yyyy") : "—"}
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-          <div>
-            <span className="font-medium">Owner:</span> {application.ownerName}
-          </div>
-          <div>
-            <span className="font-medium">Mobile:</span> {application.ownerMobile}
-          </div>
-          <div>
-            <span className="font-medium">District:</span> {application.district}
-          </div>
-          <div>
-            <span className="font-medium">Submitted:</span>{" "}
-            {application.submittedAt ? format(new Date(application.submittedAt), "MMM dd, yyyy") : "N/A"}
-          </div>
-          {(application.correctionSubmissionCount ?? 0) > 0 && (
-            <div className="col-span-2 text-xs text-muted-foreground">
-              Correction cycles used: {application.correctionSubmissionCount}
-            </div>
-          )}
-          {correctionState && (
-            <div className="col-span-2 text-xs text-muted-foreground">
-              {correctionState.relative
-                ? `Owner resubmitted ${correctionState.relative}`
-                : "Awaiting owner confirmation"}
-            </div>
-          )}
-          {isService && (
-            <div className={cn("col-span-2 text-xs text-muted-foreground flex flex-wrap gap-4")}>
-              <span>
-                <span className="font-medium">Service:</span> {serviceLabel}
-              </span>
-              <span>
-                <span className="font-medium">Parent App:</span> {application.parentApplicationNumber || "—"}
-              </span>
-              <span>
-                <span className="font-medium">Certificate #:</span> {application.parentCertificateNumber ||
-                  application.certificateNumber ||
-                  "—"}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-      {!hideAction && (
-        <div className="ml-4">
+
+        {/* Right side: Action button */}
+        {!hideAction && (
           <Button
+            size="sm"
             data-testid={`button-review-${application.id}`}
+            className="flex-shrink-0"
             onClick={(event) => {
               event.stopPropagation();
               handleNavigate();
             }}
           >
-            {actionLabel || "Open application"}
-            <ArrowRight className="w-4 h-4 ml-2" />
+            {actionLabel || "Start scrutiny"}
+            <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

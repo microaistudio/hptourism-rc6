@@ -74,6 +74,12 @@ const quickActions: QuickAction[] = [
         icon: Users,
     },
     {
+        title: "Workflow Settings",
+        description: "DA Send Back, OTP login, category enforcement, upload policies",
+        href: "/admin/console-old",
+        icon: Settings,
+    },
+    {
         title: "Communications",
         description: "SMS/Email gateways and notification templates",
         href: "/admin/super-console#communications",

@@ -147,7 +147,7 @@ export default function Step2OwnerPreview() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <p className="text-xs text-gray-400">Female owners receive 5% fee discount</p>
+                                        <p className="text-xs text-gray-400">Female owners receive 5% additional fee discount</p>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-xs text-gray-500">Aadhaar Number <span className="text-red-500">*</span></Label>
@@ -223,8 +223,8 @@ export default function Step2OwnerPreview() {
                                         className="flex gap-6"
                                     >
                                         <div className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${formData.propertyOwnership === "owned"
-                                                ? "border-primary bg-primary/5"
-                                                : "border-gray-200 hover:border-gray-300"
+                                            ? "border-primary bg-primary/5"
+                                            : "border-gray-200 hover:border-gray-300"
                                             }`}>
                                             <RadioGroupItem value="owned" id="owned" />
                                             <label htmlFor="owned" className="cursor-pointer">
@@ -233,8 +233,8 @@ export default function Step2OwnerPreview() {
                                             </label>
                                         </div>
                                         <div className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${formData.propertyOwnership === "leased"
-                                                ? "border-orange-500 bg-orange-50"
-                                                : "border-gray-200 hover:border-gray-300"
+                                            ? "border-orange-500 bg-orange-50"
+                                            : "border-gray-200 hover:border-gray-300"
                                             }`}>
                                             <RadioGroupItem value="leased" id="leased" />
                                             <label htmlFor="leased" className="cursor-pointer">

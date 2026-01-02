@@ -27,6 +27,10 @@ const APPLICATION_KIND_META: Record<ApplicationKind, { label: string; className:
     label: "Change Category",
     className: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700",
   },
+  change_ownership: {
+    label: "Change Ownership",
+    className: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-700",
+  },
 };
 
 export function getApplicationKindLabel(kind?: ApplicationKind | null) {

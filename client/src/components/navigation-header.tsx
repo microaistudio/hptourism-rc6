@@ -12,17 +12,19 @@ interface NavigationHeaderProps {
   actions?: React.ReactNode;
   onPrimaryLogoToggle?: () => void;
   onBack?: () => void;
+  floatingComponent?: React.ReactNode;
 }
 
-export function NavigationHeader({ 
-  title, 
+export function NavigationHeader({
+  title,
   subtitle,
-  showHome = true, 
-  showBack = true, 
+  showHome = true,
+  showBack = true,
   backTo,
   actions,
   onPrimaryLogoToggle,
   onBack,
+  floatingComponent,
 }: NavigationHeaderProps) {
   const [, setLocation] = useLocation();
 
@@ -40,7 +42,12 @@ export function NavigationHeader({
 
   return (
     <div className="border-b bg-background sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 py-3 relative">
+        {floatingComponent && (
+          <div className="absolute right-2 top-[calc(100%+0.5rem)] z-50">
+            {floatingComponent}
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-1 min-w-0 items-center gap-3">
             {showBack && (
@@ -72,17 +79,17 @@ export function NavigationHeader({
                     className="relative p-0 border-none bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded"
                     aria-label="Toggle alternate hero image"
                   >
-                    <img 
-                      src={himachalTourismLogo} 
-                      alt="Himachal Tourism" 
+                    <img
+                      src={himachalTourismLogo}
+                      alt="Himachal Tourism"
                       className="h-12 w-auto object-contain"
                       data-testid="img-hp-tourism-logo"
                     />
                   </button>
                 ) : (
-                  <img 
-                    src={himachalTourismLogo} 
-                    alt="Himachal Tourism" 
+                  <img
+                    src={himachalTourismLogo}
+                    alt="Himachal Tourism"
                     className="h-12 w-auto object-contain"
                     data-testid="img-hp-tourism-logo"
                   />

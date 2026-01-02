@@ -41,6 +41,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  ExternalLink,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -79,6 +80,17 @@ const formatCorrectionTimestamp = (value?: string | null) => {
   if (!value) return "No resubmission yet";
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? "No resubmission yet" : format(parsed, "PPP p");
+};
+
+// Sort documents by upload timestamp (oldest first = original upload order)
+const sortDocumentsByUploadOrder = (docs: Document[]): Document[] => {
+  return [...docs].sort((a, b) => {
+    const timeA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+    const timeB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+    if (timeA !== timeB) return timeA - timeB; // Oldest first
+    // Same timestamp? Sort by ID for consistency
+    return a.id.localeCompare(b.id);
+  });
 };
 
 export default function DAApplicationDetail() {
@@ -478,10 +490,42 @@ export default function DAApplicationDetail() {
   }, [sendBackDialogOpen]);
 
   // Initialize verification states for documents (in useEffect to avoid render-time state updates)
-  // Re-hydrate whenever documents change to ensure synchronization
-  // MUST be before any conditional returns to satisfy Rules of Hooks
+  // Re-hydrate ONLY when application ID changes or first load, to avoid overwriting local changes with stale server data during auto-save
+  const [initializedId, setInitializedId] = useState<string | null>(null);
+  // Stable document array - only set once per application to prevent reordering during refetches
+  const [stableDocuments, setStableDocuments] = useState<Document[]>([]);
+
+  // Document navigation within preview (must be after stableDocuments is defined)
+  const currentDocIndex = useMemo(() => {
+    if (!selectedDocument || !stableDocuments.length) return -1;
+    return stableDocuments.findIndex(doc => doc.id === selectedDocument.id);
+  }, [selectedDocument, stableDocuments]);
+
+  const hasPreviousDocument = currentDocIndex > 0;
+  const hasNextDocument = currentDocIndex >= 0 && currentDocIndex < stableDocuments.length - 1;
+
+  const goToPreviousDocument = useCallback(() => {
+    if (hasPreviousDocument) {
+      handleSelectDocument(stableDocuments[currentDocIndex - 1]);
+    }
+  }, [currentDocIndex, hasPreviousDocument, stableDocuments]);
+
+  const goToNextDocument = useCallback(() => {
+    if (hasNextDocument) {
+      handleSelectDocument(stableDocuments[currentDocIndex + 1]);
+    }
+  }, [currentDocIndex, hasNextDocument, stableDocuments]);
+
   useEffect(() => {
-    if (data?.documents && data.documents.length > 0) {
+    if (!id || !data?.documents) return;
+
+    // Only initialize if we haven't done so for this ID yet
+    if (initializedId === id) return;
+
+    if (data.documents.length > 0) {
+      // Store stable document order on first load only - sorted by document type
+      setStableDocuments(sortDocumentsByUploadOrder(data.documents));
+
       const initialVerifications: Record<string, DocumentVerification> = {};
       data.documents.forEach(doc => {
         initialVerifications[doc.id] = {
@@ -501,12 +545,15 @@ export default function DAApplicationDetail() {
         }
         return prevSelected;
       });
-    } else if (data?.documents && data.documents.length === 0) {
+    } else {
       // Clear state when navigating to application with no documents
+      setStableDocuments([]);
       setVerifications({});
       setSelectedDocument(null);
     }
-  }, [data?.documents]);
+
+    setInitializedId(id);
+  }, [data?.documents, id, initializedId]);
 
   // Check for missing id AFTER all hooks are called
   if (!id) {
@@ -534,7 +581,9 @@ export default function DAApplicationDetail() {
     );
   }
 
-  const { application, owner, documents } = data;
+  const { application, owner, documents: _ } = data;
+  // Use stable documents that don't change order during refetches
+  const documents = stableDocuments.length > 0 ? stableDocuments : data.documents;
   const isLegacyRequest = isLegacyApplication(application);
   const legacyForwardAllowed = !isLegacyRequest || data.legacyForwardEnabled !== false;
   const canStartScrutiny = application.status === 'submitted';
@@ -612,10 +661,6 @@ export default function DAApplicationDetail() {
       return false;
     }
     if (totalDocs === 0) {
-      // Cancellation requests don't require documents
-      if (application.applicationKind === 'cancel_certificate') {
-        return true;
-      }
       toast({
         title: "Documents required",
         description: "Required documents must be uploaded and reviewed before forwarding to DTDO.",
@@ -633,10 +678,7 @@ export default function DAApplicationDetail() {
     }
     return true;
   };
-  const canForward = legacyForwardAllowed && (
-    (application.applicationKind === 'cancel_certificate') ||
-    (totalDocs > 0 && completedDocs === totalDocs)
-  );
+  const canForward = legacyForwardAllowed && totalDocs > 0 && completedDocs === totalDocs;
   const requireRemarks = () => {
     if (remarks.trim().length === 0) {
       toast({
@@ -887,59 +929,107 @@ export default function DAApplicationDetail() {
         <TabsContent value="documents" className="space-y-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Side - Document Preview */}
-            <div ref={previewRef}>
+            <div ref={previewRef} className="lg:sticky lg:top-24 self-start">
               <Card>
-                <CardHeader className="py-3">
-                  <CardTitle className="text-base">Document Preview</CardTitle>
-                  <CardDescription className="text-sm">
-                    {selectedDocument ? selectedDocument.fileName : "Select a document to preview"}
-                  </CardDescription>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg">Document Preview</CardTitle>
+                      <CardDescription className="truncate">
+                        {selectedDocument ? selectedDocument.fileName : "Select a document to preview"}
+                      </CardDescription>
+                    </div>
+                    {/* Navigation & Action Buttons */}
+                    {selectedDocument && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={goToPreviousDocument}
+                          disabled={!hasPreviousDocument}
+                          title="Previous document"
+                          data-testid="button-prev-document"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <span className="text-xs text-muted-foreground px-2 whitespace-nowrap">
+                          {currentDocIndex + 1} of {stableDocuments.length}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={goToNextDocument}
+                          disabled={!hasNextDocument}
+                          title="Next document"
+                          data-testid="button-next-document"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          asChild
+                          title="Open in new tab"
+                          data-testid="button-open-new-tab"
+                        >
+                          <a
+                            href={buildObjectViewUrl(selectedDocument.filePath, {
+                              mimeType: selectedDocument.mimeType,
+                              fileName: selectedDocument.fileName,
+                            })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent>
                   {selectedDocument ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {/* Document Info */}
-                      <div className="p-3 bg-muted rounded-lg space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{selectedDocument.documentType}</span>
-                          {getStatusBadge(verifications[selectedDocument.id]?.status || 'pending')}
+                      <div className="p-3 bg-muted rounded-lg flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium truncate">{selectedDocument.documentType}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({(selectedDocument.fileSize / 1024).toFixed(1)} KB)
+                          </span>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Size: {(selectedDocument.fileSize / 1024).toFixed(2)} KB
-                        </div>
+                        {getStatusBadge(verifications[selectedDocument.id]?.status || 'pending')}
                       </div>
 
                       {/* Document Viewer */}
-                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900" style={{ height: 'calc(100vh - 280px)', minHeight: '450px' }}>
+                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 min-h-[400px] flex items-center justify-center">
                         {selectedDocument.mimeType.startsWith('image/') ? (
-                          <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
-                            <img
-                              src={buildObjectViewUrl(selectedDocument.filePath, {
-                                mimeType: selectedDocument.mimeType,
-                                fileName: selectedDocument.fileName,
-                              })}
-                              alt={selectedDocument.fileName}
-                              className="max-w-full max-h-full object-contain"
-                              data-testid="img-document-preview"
-                              onError={(e) => {
-                                console.error('Image failed to load:', selectedDocument.filePath);
-                                e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" fill="gray">Image failed to load</text></svg>';
-                              }}
-                              onLoad={() => console.log('Image loaded successfully:', selectedDocument.fileName)}
-                            />
-                          </div>
+                          <img
+                            src={buildObjectViewUrl(selectedDocument.filePath, {
+                              mimeType: selectedDocument.mimeType,
+                              fileName: selectedDocument.fileName,
+                            })}
+                            alt={selectedDocument.fileName}
+                            className="w-full h-auto max-h-[600px] object-contain"
+                            data-testid="img-document-preview"
+                            onError={(e) => {
+                              console.error('Image failed to load:', selectedDocument.filePath);
+                              e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" fill="gray">Image failed to load</text></svg>';
+                            }}
+                            onLoad={() => console.log('Image loaded successfully:', selectedDocument.fileName)}
+                          />
                         ) : selectedDocument.mimeType === 'application/pdf' ? (
                           <iframe
                             src={buildObjectViewUrl(selectedDocument.filePath, {
                               mimeType: selectedDocument.mimeType,
                               fileName: selectedDocument.fileName,
                             })}
-                            className="w-full h-full"
+                            className="w-full h-[600px]"
                             title={selectedDocument.fileName}
                             data-testid="iframe-document-preview"
                           />
                         ) : (
-                          <div className="p-8 text-center h-full flex flex-col items-center justify-center">
+                          <div className="p-8 text-center">
                             <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
                             <p className="text-sm text-muted-foreground mb-4">
                               Preview not available for this file type
@@ -971,7 +1061,7 @@ export default function DAApplicationDetail() {
             </div>
 
             {/* Right Side - Document Checklist & Verification */}
-            <Card>
+            <Card className="max-h-[calc(100vh-200px)] overflow-y-auto">
               <CardHeader className="space-y-4">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>

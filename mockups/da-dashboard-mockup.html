@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DA Dashboard - UI Mockup Comparison</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    /* Design Toggle Controls */
+    .toggle-controls {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      padding: 16px 24px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .toggle-controls h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .toggle-btn {
+      padding: 10px 20px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-btn.current {
+      background: #dc3545;
+      color: white;
+    }
+
+    .toggle-btn.enhanced {
+      background: #28a745;
+      color: white;
+    }
+
+    .toggle-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .toggle-btn.active {
+      border-color: #ffd700;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+
+    .version-label {
+      margin-left: auto;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    /* Main Container */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+      padding-top: 70px;
+    }
+
+    /* ============================================
+       SIDEBAR STYLES
+       ============================================ */
+    
+    /* Current Sidebar */
+    .sidebar.current-design {
+      width: 220px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 16px 0;
+      height: calc(100vh - 70px);
+      position: fixed;
+      left: 0;
+      top: 70px;
+      overflow-y: auto;
+    }
+
+    .sidebar.current-design .brand {
+      padding: 12px 16px;
+      background: #4a6741;
+      color: white;
+      margin: 0 12px 16px;
+      border-radius: 8px;
+    }
+
+    .sidebar.current-design .brand h3 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .sidebar.current-design .brand span {
+      font-size: 11px;
+      opacity: 0.8;
+    }
+
+    .sidebar.current-design .section-header {
+      font-size: 10px;
+      font-weight: 600;
+      color: #888;
+      padding: 12px 16px 6px;
+      letter-spacing: 1px;
+    }
+
+    .sidebar.current-design .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      color: #333;
+      text-decoration: none;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+
+    .sidebar.current-design .nav-item:hover {
+      background: #f5f5f5;
+    }
+
+    .sidebar.current-design .nav-item.active {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-left: 3px solid #2e7d32;
+    }
+
+    .sidebar.current-design .nav-item .icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .sidebar.current-design .badge {
+      margin-left: auto;
+      background: #ef5350;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    /* Enhanced Sidebar */
+    .sidebar.enhanced-design {
+      width: 240px;
+      background: linear-gradient(180deg, #1a2e1a 0%, #0d1a0d 100%);
+      padding: 16px 0;
+      height: calc(100vh - 70px);
+      position: fixed;
+      left: 0;
+      top: 70px;
+      overflow-y: auto;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+    }
+
+    .sidebar.enhanced-design .brand {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+      color: white;
+      margin: 0 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+    }
+
+    .sidebar.enhanced-design .brand h3 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .sidebar.enhanced-design .brand span {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .sidebar.enhanced-design .section-header {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.4);
+      padding: 16px 20px 8px;
+      letter-spacing: 1.5px;
+    }
+
+    .sidebar.enhanced-design .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.3s ease;
+      margin: 2px 12px;
+      border-radius: 8px;
+    }
+
+    .sidebar.enhanced-design .nav-item:hover {
+      background: rgba(255,255,255,0.08);
+      color: white;
+      transform: translateX(4px);
+    }
+
+    .sidebar.enhanced-design .nav-item.active {
+      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .sidebar.enhanced-design .nav-item .icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 4px;
+    }
+
+    .sidebar.enhanced-design .nav-item.active .icon {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .sidebar.enhanced-design .badge {
+      margin-left: auto;
+      background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
+      color: white;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      animation: pulse-badge 2s infinite;
+    }
+
+    @keyframes pulse-badge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* ============================================
+       MAIN CONTENT AREA
+       ============================================ */
+    
+    .main-content {
+      flex: 1;
+      padding: 24px;
+    }
+
+    .main-content.current-design {
+      margin-left: 220px;
+      background: #fafafa;
+    }
+
+    .main-content.enhanced-design {
+      margin-left: 240px;
+      background: linear-gradient(135deg, #f8faf8 0%, #e8f5e9 100%);
+    }
+
+    /* Header */
+    .header.current-design {
+      margin-bottom: 24px;
+    }
+
+    .header.current-design h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .header.current-design p {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .header.enhanced-design {
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header.enhanced-design h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1a2e1a 0%, #2e7d32 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header.enhanced-design p {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .header-btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-btn.current-design {
+      background: white;
+      border: 1px solid #ddd;
+      color: #333;
+    }
+
+    .header-btn.enhanced-design {
+      background: white;
+      border: none;
+      color: #333;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .header-btn.enhanced-design:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .header-btn.enhanced-design.primary {
+      background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+      color: white;
+    }
+
+    /* ============================================
+       STAT CARDS
+       ============================================ */
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* Current Stat Cards */
+    .stat-card.current-design {
+      background: white;
+      border: 2px dashed #4a6741;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .stat-card.current-design .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4a6741;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-card.current-design .value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .stat-card.current-design .description {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .stat-card.current-design .sub-items {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+    }
+
+    .stat-card.current-design .sub-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 8px;
+      margin: 4px 0;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* Enhanced Stat Cards */
+    .stat-card.enhanced-design {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card.enhanced-design:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+
+    .stat-card.enhanced-design::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .stat-card.enhanced-design.new-apps::before {
+      background: linear-gradient(90deg, #4caf50, #81c784);
+    }
+
+    .stat-card.enhanced-design.processing::before {
+      background: linear-gradient(90deg, #2196f3, #64b5f6);
+    }
+
+    .stat-card.enhanced-design.pending::before {
+      background: linear-gradient(90deg, #ff9800, #ffb74d);
+    }
+
+    .stat-card.enhanced-design.inspections::before {
+      background: linear-gradient(90deg, #9c27b0, #ba68c8);
+    }
+
+    .stat-card.enhanced-design.completed::before {
+      background: linear-gradient(90deg, #00bcd4, #4dd0e1);
+    }
+
+    .stat-card.enhanced-design .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .stat-card.enhanced-design .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      letter-spacing: 0.3px;
+    }
+
+    .stat-card.enhanced-design .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .stat-card.enhanced-design.new-apps .card-icon {
+      background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+      color: #2e7d32;
+    }
+
+    .stat-card.enhanced-design.processing .card-icon {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      color: #1976d2;
+    }
+
+    .stat-card.enhanced-design.pending .card-icon {
+      background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+      color: #f57c00;
+    }
+
+    .stat-card.enhanced-design.inspections .card-icon {
+      background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+      color: #7b1fa2;
+    }
+
+    .stat-card.enhanced-design.completed .card-icon {
+      background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+      color: #00838f;
+    }
+
+    .stat-card.enhanced-design .value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1;
+    }
+
+    .stat-card.enhanced-design .description {
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .stat-card.enhanced-design .sub-items {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .stat-card.enhanced-design .sub-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      margin: 6px 0;
+      background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+      border-radius: 8px;
+      font-size: 12px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .stat-card.enhanced-design .sub-item:hover {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      transform: translateX(4px);
+    }
+
+    .stat-card.enhanced-design .sub-item .count {
+      background: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* ============================================
+       ALERT BANNER
+       ============================================ */
+    
+    .alert-banner.current-design {
+      background: #fff3e0;
+      border: 1px solid #ffcc80;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-banner.current-design .alert-text h4 {
+      font-size: 14px;
+      color: #e65100;
+      font-weight: 600;
+    }
+
+    .alert-banner.current-design .alert-text p {
+      font-size: 12px;
+      color: #ef6c00;
+      margin-top: 2px;
+    }
+
+    .alert-banner.current-design .alert-btn {
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #ffcc80;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .alert-banner.enhanced-design {
+      background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+      border: none;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(255, 152, 0, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .alert-banner.enhanced-design::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #ff9800, #f57c00);
+    }
+
+    .alert-banner.enhanced-design .alert-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-right: 16px;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .alert-banner.enhanced-design .alert-text h4 {
+      font-size: 15px;
+      color: #e65100;
+      font-weight: 600;
+    }
+
+    .alert-banner.enhanced-design .alert-text p {
+      font-size: 13px;
+      color: #ff8f00;
+      margin-top: 4px;
+    }
+
+    .alert-banner.enhanced-design .alert-btn {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .alert-banner.enhanced-design .alert-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+    }
+
+    /* ============================================
+       APPLICATION LIST
+       ============================================ */
+    
+    .section-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-title.current-design h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .section-title.current-design p {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .section-title.enhanced-design h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .section-title.enhanced-design p {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .tabs.current-design {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .tabs.current-design .tab {
+      padding: 10px 20px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      background: white;
+    }
+
+    .tabs.current-design .tab.active {
+      background: #4a6741;
+      color: white;
+      border-color: #4a6741;
+    }
+
+    .tabs.enhanced-design {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: white;
+      padding: 6px;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      width: fit-content;
+    }
+
+    .tabs.enhanced-design .tab {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: #666;
+      transition: all 0.3s ease;
+    }
+
+    .tabs.enhanced-design .tab:hover {
+      color: #333;
+      background: #f5f5f5;
+    }
+
+    .tabs.enhanced-design .tab.active {
+      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+
+    .tabs.enhanced-design .tab .count {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .tabs.enhanced-design .tab.active .count {
+      background: rgba(255,255,255,0.25);
+    }
+
+    /* Application Card */
+    .app-card.current-design {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .app-card.current-design .app-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .app-card.current-design .app-meta {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .app-card.current-design .status-badge {
+      padding: 4px 12px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .app-card.current-design .action-btn {
+      padding: 10px 20px;
+      background: #4a6741;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-card.enhanced-design {
+      background: white;
+      border: none;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      transition: all 0.3s ease;
+    }
+
+    .app-card.enhanced-design:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    .app-card.enhanced-design .app-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .app-card.enhanced-design .app-avatar {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .app-card.enhanced-design .app-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .app-card.enhanced-design .app-meta {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+      display: flex;
+      gap: 16px;
+    }
+
+    .app-card.enhanced-design .app-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .app-card.enhanced-design .status-badge {
+      padding: 6px 14px;
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      color: #2e7d32;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .app-card.enhanced-design .category-badge {
+      padding: 6px 14px;
+      background: linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+      color: #666;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .app-card.enhanced-design .action-btn {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .app-card.enhanced-design .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    }
+
+    /* User Profile Card in Sidebar */
+    .user-profile.current-design {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      border-top: 1px solid #eee;
+      background: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-profile.current-design .avatar {
+      width: 36px;
+      height: 36px;
+      background: #4a6741;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .user-profile.current-design .user-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .user-profile.current-design .user-role {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .user-profile.enhanced-design {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      background: rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-profile.enhanced-design .avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+
+    .user-profile.enhanced-design .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .user-profile.enhanced-design .user-role {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* Hidden by default */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="toggle-controls">
+    <h2>🎨 DA Dashboard UI Mockup</h2>
+    <button class="toggle-btn current active" onclick="showDesign('current')">📊 Current Design</button>
+    <button class="toggle-btn enhanced" onclick="showDesign('enhanced')">✨ Enhanced Design</button>
+    <span class="version-label" id="version-label">Viewing: Current Design</span>
+  </div>
+
+  <!-- CURRENT DESIGN -->
+  <div id="current-design" class="dashboard-container">
+    <aside class="sidebar current-design">
+      <div class="brand">
+        <h3>HP Tourism</h3>
+        <span>eServices Portal</span>
+      </div>
+      
+      <div class="section-header">HOME</div>
+      <a href="#" class="nav-item active">
+        <span class="icon">📊</span>
+        Dashboard
+      </a>
+      
+      <div class="section-header">WORK QUEUES</div>
+      <a href="#" class="nav-item">
+        <span class="icon">📝</span>
+        New Applications
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">📋</span>
+        Existing RC
+        <span class="badge">1</span>
+      </a>
+      
+      <div class="section-header">GRIEVANCES</div>
+      <a href="#" class="nav-item">
+        <span class="icon">🎫</span>
+        Open Tickets
+      </a>
+      
+      <div class="section-header">INSIGHTS</div>
+      <a href="#" class="nav-item">
+        <span class="icon">📈</span>
+        Analytics
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">⚡</span>
+        Workflow Monitor
+      </a>
+      
+      <div class="section-header">TOOLS</div>
+      <a href="#" class="nav-item">
+        <span class="icon">🔍</span>
+        Search
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">🔎</span>
+        Inspections
+        <span class="badge">1</span>
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">👤</span>
+        My Profile
+      </a>
+      
+      <div class="user-profile current-design">
+        <div class="avatar">DS</div>
+        <div>
+          <div class="user-name">DA Shimla</div>
+          <div class="user-role">User</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content current-design">
+      <div class="header current-design">
+        <div>
+          <h1>Dealing Assistant Dashboard</h1>
+          <p>Shimla Division – Scrutiny + inspection workflow</p>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card current-design">
+          <div class="label">NEW APPLICATIONS</div>
+          <div class="value">2</div>
+          <div class="description">Fresh submissions waiting for you to start scrutiny.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>New Application</span>
+              <span>2</span>
+            </div>
+            <div class="sub-item">
+              <span>Amendments</span>
+              <span>0</span>
+            </div>
+            <div class="sub-item">
+              <span>Cancellation</span>
+              <span>0</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card current-design">
+          <div class="label">UNDER PROCESS</div>
+          <div class="value">0</div>
+          <div class="description">Files currently in your scrutiny flow.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Screening</span>
+              <span>0</span>
+            </div>
+            <div class="sub-item">
+              <span>Forwarded to DTDO</span>
+              <span>0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card current-design">
+          <div class="label">PENDING / CORRECTIONS</div>
+          <div class="value">0</div>
+          <div class="description">Owner clarifications and resubmissions that need follow-up.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Sent back to applicant</span>
+              <span>0</span>
+            </div>
+            <div class="sub-item">
+              <span>Resubmitted</span>
+              <span>0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card current-design">
+          <div class="label">INSPECTIONS</div>
+          <div class="value">1</div>
+          <div class="description">Status of field inspections assigned to you.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Scheduled</span>
+              <span>1</span>
+            </div>
+            <div class="sub-item">
+              <span>Report submitted</span>
+              <span>0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card current-design">
+          <div class="label">COMPLETED</div>
+          <div class="value">0</div>
+          <div class="description">Decisions recorded this month.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Approved</span>
+              <span>0</span>
+            </div>
+            <div class="sub-item">
+              <span>Existing RC Verified</span>
+              <span>0</span>
+            </div>
+            <div class="sub-item">
+              <span>Rejected</span>
+              <span>0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs current-design">
+        <button class="tab active">New Application <span>●</span></button>
+        <button class="tab">Amendments <span>0</span></button>
+        <button class="tab">Cancellation <span>0</span></button>
+      </div>
+
+      <div class="alert-banner current-design">
+        <div class="alert-text">
+          <h4>⚠️ Inspections need attention</h4>
+          <p>1 inspection are awaiting field reports.</p>
+        </div>
+        <button class="alert-btn">☆ View inspection queue</button>
+      </div>
+
+      <div class="section-header-row">
+        <div class="section-title current-design">
+          <h2>New Application</h2>
+          <p>Brand-new properties seeking recognition.</p>
+        </div>
+      </div>
+
+      <div class="app-card current-design">
+        <div>
+          <div class="app-name">Test Homestay 2</div>
+          <div class="app-meta">
+            <span>Owner: Test Test</span> &nbsp;|&nbsp;
+            <span>Mobile: 6666666621</span> &nbsp;|&nbsp;
+            <span>District: Shimla</span> &nbsp;|&nbsp;
+            <span>Submitted: Jan 01, 2026</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="status-badge">Submitted</span>
+          <span class="status-badge" style="background: #f5f5f5; color: #666;">Silver</span>
+          <button class="action-btn">Start scrutiny →</button>
+        </div>
+      </div>
+
+      <div class="app-card current-design">
+        <div>
+          <div class="app-name">TEst</div>
+          <div class="app-meta">
+            <span>Owner: Test User</span> &nbsp;|&nbsp;
+            <span>Mobile: 9876543210</span> &nbsp;|&nbsp;
+            <span>District: Shimla</span> &nbsp;|&nbsp;
+            <span>Submitted: Dec 30, 2025</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="status-badge">Submitted</span>
+          <span class="status-badge" style="background: #f5f5f5; color: #666;">Silver</span>
+          <button class="action-btn">Start scrutiny →</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ENHANCED DESIGN -->
+  <div id="enhanced-design" class="dashboard-container hidden">
+    <aside class="sidebar enhanced-design">
+      <div class="brand">
+        <h3>🏔️ HP Tourism</h3>
+        <span>eServices Portal</span>
+      </div>
+      
+      <div class="section-header">HOME</div>
+      <a href="#" class="nav-item active">
+        <span class="icon">📊</span>
+        Dashboard
+      </a>
+      
+      <div class="section-header">WORK QUEUES</div>
+      <a href="#" class="nav-item">
+        <span class="icon">📝</span>
+        New Applications
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">📋</span>
+        Existing RC
+        <span class="badge">1</span>
+      </a>
+      
+      <div class="section-header">GRIEVANCES</div>
+      <a href="#" class="nav-item">
+        <span class="icon">🎫</span>
+        Open Tickets
+      </a>
+      
+      <div class="section-header">INSIGHTS</div>
+      <a href="#" class="nav-item">
+        <span class="icon">📈</span>
+        Analytics
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">⚡</span>
+        Workflow Monitor
+      </a>
+      
+      <div class="section-header">TOOLS</div>
+      <a href="#" class="nav-item">
+        <span class="icon">🔍</span>
+        Search
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">🔎</span>
+        Inspections
+        <span class="badge">1</span>
+      </a>
+      <a href="#" class="nav-item">
+        <span class="icon">👤</span>
+        My Profile
+      </a>
+      
+      <div class="user-profile enhanced-design">
+        <div class="avatar">DS</div>
+        <div>
+          <div class="user-name">DA Shimla</div>
+          <div class="user-role">Dealing Assistant</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content enhanced-design">
+      <div class="header enhanced-design">
+        <div>
+          <h1>Dealing Assistant Dashboard</h1>
+          <p>Shimla Division – Scrutiny + inspection workflow</p>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn enhanced-design">🔄 Refresh</button>
+          <button class="header-btn enhanced-design primary">📦 Incomplete Applications</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card enhanced-design new-apps">
+          <div class="card-header">
+            <div class="label">NEW APPLICATIONS</div>
+            <div class="card-icon">📥</div>
+          </div>
+          <div class="value">2</div>
+          <div class="description">Fresh submissions waiting for you to start scrutiny.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>New Application</span>
+              <span class="count">2</span>
+            </div>
+            <div class="sub-item">
+              <span>Amendments</span>
+              <span class="count">0</span>
+            </div>
+            <div class="sub-item">
+              <span>Cancellation</span>
+              <span class="count">0</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card enhanced-design processing">
+          <div class="card-header">
+            <div class="label">UNDER PROCESS</div>
+            <div class="card-icon">⚙️</div>
+          </div>
+          <div class="value">0</div>
+          <div class="description">Files currently in your scrutiny flow.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Screening</span>
+              <span class="count">0</span>
+            </div>
+            <div class="sub-item">
+              <span>Forwarded to DTDO</span>
+              <span class="count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card enhanced-design pending">
+          <div class="card-header">
+            <div class="label">PENDING / CORRECTIONS</div>
+            <div class="card-icon">⏳</div>
+          </div>
+          <div class="value">0</div>
+          <div class="description">Owner clarifications and resubmissions that need follow-up.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Sent back to applicant</span>
+              <span class="count">0</span>
+            </div>
+            <div class="sub-item">
+              <span>Resubmitted</span>
+              <span class="count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card enhanced-design inspections">
+          <div class="card-header">
+            <div class="label">INSPECTIONS</div>
+            <div class="card-icon">🔎</div>
+          </div>
+          <div class="value">1</div>
+          <div class="description">Status of field inspections assigned to you.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Scheduled</span>
+              <span class="count">1</span>
+            </div>
+            <div class="sub-item">
+              <span>Report submitted</span>
+              <span class="count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card enhanced-design completed">
+          <div class="card-header">
+            <div class="label">COMPLETED</div>
+            <div class="card-icon">✅</div>
+          </div>
+          <div class="value">0</div>
+          <div class="description">Decisions recorded this month.</div>
+          <div class="sub-items">
+            <div class="sub-item">
+              <span>Approved</span>
+              <span class="count">0</span>
+            </div>
+            <div class="sub-item">
+              <span>Existing RC Verified</span>
+              <span class="count">0</span>
+            </div>
+            <div class="sub-item">
+              <span>Rejected</span>
+              <span class="count">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs enhanced-design">
+        <button class="tab active">New Application <span class="count">2</span></button>
+        <button class="tab">Amendments <span class="count">0</span></button>
+        <button class="tab">Cancellation <span class="count">0</span></button>
+      </div>
+
+      <div class="alert-banner enhanced-design">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-text">
+          <h4>Inspections need attention</h4>
+          <p>1 inspection is awaiting field reports.</p>
+        </div>
+        <button class="alert-btn">View inspection queue →</button>
+      </div>
+
+      <div class="section-header-row">
+        <div class="section-title enhanced-design">
+          <h2>New Application</h2>
+          <p>Brand-new properties seeking recognition.</p>
+        </div>
+      </div>
+
+      <div class="app-card enhanced-design">
+        <div class="app-info">
+          <div class="app-avatar">🏠</div>
+          <div>
+            <div class="app-name">Test Homestay 2</div>
+            <div class="app-meta">
+              <span>👤 Test Test</span>
+              <span>📱 6666666621</span>
+              <span>📍 Shimla</span>
+              <span>📅 Jan 01, 2026</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="status-badge">Submitted</span>
+          <span class="category-badge">Silver</span>
+          <button class="action-btn">Start scrutiny →</button>
+        </div>
+      </div>
+
+      <div class="app-card enhanced-design">
+        <div class="app-info">
+          <div class="app-avatar">🏠</div>
+          <div>
+            <div class="app-name">TEst</div>
+            <div class="app-meta">
+              <span>👤 Test User</span>
+              <span>📱 9876543210</span>
+              <span>📍 Shimla</span>
+              <span>📅 Dec 30, 2025</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="status-badge">Submitted</span>
+          <span class="category-badge">Silver</span>
+          <button class="action-btn">Start scrutiny →</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function showDesign(type) {
+      const currentDesign = document.getElementById('current-design');
+      const enhancedDesign = document.getElementById('enhanced-design');
+      const versionLabel = document.getElementById('version-label');
+      const buttons = document.querySelectorAll('.toggle-btn');
+
+      buttons.forEach(btn => btn.classList.remove('active'));
+
+      if (type === 'current') {
+        currentDesign.classList.remove('hidden');
+        enhancedDesign.classList.add('hidden');
+        versionLabel.textContent = 'Viewing: Current Design';
+        document.querySelector('.toggle-btn.current').classList.add('active');
+      } else {
+        currentDesign.classList.add('hidden');
+        enhancedDesign.classList.remove('hidden');
+        versionLabel.textContent = 'Viewing: Enhanced Design';
+        document.querySelector('.toggle-btn.enhanced').classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>

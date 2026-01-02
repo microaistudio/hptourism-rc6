@@ -1,5 +1,5 @@
 import express from "express";
-import { desc, and, inArray, eq } from "drizzle-orm";
+import { desc, and, inArray, eq, or } from "drizzle-orm";
 import { requireAuth, requireRole } from "./core/middleware";
 import { storage } from "../storage";
 import { logger } from "../logger";
@@ -104,6 +104,53 @@ export function createDtdoRouter() {
         }
     });
 
+    // Get incomplete applications for DTDO (draft status)
+    router.get("/applications/incomplete", requireRole('district_tourism_officer', 'district_officer'), async (req, res) => {
+        try {
+            const userId = req.session.userId!;
+            const user = await storage.getUser(userId);
+
+            if (!user || !user.district) {
+                return res.status(400).json({ message: "DTDO must be assigned to a district" });
+            }
+
+            const districtCondition = buildDistrictWhereClause(homestayApplications.district, user.district);
+
+            // Get all draft applications from this DTDO's district
+            const incompleteApplications = await db
+                .select()
+                .from(homestayApplications)
+                .where(
+                    and(
+                        districtCondition,
+                        or(
+                            eq(homestayApplications.status, 'draft'),
+                            eq(homestayApplications.status, 'legacy_rc_draft')
+                        )
+                    )
+                )
+                .orderBy(desc(homestayApplications.updatedAt));
+
+            // Enrich with owner information
+            const applicationsWithOwner = await Promise.all(
+                incompleteApplications.map(async (app) => {
+                    const owner = await storage.getUser(app.userId);
+                    return {
+                        ...app,
+                        ownerName: owner?.fullName || 'Unknown',
+                        ownerMobile: owner?.mobile || 'N/A',
+                        ownerEmail: owner?.email || 'N/A',
+                    };
+                })
+            );
+
+            res.json(applicationsWithOwner);
+        } catch (error) {
+            routeLog.error("[dtdo] Failed to fetch incomplete applications:", error);
+            res.status(500).json({ message: "Failed to fetch incomplete applications" });
+        }
+    });
+
     // Get single application details for DTDO
     router.get("/applications/:id", requireRole('district_tourism_officer', 'district_officer'), async (req, res) => {
         try {
@@ -168,7 +215,7 @@ export function createDtdoRouter() {
     // DTDO accept application (schedule inspection)
     router.post("/applications/:id/accept", requireRole('district_tourism_officer', 'district_officer'), async (req, res) => {
         try {
-            const { remarks } = req.body;
+            const { remarks, inspectionDate, assignedTo } = req.body;
             const trimmedRemarks = typeof remarks === "string" ? remarks.trim() : "";
             if (!trimmedRemarks) {
                 return res.status(400).json({ message: "Remarks are required when scheduling an inspection." });
@@ -191,8 +238,142 @@ export function createDtdoRouter() {
                 return res.status(400).json({ message: "Application is not in the correct status for DTDO review" });
             }
 
-            // Update application status to dtdo_review (intermediate state)
-            // Will only move to inspection_scheduled after successful inspection scheduling
+            // EXCEPTION: Simple Service Requests (Delete Rooms, Cancel Cert)
+            // Skip inspection -> Approve immediately
+            if (application.applicationKind === 'delete_rooms' || application.applicationKind === 'cancel_certificate') {
+                const year = new Date().getFullYear();
+                const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+                const certificateNumber = `HP-HST-${year}-${randomSuffix}`;
+                const issueDate = new Date();
+
+                let expiryDate = new Date(issueDate);
+                expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+                // If inherits expiry (usual for service requests)
+                if (application.inheritedCertificateValidUpto) {
+                    expiryDate = new Date(application.inheritedCertificateValidUpto);
+                }
+
+                await storage.updateApplication(req.params.id, {
+                    status: 'approved',
+                    certificateNumber,
+                    certificateIssuedDate: issueDate,
+                    certificateExpiryDate: expiryDate,
+                    approvedAt: issueDate,
+                    dtdoId: userId,
+                    districtNotes: trimmedRemarks || 'Request accepted and approved directly (No inspection required).',
+                    districtOfficerId: userId,
+                    districtReviewDate: new Date(),
+                });
+
+                // For cancel_certificate, revoke the parent
+                if (application.applicationKind === 'cancel_certificate' && application.parentApplicationId) {
+                    await storage.updateApplication(application.parentApplicationId, {
+                        status: 'revoked',
+                        districtNotes: `Certificate cancelled by request ${application.applicationNumber}`
+                    });
+                }
+
+                // For delete_rooms, supersede the parent
+                if (application.applicationKind === 'delete_rooms' && application.parentApplicationId) {
+                    await storage.updateApplication(application.parentApplicationId, {
+                        status: 'superseded',
+                        districtNotes: `Superseded by application ${application.applicationNumber}`
+                    });
+                }
+
+                await logApplicationAction({
+                    applicationId: req.params.id,
+                    actorId: userId,
+                    action: "approved",
+                    previousStatus: application.status,
+                    newStatus: "approved",
+                    feedback: trimmedRemarks || "Direct approval (no inspection)",
+                });
+
+                // Notify owner
+                const owner = await storage.getUser(application.userId);
+                queueNotification("application_approved", {
+                    application: { ...application, status: 'approved', certificateNumber } as any,
+                    owner: owner ?? null,
+                });
+
+                return res.json({ message: "Request approved and processed directly (inspection skipped).", applicationId: req.params.id });
+            }
+
+            // INLINE SCHEDULING: If inspectionDate and assignedTo are provided, schedule immediately
+            if (inspectionDate && assignedTo) {
+                const parsedDate = new Date(inspectionDate);
+                if (isNaN(parsedDate.getTime())) {
+                    return res.status(400).json({ message: "Invalid inspection date format" });
+                }
+
+                // Validate assigned DA exists and is in same district
+                const assignedUser = await storage.getUser(assignedTo);
+                if (!assignedUser || assignedUser.role !== 'dealing_assistant') {
+                    return res.status(400).json({ message: "Invalid Dealing Assistant selected" });
+                }
+                if (user?.district && !districtsMatch(user.district, assignedUser.district ?? '')) {
+                    return res.status(400).json({ message: "Selected DA is not from your district" });
+                }
+
+                // Update application with inspection scheduling
+                await storage.updateApplication(req.params.id, {
+                    status: 'inspection_scheduled',
+                    dtdoRemarks: trimmedRemarks,
+                    dtdoId: userId,
+                    dtdoReviewDate: new Date(),
+                    inspectionDate: parsedDate,
+                    assignedDealingAssistantId: assignedTo,
+                    inspectionStatus: 'pending',
+                });
+
+                // CRITICAL: Create the inspection order record so it appears in DA's list
+                await db.insert(inspectionOrders).values({
+                    applicationId: req.params.id,
+                    scheduledBy: userId,
+                    scheduledDate: new Date(),
+                    assignedTo: assignedTo,
+                    assignedDate: new Date(),
+                    inspectionDate: parsedDate,
+                    inspectionAddress: application.address,
+                    specialInstructions: trimmedRemarks,
+                    status: 'scheduled',
+                });
+
+                await logApplicationAction({
+                    applicationId: req.params.id,
+                    actorId: userId,
+                    action: "inspection_scheduled",
+                    previousStatus: application.status,
+                    newStatus: "inspection_scheduled",
+                    feedback: `Inspection scheduled for ${parsedDate.toLocaleDateString()}. Instructions: ${trimmedRemarks}`,
+                });
+
+                // Notify owner about scheduled inspection
+                const owner = await storage.getUser(application.userId);
+                queueNotification("inspection_scheduled", {
+                    application: { ...application, status: 'inspection_scheduled', inspectionDate: parsedDate } as any,
+                    owner: owner ?? null,
+                    inspectionDate: parsedDate.toISOString(),
+                });
+
+                // Notify assigned DA
+                queueNotification("inspection_assigned", {
+                    application: { ...application, status: 'inspection_scheduled', inspectionDate: parsedDate } as any,
+                    assignedDA: assignedUser,
+                    inspectionDate: parsedDate.toISOString(),
+                    instructions: trimmedRemarks,
+                });
+
+                return res.json({
+                    message: "Application accepted and inspection scheduled successfully.",
+                    applicationId: req.params.id,
+                    inspectionDate: parsedDate.toISOString(),
+                });
+            }
+
+            // LEGACY FLOW: No scheduling data provided, just set to dtdo_review
             await storage.updateApplication(req.params.id, {
                 status: 'dtdo_review',
                 dtdoRemarks: trimmedRemarks,
@@ -1121,6 +1302,165 @@ export function createDtdoRouter() {
         } catch (error) {
             routeLog.error("[dtdo] Failed to bypass approve application:", error);
             res.status(500).json({ message: "Failed to process approval" });
+        }
+    });
+
+    // ==========================================================================
+    // DTDO CORRECTION ENDPOINT
+    // Allows DTDO to make corrections to approved/active applications
+    // Maintains full audit trail of changes
+    // ==========================================================================
+
+    // Allowlist of fields that DTDO can correct
+    const ALLOWED_CORRECTION_FIELDS = [
+        'propertyName',
+        'guardianName',
+        'address',
+        'ownerGender',
+        'tehsil',
+        'gramPanchayat',
+        'urbanBody',
+        'pincode',
+        'alternatePhone',
+    ] as const;
+
+    type CorrectionField = typeof ALLOWED_CORRECTION_FIELDS[number];
+
+    router.patch("/applications/:id/correct", requireRole('district_tourism_officer', 'district_officer'), async (req, res) => {
+        try {
+            const { corrections, reason } = req.body as {
+                corrections: Partial<Record<CorrectionField, string>>;
+                reason: string;
+            };
+
+            // Validate correction reason is provided
+            if (!reason || reason.trim().length < 10) {
+                return res.status(400).json({
+                    message: "Correction reason is required (minimum 10 characters)",
+                    code: "REASON_REQUIRED"
+                });
+            }
+
+            // Validate corrections object
+            if (!corrections || typeof corrections !== 'object' || Object.keys(corrections).length === 0) {
+                return res.status(400).json({
+                    message: "No corrections provided",
+                    code: "NO_CORRECTIONS"
+                });
+            }
+
+            // Validate all fields are in the allowlist
+            const invalidFields = Object.keys(corrections).filter(
+                field => !ALLOWED_CORRECTION_FIELDS.includes(field as CorrectionField)
+            );
+            if (invalidFields.length > 0) {
+                return res.status(400).json({
+                    message: `The following fields cannot be corrected by DTDO: ${invalidFields.join(', ')}`,
+                    code: "INVALID_FIELDS",
+                    invalidFields
+                });
+            }
+
+            const userId = req.session.userId!;
+            const user = await storage.getUser(userId);
+
+            if (!user) {
+                return res.status(401).json({ message: "User not found" });
+            }
+
+            const application = await storage.getApplication(req.params.id);
+            if (!application) {
+                return res.status(404).json({ message: "Application not found" });
+            }
+
+            // Verify application is from DTDO's district
+            if (user.district && !districtsMatch(user.district, application.district)) {
+                return res.status(403).json({
+                    message: "You can only correct applications from your district",
+                    code: "DISTRICT_MISMATCH"
+                });
+            }
+
+            // Only allow corrections on approved/active applications
+            const correctableStatuses = ['approved', 'certificate_issued', 'active', 'completed'];
+            if (!correctableStatuses.some(s => application.status?.includes(s))) {
+                return res.status(400).json({
+                    message: `Corrections can only be made to approved/active applications. Current status: ${application.status}`,
+                    code: "INVALID_STATUS"
+                });
+            }
+
+            // Build the before/after change log
+            const changeLog: Array<{
+                field: string;
+                oldValue: string | null;
+                newValue: string;
+            }> = [];
+
+            const sanitizedCorrections: Partial<Record<CorrectionField, string>> = {};
+
+            for (const [field, newValue] of Object.entries(corrections)) {
+                const fieldKey = field as CorrectionField;
+                const oldValue = (application as any)[fieldKey];
+                const newValueStr = String(newValue ?? '').trim();
+
+                // Only include if actually changed
+                if (oldValue !== newValueStr && newValueStr.length > 0) {
+                    changeLog.push({
+                        field: fieldKey,
+                        oldValue: oldValue ?? null,
+                        newValue: newValueStr
+                    });
+                    sanitizedCorrections[fieldKey] = newValueStr;
+                }
+            }
+
+            if (changeLog.length === 0) {
+                return res.status(400).json({
+                    message: "No actual changes detected",
+                    code: "NO_CHANGES"
+                });
+            }
+
+            // Apply the corrections
+            await storage.updateApplication(req.params.id, sanitizedCorrections as any);
+
+            // Create detailed audit log entry
+            const auditFeedback = JSON.stringify({
+                type: 'dtdo_correction',
+                reason: reason.trim(),
+                correctedBy: {
+                    id: userId,
+                    name: user.fullName,
+                    role: user.role
+                },
+                timestamp: new Date().toISOString(),
+                changes: changeLog
+            });
+
+            await logApplicationAction({
+                applicationId: req.params.id,
+                actorId: userId,
+                action: "dtdo_correction",
+                previousStatus: application.status,
+                newStatus: application.status, // Status doesn't change
+                feedback: auditFeedback
+            });
+
+            routeLog.info("[dtdo] Application corrected", {
+                applicationId: req.params.id,
+                correctedBy: userId,
+                changesCount: changeLog.length
+            });
+
+            res.json({
+                message: `Successfully corrected ${changeLog.length} field(s)`,
+                changes: changeLog
+            });
+
+        } catch (error) {
+            routeLog.error("[dtdo] Failed to correct application:", error);
+            res.status(500).json({ message: "Failed to apply corrections" });
         }
     });
 

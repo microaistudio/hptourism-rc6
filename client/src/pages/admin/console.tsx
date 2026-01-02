@@ -39,6 +39,12 @@ const quickActions: QuickAction[] = [
     icon: Users,
   },
   {
+    title: "Workflow Settings",
+    description: "DA Send Back, OTP login, category enforcement, upload policies",
+    href: "/admin/console-old",
+    icon: Settings,
+  },
+  {
     title: "Audit Timeline",
     description: "Investigate escalations or trace approvals",
     href: "/admin/audit-log",

@@ -112,7 +112,7 @@ export default function DADashboard() {
     isCorrectionRequiredStatus(app.status) &&
     Boolean(app.latestCorrection?.createdAt || (app.correctionSubmissionCount ?? 0) > 0);
   const needsCorrectionHandling = (app: ApplicationWithOwner) =>
-    correctionStatuses.has(app.status) || isResubmitted(app);
+    correctionStatuses.has(app.status || "") || isResubmitted(app);
 
   const getSortTimestamp = useCallback((app: ApplicationWithOwner) => {
     const candidate = app.updatedAt ?? app.submittedAt ?? app.createdAt;
@@ -184,20 +184,12 @@ export default function DADashboard() {
   );
   const completedInspections = useMemo(
     () => {
-      const finalStatuses = new Set([
-        "approved",
-        "rejected",
-        "payment_pending",
-        "verified_for_payment",
-      ]);
       const seen = new Set<string>();
       return (inspections ?? []).filter((order) => {
         const key = order.applicationId || order.id;
         if (seen.has(key)) return false;
         seen.add(key);
-        const appStatus = order.application?.status;
-        const isFinal = appStatus ? finalStatuses.has(appStatus) : false;
-        return order.reportSubmitted && !isFinal;
+        return order.reportSubmitted;
       });
     },
     [inspections],
@@ -301,111 +293,89 @@ export default function DADashboard() {
       }
 
       return (
-        <div className="space-y-4">
+        <div className="border rounded-lg overflow-hidden">
           {list.map((inspection) => (
-            <Card
+            <div
               key={inspection.id}
-              className="cursor-pointer transition-all hover-elevate active-elevate-2"
+              className="px-4 py-3 border-b border-border hover:bg-muted/30 cursor-pointer transition-colors last:border-b-0"
               onClick={() => setLocation(`/da/inspections/${inspection.id}`)}
               data-testid={`card-inspection-${inspection.id}`}
             >
-              <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">
-                          {inspection.application?.propertyName || "Property Name Unavailable"}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <span className="text-sm text-muted-foreground">
-                            {inspection.application?.applicationNumber || "N/A"}
-                          </span>
-                          {inspection.application?.category &&
-                            (
-                              <Badge
-                                variant="outline"
-                                className={
-                                  {
-                                    diamond: "bg-purple-50 text-purple-700 dark:bg-purple-950/20",
-                                    gold: "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/20",
-                                    silver: "bg-gray-50 text-gray-700 dark:bg-gray-950/20",
-                                  }[inspection.application.category.toLowerCase()] || ""
-                                }
-                              >
-                                {inspection.application.category.toUpperCase()}
-                              </Badge>
-                            )}
-                          <Badge
-                            variant="outline"
-                            className={
-                              inspection.reportSubmitted
-                                ? "bg-green-50 text-green-700 dark:bg-green-950/20"
-                                : "bg-blue-50 text-blue-700 dark:bg-blue-950/20"
-                            }
-                          >
-                            {inspection.reportSubmitted ? "Report Submitted" : "Scheduled"}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Scheduled:</span>
-                        <span>
-                          {inspection.inspectionDate
-                            ? new Date(inspection.inspectionDate).toLocaleDateString()
-                            : "Not set"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Owner:</span>
-                        <span>{inspection.owner?.fullName || "N/A"}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Address:</span>
-                        <span className="truncate">
-                          {inspection.inspectionAddress || inspection.application?.propertyName || "—"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Status:</span>
-                        <span>{inspection.status || (inspection.reportSubmitted ? "Completed" : "Pending")}</span>
-                      </div>
-                    </div>
-
-                    {inspection.application?.dtdoRemarks && (
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold text-foreground">DTDO Instructions:</span>{" "}
-                        {inspection.application.dtdoRemarks}
-                      </p>
-                    )}
-                    {inspection.specialInstructions && (
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold text-foreground">Owner Message:</span>{" "}
-                        {inspection.specialInstructions}
-                      </p>
-                    )}
+              <div className="flex items-center justify-between gap-4">
+                {/* Left side: Icon + Property info */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {/* Clipboard icon */}
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${inspection.reportSubmitted
+                    ? "bg-green-100"
+                    : "bg-amber-100"
+                    }`}>
+                    <ClipboardCheck className={`w-5 h-5 ${inspection.reportSubmitted
+                      ? "text-green-600"
+                      : "text-amber-600"
+                      }`} />
                   </div>
-                  <div className="flex flex-col gap-2 min-w-[140px]">
-                    <Button
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLocation(`/da/inspections/${inspection.id}`);
-                      }}
-                    >
-                      {inspection.reportSubmitted ? "View Report" : "Open inspection"}
-                    </Button>
+
+                  <div className="min-w-0 flex-1">
+                    {/* Line 1: Property name + badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold">{inspection.application?.propertyName || 'Property Name Unavailable'}</span>
+                      {inspection.application?.category && (
+                        <Badge
+                          variant="outline"
+                          className={
+                            {
+                              diamond: "bg-purple-50 text-purple-700",
+                              gold: "bg-yellow-50 text-yellow-700",
+                              silver: "bg-gray-50 text-gray-700",
+                            }[inspection.application.category.toLowerCase()] || ""
+                          }
+                        >
+                          {inspection.application.category.toUpperCase()}
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={
+                          inspection.reportSubmitted
+                            ? "bg-green-50 text-green-700"
+                            : "bg-blue-50 text-blue-700"
+                        }
+                      >
+                        {inspection.reportSubmitted ? "Report Submitted" : "Scheduled"}
+                      </Badge>
+                    </div>
+
+                    {/* Line 2: App number, date, owner */}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                      <span className="font-mono">{inspection.application?.applicationNumber || '—'}</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {inspection.inspectionDate
+                          ? new Date(inspection.inspectionDate).toLocaleDateString()
+                          : "Not set"}
+                      </span>
+                      <span className="hidden sm:flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        {inspection.owner?.fullName || 'N/A'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                {/* Right side: Action button */}
+                <Button
+                  size="sm"
+                  variant={inspection.reportSubmitted ? "outline" : "default"}
+                  className="flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation(`/da/inspections/${inspection.id}`);
+                  }}
+                >
+                  {inspection.reportSubmitted ? 'View Report' : 'Submit Report'}
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       );
@@ -457,7 +427,7 @@ export default function DADashboard() {
       new: `New Reg ${submittedNew.length} · Renewals 0 · Amend ${submittedAmendments.length} · Cancel ${submittedModifications.length}`,
       process: `Screening ${sortedUnderScrutiny.length} · Forwarded ${sortedForwarded.length}`,
       corrections: `Sent back ${sortedAwaitingOwners.length} · Resubmitted ${sortedResubmitted.length}`,
-      inspections: `Scheduled ${scheduledInspections.length} · Reports ${completedInspectionsThisMonth.length}`,
+      inspections: `Scheduled ${scheduledInspections.length} · Reports ${completedInspections.length}`,
       completed: `Approved ${approvedCompleted.length} · Rejected ${rejectedCompleted.length}`,
     }),
     [
@@ -605,12 +575,12 @@ export default function DADashboard() {
           {
             value: "inspections-completed",
             label: "Report submitted",
-            count: completedInspectionsThisMonth.length,
+            count: completedInspections.length,
             description: "Field reports submitted.",
             applications: [],
             emptyTitle: "No recent inspections",
             emptyDescription: "Completed inspections will appear here.",
-            render: () => renderInspectionList(completedInspectionsThisMonth, "completed"),
+            render: () => renderInspectionList(completedInspections, "completed"),
           },
         ],
       },
@@ -694,6 +664,7 @@ export default function DADashboard() {
 
   // If the current stage has no items but another stage does, auto-switch to the first non-empty stage
   useEffect(() => {
+    type StageKey = "new-queue" | "process" | "corrections" | "inspections" | "completed";
     const stageTotals: Record<StageKey, number> = {
       "new-queue": submittedNew.length + submittedAmendments.length + submittedModifications.length,
       process: sortedUnderScrutiny.length + sortedForwarded.length,
@@ -701,7 +672,7 @@ export default function DADashboard() {
       inspections: scheduledInspections.length + completedInspectionsThisMonth.length,
       completed: approvedCompleted.length + legacyRCVerified.length + rejectedCompleted.length,
     };
-    const currentTotal = stageTotals[activeStage] ?? 0;
+    const currentTotal = stageTotals[activeStage as StageKey] ?? 0;
     if (currentTotal > 0) return;
 
     const preference: StageKey[] = ["corrections", "inspections", "process", "new-queue", "completed"];
@@ -777,12 +748,13 @@ export default function DADashboard() {
       </div>
 
       {/* Stage Overview */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 mb-6">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5 mb-6">
         {stageConfigs.map((stage) => {
           const Icon = stage.icon;
           const totalCount = stage.totalCount ?? stage.pills.reduce((sum, pill) => sum + pill.count, 0);
           const isActiveStage = stage.key === activeStageConfig?.key;
-          const hasActionable = stage.pills.some((pill) => actionablePills.has(pill.value));
+          const hasActionable = stage.pills.some((pill) => actionablePills.has(pill.value) && pill.count > 0);
+          const needsAttention = stage.key === "inspections" && totalCount > 0;
           return (
             <Card
               key={stage.key}
@@ -804,52 +776,86 @@ export default function DADashboard() {
                 }
               }}
               className={cn(
-                "p-4 sm:p-5 flex flex-col gap-2 cursor-pointer transition-all border border-border hover-elevate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl",
+                "p-3 sm:p-4 flex flex-col gap-1 cursor-pointer transition-all border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl relative overflow-hidden dashboard-card-hover",
                 isActiveStage ? "ring-2 ring-primary" : "",
+                hasActionable ? "dashboard-card-shimmer" : "",
+                needsAttention ? "dashboard-card-shimmer-amber" : "",
               )}
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{stage.title}</p>
-                  <p className="text-3xl font-semibold mt-1">{totalCount}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground dashboard-card-title">{stage.title}</p>
+                  <p className={cn(
+                    "text-2xl font-semibold mt-0.5 dashboard-card-count",
+                    totalCount > 0 ? "dashboard-count-pulse" : ""
+                  )}>{totalCount}</p>
                 </div>
-                <div className="p-2 rounded-full bg-muted/40">
-                  <Icon className="w-5 h-5 text-primary" />
+                <div className="p-1.5 rounded-full bg-muted/40">
+                  <Icon className="w-4 h-4 text-primary dashboard-card-icon" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">{stage.description}</p>
-              <div className="mt-auto flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+              {stage.key === "completed" ? (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={completedRange}
+                    onValueChange={(v: "month" | "30d") => setCompletedRange(v)}
+                  >
+                    <SelectTrigger className="h-5 text-[10px] w-fit gap-1 bg-transparent border-0 p-0 text-muted-foreground hover:text-foreground focus:ring-0">
+                      <span className="truncate">
+                        {completedRange === "month" ? "Decisions this month" : "Decisions last 30 days"}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="month">This month</SelectItem>
+                      <SelectItem value="30d">Last 30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground line-clamp-1">{stage.description}</p>
+              )}
+              <div className="mt-2 flex flex-col gap-0.5 text-[11px]">
                 {stage.pills.map((pill) => {
                   const isActionable = actionablePills.has(pill.value) && pill.count > 0;
-                  const content = (
-                    <>
-                      <span>{pill.label}</span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold">{pill.count}</span>
-                    </>
-                  );
-                  if (isActionable) {
-                    return (
-                      <button
-                        key={pill.value}
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setActiveStage(stage.key);
-                          setActivePill(pill.value);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-900 hover:bg-amber-100 transition-colors"
-                      >
-                        {content}
-                      </button>
-                    );
-                  }
+                  const isActive = pill.value === activePill && stage.key === activeStage;
                   return (
-                    <span
+                    <button
                       key={pill.value}
-                      className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveStage(stage.key);
+                        setActivePill(pill.value);
+                      }}
+                      className={cn(
+                        "flex items-center justify-between w-full px-2 py-1 rounded transition-all text-left",
+                        // Background for all bars
+                        isActionable
+                          ? stage.key === "inspections"
+                            ? "bg-amber-50 hover:bg-amber-100"
+                            : "bg-primary/10 hover:bg-primary/15"
+                          : "bg-muted/30 hover:bg-muted/50",
+                        isActive ? "ring-1 ring-primary" : "",
+                        // Subtle pulse animation for items with count > 0
+                        isActionable ? "animate-pulse-subtle" : "",
+                      )}
                     >
-                      {content}
-                    </span>
+                      <span className={cn(
+                        isActionable
+                          ? stage.key === "inspections"
+                            ? "text-amber-800 font-medium"
+                            : "text-primary font-medium"
+                          : "text-muted-foreground"
+                      )}>{pill.label}</span>
+                      <span className={cn(
+                        "min-w-[1.5rem] text-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                        isActionable
+                          ? stage.key === "inspections"
+                            ? "bg-amber-500 text-white"
+                            : "bg-primary text-white"
+                          : "bg-muted text-muted-foreground"
+                      )}>{pill.count}</span>
+                    </button>
                   );
                 })}
               </div>
@@ -884,35 +890,7 @@ export default function DADashboard() {
               </button>
             );
           })}
-          {activeStageConfig.key === "completed" && (
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs text-muted-foreground">Window:</span>
-              <button
-                type="button"
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-semibold border",
-                  completedRange === "month"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-white text-foreground border-border hover:bg-muted"
-                )}
-                onClick={() => setCompletedRange("month")}
-              >
-                This month
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-semibold border",
-                  completedRange === "30d"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-white text-foreground border-border hover:bg-muted"
-                )}
-                onClick={() => setCompletedRange("30d")}
-              >
-                Last 30 days
-              </button>
-            </div>
-          )}
+
         </div>
       )}
 
@@ -1026,7 +1004,7 @@ export default function DADashboard() {
                 <p className="text-sm mt-1">{activePillConfig.emptyDescription}</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="border rounded-lg overflow-hidden">
                 {activePillConfig.applications.map((application) => (
                   <ApplicationPipelineRow
                     key={application.id}

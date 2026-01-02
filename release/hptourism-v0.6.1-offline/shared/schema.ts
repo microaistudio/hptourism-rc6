@@ -3,7 +3,7 @@ import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb } f
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const APPLICATION_KIND_VALUES = ['new_registration', 'renewal', 'add_rooms', 'delete_rooms', 'cancel_certificate'] as const;
+export const APPLICATION_KIND_VALUES = ['new_registration', 'renewal', 'add_rooms', 'delete_rooms', 'cancel_certificate', 'change_category', 'change_ownership'] as const;
 export type ApplicationKind = typeof APPLICATION_KIND_VALUES[number];
 export const applicationKindEnum = z.enum(APPLICATION_KIND_VALUES);
 
@@ -101,6 +101,58 @@ export type WaterSportsApplicationData = {
     amount: number;
   };
 };
+// Adventure Sports Application Data (stored in JSONB when applicationType = 'adventure_sports')
+export type AdventureSportsApplicationData = {
+  // Activity Selection
+  activityCategory: 'water_sports' | 'air_adventure' | 'land_adventure';
+  activityType: 'non_motorized' | 'motorized' | 'river_adventure' | 'air_adventure' | 'land_adventure';
+  activity: string; // Specific activity ID (e.g., 'paddle_boat', 'jet_ski', 'paragliding')
+
+  // Operator & Area Details
+  operatorType: 'individual' | 'company' | 'society';
+  operatorName: string;
+  localOfficeAddress: string;
+  district: string;
+  waterBodyId?: string; // Optional: For water sports
+  waterBodyName: string; // Required: Name of location/water body/site
+  areaOfOperation: string; // Specific area description
+
+  // Equipment / Unit Details
+  equipment: Array<{
+    type: string; // Activity ID or Unit Type
+    manufacturer: string;
+    identificationNo: string;
+    yearOfManufacture: string;
+    // Generic safety/details object that can vary by activity
+    safetyEquipment: {
+      lifeJackets?: number;
+      lifebuoys?: number;
+      firstAidKit: boolean;
+      helmet?: boolean;
+      harness?: boolean;
+      reserveParachute?: boolean;
+      communicationDevice?: boolean;
+      insuranceValid?: boolean;
+      fitnessCertificate?: boolean;
+      [key: string]: any; // Allow for extensibility
+    };
+  }>;
+
+  // Manpower / Staff Details
+  manpower: Array<{
+    role: string; // 'boatman', 'motor_boat_driver', 'pilot', 'guide', 'instructor'
+    name: string;
+    dob: string;
+    registrationNo?: string; // License/Certificate number
+    firstAidCertified: boolean;
+    technicalQualification?: string; // e.g., 'P2 License', 'Mountaineering Course'
+    experienceYears?: number;
+  }>;
+
+  // Future phases will add:
+  // - Insurance details (Phase 1C+)
+  // - Emergency protocols (Phase 2)
+};
 
 // Users Table
 export const users = pgTable("users", {
@@ -130,6 +182,10 @@ export const users = pgTable("users", {
   ssoId: varchar("sso_id", { length: 50 }).unique(), // HP SSO integration ID
   district: varchar("district", { length: 100 }),
   password: text("password"), // For demo/testing, in production would use proper auth
+
+  // Owner service preferences - which services they offer
+  enabledServices: jsonb("enabled_services").$type<string[]>().default(sql`'["homestay"]'::jsonb`),
+
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -251,10 +307,14 @@ export const homestayApplications = pgTable("homestay_applications", {
   serviceRequestedAt: timestamp("service_requested_at"),
 
   // Multi-Activity Support (v0.7+)
-  applicationType: varchar("application_type", { length: 50 }).default('homestay'), // 'homestay' | 'water_sports'
+  applicationType: varchar("application_type", { length: 50 }).default('homestay'), // 'homestay' | 'water_sports' | 'adventure_sports'
 
   // Water Sports Specific Data (when applicationType = 'water_sports')
   waterSportsData: jsonb("water_sports_data").$type<WaterSportsApplicationData>(),
+
+  // Adventure Sports Specific Data (when applicationType = 'adventure_sports')
+  adventureSportsData: jsonb("adventure_sports_data").$type<AdventureSportsApplicationData>(),
+
 
   // Property Details (ANNEXURE-I)
   propertyName: varchar("property_name", { length: 255 }).notNull(),
@@ -297,12 +357,14 @@ export const homestayApplications = pgTable("homestay_applications", {
   ownerEmail: varchar("owner_email", { length: 255 }),
   guardianName: varchar("guardian_name", { length: 255 }),
   ownerAadhaar: varchar("owner_aadhaar", { length: 12 }).notNull(),
+  guardianRelation: varchar("guardian_relation", { length: 20 }).default('father'),
   propertyOwnership: varchar("property_ownership", { length: 10 }).$type<'owned' | 'leased'>().notNull().default('owned'),
 
   // Room & Category Details (ANNEXURE-I)
   proposedRoomRate: decimal("proposed_room_rate", { precision: 10, scale: 2 }), // DEPRECATED: Use per-room-type rates below
   projectType: varchar("project_type", { length: 20 }).$type<ProjectType>().notNull(),
   propertyArea: decimal("property_area", { precision: 10, scale: 2 }).notNull(), // in sq meters
+  propertyAreaUnit: varchar("property_area_unit", { length: 10 }).$type<'sqm' | 'sqft' | 'kanal' | 'marla' | 'bigha' | 'biswa'>().default('sqm'), // User's input unit
 
   // 2025 Rules - Per Room Type Rates (Required for Form-A certificate)
   singleBedRooms: integer("single_bed_rooms").default(0),
@@ -339,6 +401,11 @@ export const homestayApplications = pgTable("homestay_applications", {
   distanceCityCenter: decimal("distance_city_center", { precision: 10, scale: 2 }),
   distanceShopping: decimal("distance_shopping", { precision: 10, scale: 2 }),
   distanceBusStand: decimal("distance_bus_stand", { precision: 10, scale: 2 }),
+
+  // Key Location Highlights (text description)
+  keyLocationHighlight1: text("key_location_highlight1"),
+  keyLocationHighlight2: text("key_location_highlight2"),
+
 
   // Public Areas (ANNEXURE-I) - in sq ft
   lobbyArea: decimal("lobby_area", { precision: 10, scale: 2 }),
@@ -387,6 +454,10 @@ export const homestayApplications = pgTable("homestay_applications", {
     lakeBoating?: boolean;
     fishingSpot?: boolean;
   }>(),
+
+  // Annexure-III Checklist (2025 Policy Compliance)
+  mandatoryChecklist: jsonb("mandatory_checklist").$type<Record<string, boolean>>(), // 18 mandatory items
+  desirableChecklist: jsonb("desirable_checklist").$type<Record<string, boolean>>(), // 18 desirable items
   rooms: jsonb("rooms").$type<Array<{
     roomType: string;
     size: number;
@@ -491,6 +562,9 @@ export const homestayApplications = pgTable("homestay_applications", {
   approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+
+  // Analytics: Time spent filling the form (seconds) - for internal use only
+  formCompletionTimeSeconds: integer("form_completion_time_seconds"),
 });
 
 export const insertHomestayApplicationSchema = createInsertSchema(homestayApplications, {
@@ -524,10 +598,12 @@ export const insertHomestayApplicationSchema = createInsertSchema(homestayApplic
   ownerMobile: z.string().regex(/^[6-9]\d{9}$/),
   ownerEmail: z.string().email().optional().or(z.literal('')),
   guardianName: z.string().min(3).optional().or(z.literal('')),
+  guardianRelation: z.enum(['father', 'husband', 'guardian']).optional().default('father'),
   ownerAadhaar: z.string().regex(/^\d{12}$/),
   proposedRoomRate: z.number().min(100, "Room rate must be at least ₹100").optional(), // DEPRECATED: Use per-room-type rates
   projectType: z.enum(PROJECT_TYPE_VALUES),
   propertyArea: z.number().min(1, "Property area required"),
+  propertyAreaUnit: z.enum(["sqm", "sqft", "kanal", "marla", "bigha", "biswa"]).default("sqm"),
 
   // 2025 Rules - Per Room Type Rates
   singleBedRooms: z.number().int().min(0).default(0),
@@ -568,6 +644,10 @@ export const insertHomestayApplicationSchema = createInsertSchema(homestayApplic
   differentlyAbledFacilities: z.string().optional().or(z.literal('')),
   fireEquipmentDetails: z.string().optional().or(z.literal('')),
   nearestHospital: z.string().optional().or(z.literal('')),
+
+  // Checklists
+  mandatoryChecklist: z.record(z.string(), z.boolean()).optional(),
+  desirableChecklist: z.record(z.string(), z.boolean()).optional(),
 }).omit({ id: true, applicationNumber: true, createdAt: true, updatedAt: true }).superRefine((data, ctx) => {
   const singleRooms = data.singleBedRooms ?? 0;
   const doubleRooms = data.doubleBedRooms ?? 0;
@@ -627,9 +707,10 @@ export const draftHomestayApplicationSchema = createInsertSchema(homestayApplica
   ownerMobile: z.string().optional().or(z.literal('')),
   ownerEmail: z.string().optional().or(z.literal('')),
   guardianName: z.string().optional().or(z.literal('')),
+  guardianRelation: z.enum(['father', 'husband', 'guardian']).optional(),
   ownerAadhaar: z.string().optional().or(z.literal('')),
   proposedRoomRate: z.number().optional(), // DEPRECATED: Use per-room-type rates
-  projectType: z.enum(['new_rooms', 'new_project']).optional(),
+  projectType: z.enum(PROJECT_TYPE_VALUES).optional(),
   propertyArea: z.number().optional(),
 
   // 2025 Rules - Per Room Type Rates (optional for drafts)
@@ -671,6 +752,10 @@ export const draftHomestayApplicationSchema = createInsertSchema(homestayApplica
   differentlyAbledFacilities: z.string().optional().or(z.literal('')),
   fireEquipmentDetails: z.string().optional().or(z.literal('')),
   nearestHospital: z.string().optional().or(z.literal('')),
+
+  // Checklists (2025 Rules)
+  mandatoryChecklist: z.record(z.string(), z.boolean()).optional(),
+  desirableChecklist: z.record(z.string(), z.boolean()).optional(),
 
   // Fee fields (all optional for drafts)
   baseFee: z.number().optional(),
@@ -732,6 +817,13 @@ export const storageObjects = pgTable("storage_objects", {
   documentId: varchar("document_id").references(() => documents.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow(),
   lastAccessedAt: timestamp("last_accessed_at"),
+});
+
+// Session Table (connect-pg-simple)
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey().notNull(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
 });
 
 export const insertStorageObjectSchema = createInsertSchema(storageObjects).omit({ id: true, createdAt: true });
@@ -861,6 +953,158 @@ export const insertReviewSchema = createInsertSchema(reviews, {
 export const selectReviewSchema = createSelectSchema(reviews);
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
+
+// Support Tickets Table (Grievances/Complaints/Queries)
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(), // GRV-2025-000123
+
+  // Who raised the ticket
+  applicantId: varchar("applicant_id").notNull().references(() => users.id),
+
+  // Optional link to application
+  applicationId: varchar("application_id").references(() => homestayApplications.id),
+
+  // Service context
+  serviceType: varchar("service_type", { length: 50 }).default("homestay"), // homestay, adventure_sports, etc.
+
+  // Ticket details
+  category: varchar("category", { length: 50 }).notNull(), // delay, payment, document, inspection, technical, general, escalation
+  subject: varchar("subject", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+
+  // Status and workflow
+  status: varchar("status", { length: 30 }).notNull().default("open"), // open, assigned, in_progress, resolved, closed
+  priority: varchar("priority", { length: 20 }).notNull().default("medium"), // low, medium, high, urgent
+
+  // Assignment
+  assignedTo: varchar("assigned_to").references(() => users.id), // DA/DTDO/Admin
+  assignedAt: timestamp("assigned_at"),
+
+  // Escalation tracking
+  escalatedFrom: varchar("escalated_from").references(() => users.id), // If escalated, who escalated
+  escalatedAt: timestamp("escalated_at"),
+  escalationLevel: integer("escalation_level").default(0), // 0=initial, 1=DA, 2=DTDO, 3=Admin
+
+  // SLA tracking
+  slaDeadline: timestamp("sla_deadline"), // Auto-calculated based on priority
+  slaBreach: boolean("sla_breach").default(false),
+
+  // Resolution
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+  resolutionNotes: text("resolution_notes"),
+
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets, {
+  category: z.enum(["delay", "payment", "document", "inspection", "technical", "general", "escalation", "other"]),
+  status: z.enum(["open", "assigned", "in_progress", "resolved", "closed"]),
+  priority: z.enum(["low", "medium", "high", "urgent"]),
+  subject: z.string().min(5, "Subject must be at least 5 characters").max(255),
+  description: z.string().min(20, "Description must be at least 20 characters"),
+}).omit({ id: true, ticketNumber: true, createdAt: true, updatedAt: true });
+
+export const selectSupportTicketSchema = createSelectSchema(supportTickets);
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+
+// Ticket Messages Table (Conversation thread)
+export const ticketMessages = pgTable("ticket_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+
+  // Sender info
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  senderRole: varchar("sender_role", { length: 30 }).notNull(), // applicant, officer, system
+
+  // Message content
+  message: text("message").notNull(),
+
+  // Attachments (array of file URLs/metadata)
+  attachments: jsonb("attachments").$type<Array<{
+    fileName: string;
+    fileUrl: string;
+    fileType: string;
+    fileSize: number;
+  }>>(),
+
+  // Internal notes (visible only to officers)
+  isInternal: boolean("is_internal").default(false),
+
+  // Read status
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTicketMessageSchema = createInsertSchema(ticketMessages, {
+  senderRole: z.enum(["applicant", "officer", "system"]),
+  message: z.string().min(1, "Message cannot be empty"),
+}).omit({ id: true, createdAt: true });
+
+export const selectTicketMessageSchema = createSelectSchema(ticketMessages);
+export type InsertTicketMessage = z.infer<typeof insertTicketMessageSchema>;
+export type TicketMessage = typeof ticketMessages.$inferSelect;
+
+// Ticket Actions Table (Audit Trail for every ticket state change)
+export const ticketActions = pgTable("ticket_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+
+  // Who performed the action
+  actorId: varchar("actor_id").references(() => users.id), // null for system actions
+  actorRole: varchar("actor_role", { length: 30 }), // applicant, officer, system
+
+  // Action type
+  action: varchar("action", { length: 50 }).notNull(),
+  // Actions: created, assigned, status_changed, priority_changed, escalated, 
+  //          message_sent, attachment_added, sla_breached, resolved, closed, reopened
+
+  // State tracking
+  previousStatus: varchar("previous_status", { length: 30 }),
+  newStatus: varchar("new_status", { length: 30 }),
+  previousPriority: varchar("previous_priority", { length: 20 }),
+  newPriority: varchar("new_priority", { length: 20 }),
+
+  // Assignment tracking
+  previousAssignee: varchar("previous_assignee").references(() => users.id),
+  newAssignee: varchar("new_assignee").references(() => users.id),
+
+  // Additional context
+  notes: text("notes"), // Reason for action, comments
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(), // Flexible additional data
+
+  // IP tracking for security
+  ipAddress: varchar("ip_address", { length: 45 }),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTicketActionSchema = createInsertSchema(ticketActions, {
+  action: z.enum([
+    "created",
+    "assigned",
+    "status_changed",
+    "priority_changed",
+    "escalated",
+    "message_sent",
+    "attachment_added",
+    "sla_breached",
+    "resolved",
+    "closed",
+    "reopened"
+  ]),
+  actorRole: z.enum(["applicant", "officer", "system"]).optional(),
+}).omit({ id: true, createdAt: true });
+
+export const selectTicketActionSchema = createSelectSchema(ticketActions);
+export type InsertTicketAction = z.infer<typeof insertTicketActionSchema>;
+export type TicketAction = typeof ticketActions.$inferSelect;
 
 // Audit Logs Table
 export const auditLogs = pgTable("audit_logs", {
@@ -1526,3 +1770,89 @@ export const insertLgdUrbanBodySchema = createInsertSchema(lgdUrbanBodies, {
 export const selectLgdUrbanBodySchema = createSelectSchema(lgdUrbanBodies);
 export type InsertLgdUrbanBody = z.infer<typeof insertLgdUrbanBodySchema>;
 export type LgdUrbanBody = typeof lgdUrbanBodies.$inferSelect;
+
+// Grievance Redressal Module
+export const grievances = pgTable("grievances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(), // e.g. GRV-2025-001
+  userId: varchar("user_id").references(() => users.id),
+  applicationId: varchar("application_id").references(() => homestayApplications.id),
+
+  category: varchar("category", { length: 50 }).notNull(), // payment, application, portal, other
+  priority: varchar("priority", { length: 20 }).default('medium'), // low, medium, high, critical
+  status: varchar("status", { length: 20 }).default('open'), // open, in_progress, resolved, closed
+
+  subject: varchar("subject", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  resolutionNotes: text("resolution_notes"),
+
+  attachments: jsonb("attachments").$type<string[]>(),
+
+  // Read tracking for notifications
+  lastCommentAt: timestamp("last_comment_at"),
+  lastReadByOwner: timestamp("last_read_by_owner"),
+  lastReadByOfficer: timestamp("last_read_by_officer"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertGrievanceSchema = createInsertSchema(grievances, {
+  category: z.enum(['payment', 'application', 'portal', 'other']),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  status: z.enum(['open', 'in_progress', 'resolved', 'closed']).optional(),
+  subject: z.string().min(5, "Subject must be at least 5 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  attachments: z.array(z.string()).optional(),
+}).omit({
+  id: true,
+  ticketNumber: true,
+  createdAt: true,
+  updatedAt: true,
+  resolvedAt: true,
+  resolutionNotes: true,
+  userId: true,
+  assignedTo: true
+});
+
+export const selectGrievanceSchema = createSelectSchema(grievances);
+export type InsertGrievance = z.infer<typeof insertGrievanceSchema>;
+export type Grievance = typeof grievances.$inferSelect;
+
+export const grievanceComments = pgTable("grievance_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  grievanceId: varchar("grievance_id").notNull().references(() => grievances.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  comment: text("comment").notNull(),
+  isInternal: boolean("is_internal").default(false),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertGrievanceCommentSchema = createInsertSchema(grievanceComments, {
+  comment: z.string().min(1, "Comment cannot be empty"),
+  isInternal: z.boolean().optional(),
+}).omit({ id: true, createdAt: true, userId: true, grievanceId: true });
+
+export type GrievanceComment = typeof grievanceComments.$inferSelect;
+
+// ============================================================================
+// GRIEVANCE AUDIT LOG - Tracks all actions for compliance
+// ============================================================================
+
+export const grievanceAuditLog = pgTable("grievance_audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  grievanceId: varchar("grievance_id").notNull().references(() => grievances.id, { onDelete: 'cascade' }),
+  action: varchar("action", { length: 50 }).notNull(), // 'created', 'status_changed', 'priority_changed', 'comment_added', 'assigned', 'resolved', 'closed', 'marked_read'
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  performedBy: varchar("performed_by").notNull().references(() => users.id),
+  performedAt: timestamp("performed_at").defaultNow(),
+  ipAddress: varchar("ip_address", { length: 50 }),
+  userAgent: text("user_agent"),
+});
+
+export type GrievanceAuditLog = typeof grievanceAuditLog.$inferSelect;

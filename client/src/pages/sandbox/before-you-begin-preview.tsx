@@ -96,12 +96,14 @@ function EnhancedReadinessDialog({
                                 {
                                     title: "Affidavit (Section 29)",
                                     desc: "Self-declaration as per tourism rules",
-                                    icon: FileText
+                                    icon: FileText,
+                                    template: "/print/affidavit"
                                 },
                                 {
                                     title: "Undertaking (Form-C)",
                                     desc: "Compliance declaration form",
-                                    icon: FileText
+                                    icon: FileText,
+                                    template: "/print/undertaking"
                                 }
                             ].map((doc, i) => (
                                 <div key={i} className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
@@ -111,6 +113,16 @@ function EnhancedReadinessDialog({
                                     <div className="flex-1 min-w-0">
                                         <p className="font-semibold text-foreground">{doc.title}</p>
                                         <p className="text-sm text-muted-foreground">{doc.desc}</p>
+                                        {doc.template && (
+                                            <a
+                                                href={doc.template}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-emerald-600 hover:underline mt-1 block"
+                                            >
+                                                View Format
+                                            </a>
+                                        )}
                                     </div>
                                     <CheckCircle2 className="w-5 h-5 text-muted-foreground/30" />
                                 </div>

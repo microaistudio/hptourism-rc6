@@ -26,6 +26,7 @@ interface Step1PropertyDetailsProps {
     locationType: "mc" | "tcp" | "gp";
     pincodeSuffixValue: string;
     showPincodeHint: boolean;
+    showRequiredWarning?: boolean; // Highlight empty required fields
     gramFieldConfig: {
         label: string;
         placeholder: string;
@@ -47,10 +48,27 @@ export function Step1PropertyDetails({
     locationType,
     pincodeSuffixValue,
     showPincodeHint,
+    showRequiredWarning = false,
     gramFieldConfig,
     urbanBodyConfig,
 }: Step1PropertyDetailsProps) {
     const isHydratingDraft = useRef(false);
+
+    // Track initial values to determine if fields should be locked
+    // (Only lock if they had data when the form loaded)
+    const initialGramPanchayat = useRef<string | null>(null);
+    const initialUrbanBody = useRef<string | null>(null);
+
+    // Capture initial values on first render
+    if (initialGramPanchayat.current === null) {
+        initialGramPanchayat.current = form.getValues('gramPanchayat') || '';
+    }
+    if (initialUrbanBody.current === null) {
+        initialUrbanBody.current = form.getValues('urbanBody') || '';
+    }
+
+    const gramWasPopulated = !!initialGramPanchayat.current;
+    const urbanWasPopulated = !!initialUrbanBody.current;
 
     return (
         <Card className="shadow-lg border-0 overflow-hidden">
@@ -62,7 +80,7 @@ export function Step1PropertyDetails({
                         </p>
                     </div>
                 )}
-                <fieldset disabled={isServiceDraft} className="space-y-0">
+                <div className="space-y-0">
                     {/* Section 1: Basic Information */}
                     <div className="border-b">
                         <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-6 py-4 rounded-t-lg">
@@ -90,7 +108,8 @@ export function Step1PropertyDetails({
                                                     placeholder="e.g., Himalayan View Homestay"
                                                     data-testid="input-property-name"
                                                     aria-invalid={fieldState.invalid}
-                                                    className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : ""}
+                                                    className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : showRequiredWarning && !field.value?.trim() ? "border-amber-400 ring-2 ring-amber-200" : ""}
+                                                    disabled={isServiceDraft}
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -104,32 +123,34 @@ export function Step1PropertyDetails({
                                     control={form.control}
                                     name="projectType"
                                     rules={{ required: "Property type is required" }}
-                                    render={({ field, fieldState }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                New Registration <span className="text-destructive">*</span>
-                                            </FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                    render={({ field }) => {
+                                        // Auto-determine the label based on context
+                                        const displayLabel = isServiceDraft
+                                            ? "Existing Property (Service Request)"
+                                            : "New Homestay Registration";
+
+                                        return (
+                                            <FormItem>
+                                                <FormLabel>
+                                                    {isServiceDraft ? "Service Request" : "New Registration"} <span className="text-destructive">*</span>
+                                                </FormLabel>
                                                 <FormControl>
-                                                    <SelectTrigger
-                                                        aria-invalid={fieldState.invalid}
-                                                        className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : ""}
-                                                    >
-                                                        <SelectValue placeholder="Select registration type" />
-                                                    </SelectTrigger>
+                                                    <Input
+                                                        value={displayLabel}
+                                                        readOnly
+                                                        className="bg-gray-50 cursor-not-allowed"
+                                                        data-testid="input-project-type"
+                                                    />
                                                 </FormControl>
-                                                <SelectContent>
-                                                    {PROJECT_TYPE_OPTIONS.map((option) => (
-                                                        <SelectItem key={option.value} value={option.value}>
-                                                            {option.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormDescription>Submit a fresh homestay registration.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
+                                                <FormDescription>
+                                                    {isServiceDraft
+                                                        ? "Amendment request for your approved property."
+                                                        : "Submit a fresh homestay registration."}
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        );
+                                    }}
                                 />
                             </div>
                         </div>
@@ -192,7 +213,7 @@ export function Step1PropertyDetails({
                                                 <FormControl>
                                                     <SelectTrigger
                                                         data-testid="select-district"
-                                                        className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : ""}
+                                                        className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : showRequiredWarning && !field.value?.trim() ? "border-amber-400 ring-2 ring-amber-200" : ""}
                                                         aria-invalid={fieldState.invalid}
                                                     >
                                                         <SelectValue placeholder="Select district" />
@@ -252,12 +273,12 @@ export function Step1PropertyDetails({
                                                             }
                                                         }}
                                                         value={field.value || undefined}
-                                                        disabled={!districtValue}
+                                                        disabled={!districtValue || isServiceDraft}
                                                     >
                                                         <FormControl>
                                                             <SelectTrigger
                                                                 data-testid="select-tehsil"
-                                                                className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : ""}
+                                                                className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : showRequiredWarning && !field.value?.trim() ? "border-amber-400 ring-2 ring-amber-200" : ""}
                                                                 aria-invalid={fieldState.invalid}
                                                             >
                                                                 <SelectValue placeholder="Select tehsil" />
@@ -322,6 +343,7 @@ export function Step1PropertyDetails({
                                                 <div
                                                     key={type.value}
                                                     onClick={() => {
+                                                        if (isServiceDraft) return;
                                                         field.onChange(type.value);
                                                         if (type.value === "gp") {
                                                             form.setValue("urbanBody", "", { shouldDirty: false, shouldValidate: step >= 1 });
@@ -329,9 +351,9 @@ export function Step1PropertyDetails({
                                                             form.clearErrors("ward");
                                                         }
                                                     }}
-                                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${field.value === type.value
-                                                            ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                                                            : "border-gray-200 hover:border-gray-300"
+                                                    className={`p-4 rounded-lg border-2 transition-all ${isServiceDraft ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${field.value === type.value
+                                                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                                        : "border-gray-200 hover:border-gray-300"
                                                         }`}
                                                 >
                                                     <div className="flex items-start justify-between">
@@ -381,7 +403,9 @@ export function Step1PropertyDetails({
                                                     data-testid="input-gram-panchayat"
                                                     value={field.value ?? ""}
                                                     onChange={(event) => field.onChange(event.target.value)}
+                                                    disabled={isServiceDraft && gramWasPopulated}
                                                     aria-invalid={fieldState.invalid}
+                                                    className={fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : showRequiredWarning && !field.value?.trim() ? "border-amber-400 ring-2 ring-amber-200" : ""}
                                                 />
                                             </FormControl>
                                             <FormDescription>{gramFieldConfig.description}</FormDescription>
@@ -410,9 +434,14 @@ export function Step1PropertyDetails({
                                                         value={field.value ?? ""}
                                                         onChange={(event) => {
                                                             field.onChange(event.target.value);
+                                                            // Re-validate to clear error if value is now valid
+                                                            if (event.target.value?.trim()) {
+                                                                form.clearErrors("urbanBody");
+                                                            }
                                                             form.setValue("ward", "", { shouldDirty: false, shouldValidate: step >= 1 });
                                                             form.clearErrors("ward");
                                                         }}
+                                                        disabled={isServiceDraft && urbanWasPopulated}
                                                         aria-invalid={fieldState.invalid}
                                                     />
                                                 </FormControl>
@@ -469,7 +498,7 @@ export function Step1PropertyDetails({
                                         <FormControl>
                                             <Textarea
                                                 placeholder="e.g., House No. 123, Main Road, Near Post Office"
-                                                className={`min-h-20 ${fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                                className={`min-h-20 ${fieldState.invalid ? "border-destructive focus-visible:ring-destructive" : showRequiredWarning && !field.value?.trim() ? "border-amber-400 ring-2 ring-amber-200" : ""}`}
                                                 data-testid="input-address"
                                                 aria-invalid={fieldState.invalid}
                                                 {...field}
@@ -545,7 +574,7 @@ export function Step1PropertyDetails({
                             </div>
                         </div>
                     </div>
-                </fieldset>
+                </div>
             </CardContent>
         </Card>
     );

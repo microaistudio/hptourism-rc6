@@ -18,6 +18,7 @@ interface Step2OwnerInfoProps {
     propertyOwnership: "owned" | "leased" | undefined;
     goToProfile: () => void;
     renderProfileManagedDescription: (fieldLabel?: string) => JSX.Element;
+    showRequiredWarning?: boolean;
 }
 
 export function Step2OwnerInfo({
@@ -25,32 +26,53 @@ export function Step2OwnerInfo({
     ownerGender,
     propertyOwnership,
     goToProfile,
+    showRequiredWarning = false,
 }: Step2OwnerInfoProps) {
+    const isChangeOwnership = (form.watch("applicationKind" as any) === "change_ownership");
+    const isProfileManaged = !isChangeOwnership;
+    const readOnlyClass = isProfileManaged ? "bg-gray-50 cursor-not-allowed" : "";
+
     return (
         <Card className="shadow-lg border-0 overflow-hidden">
             <CardContent className="p-0">
-                {/* Profile Managed Alert */}
-                <div className="m-6 mb-0 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                        <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                        <div>
-                            <p className="text-sm font-medium text-blue-800">Profile-managed details</p>
-                            <p className="text-xs text-blue-600 mt-1">
-                                Name, contact and Aadhaar information come from your verified profile. Update them via{" "}
-                                <Button
-                                    type="button"
-                                    variant="link"
-                                    size="sm"
-                                    className="h-auto p-0 text-blue-700 font-semibold underline"
-                                    onClick={goToProfile}
-                                >
-                                    My Profile
-                                </Button>{" "}
-                                before starting the application.
-                            </p>
+                {/* Profile Managed Alert - Only show if profile managed */}
+                {isProfileManaged && (
+                    <div className="m-6 mb-0 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                            <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-sm font-medium text-blue-800">Profile-managed details</p>
+                                <p className="text-xs text-blue-600 mt-1">
+                                    Name, contact and Aadhaar information come from your verified profile. Update them via{" "}
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        size="sm"
+                                        className="h-auto p-0 text-blue-700 font-semibold underline"
+                                        onClick={goToProfile}
+                                    >
+                                        My Profile
+                                    </Button>{" "}
+                                    before starting the application.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+                {isChangeOwnership && (
+                    <div className="m-6 mb-0 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                            <Info className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-sm font-medium text-amber-800">Change of Ownership</p>
+                                <p className="text-xs text-amber-600 mt-1">
+                                    Please enter the personal details of the <strong>NEW OWNER</strong> below.
+                                    Upload Proof of Ownership / Sale Deed in the Documents section.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Section 1: Personal Information */}
                 <div className="border-b">
@@ -75,11 +97,11 @@ export function Step2OwnerInfo({
                                             <Input
                                                 {...field}
                                                 value={field.value ?? ""}
-                                                readOnly
-                                                className="h-11 bg-gray-50 cursor-not-allowed"
+                                                readOnly={isProfileManaged}
+                                                className={`h-11 ${readOnlyClass}`}
                                             />
                                         </FormControl>
-                                        <p className="text-xs text-gray-400">Managed via profile</p>
+                                        {isProfileManaged && <p className="text-xs text-gray-400">Managed via profile</p>}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -94,11 +116,11 @@ export function Step2OwnerInfo({
                                             <Input
                                                 {...field}
                                                 value={field.value ?? ""}
-                                                readOnly
-                                                className="h-11 bg-gray-50 cursor-not-allowed"
+                                                readOnly={isProfileManaged}
+                                                className={`h-11 ${readOnlyClass}`}
                                             />
                                         </FormControl>
-                                        <p className="text-xs text-gray-400">Managed via profile</p>
+                                        {isProfileManaged && <p className="text-xs text-gray-400">Managed via profile</p>}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -116,34 +138,73 @@ export function Step2OwnerInfo({
                                             <Input
                                                 {...field}
                                                 value={field.value ?? ""}
-                                                readOnly
-                                                className="h-11 bg-gray-50 cursor-not-allowed"
+                                                readOnly={isProfileManaged}
+                                                className={`h-11 ${readOnlyClass}`}
                                             />
                                         </FormControl>
-                                        <p className="text-xs text-gray-400">Generated from first and last name</p>
+                                        <p className="text-xs text-gray-400">
+                                            {isProfileManaged ? "Generated from first and last name" : "Enter full name of new owner"}
+                                        </p>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="guardianName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <label className="text-xs text-gray-500">Father's / Husband's Name <span className="text-red-500">*</span></label>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                value={field.value ?? ""}
-                                                placeholder="As per Aadhaar card"
-                                                className="h-11"
-                                            />
-                                        </FormControl>
-                                        <p className="text-xs text-gray-400">Required for registration certificate</p>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <div className="grid grid-cols-3 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="guardianRelation"
+                                    rules={{ required: "Relationship is required" }}
+                                    render={({ field, fieldState }) => (
+                                        <FormItem className="col-span-1">
+                                            <label className="text-xs text-gray-500">Relationship <span className="text-red-500">*</span></label>
+                                            <Select
+                                                onValueChange={(value) => {
+                                                    field.onChange(value);
+                                                    // Auto-select gender based on relationship
+                                                    if (value === "s_o") {
+                                                        form.setValue("ownerGender", "male");
+                                                    } else if (value === "d_o" || value === "w_o") {
+                                                        form.setValue("ownerGender", "female");
+                                                    }
+                                                }}
+                                                defaultValue={field.value}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger className={`h-11 ${fieldState.invalid ? "border-destructive" : ""}`}>
+                                                        <SelectValue placeholder="Select" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="s_o">S/O</SelectItem>
+                                                    <SelectItem value="d_o">D/O</SelectItem>
+                                                    <SelectItem value="w_o">W/O</SelectItem>
+                                                    <SelectItem value="c_o">C/O</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="guardianName"
+                                    render={({ field }) => (
+                                        <FormItem className="col-span-2">
+                                            <label className="text-xs text-gray-500">Full Name <span className="text-red-500">*</span></label>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    value={field.value ?? ""}
+                                                    placeholder="As per Aadhaar card"
+                                                    className={`h-11 ${showRequiredWarning && (!field.value || field.value.trim().length < 3) ? "border-amber-400 ring-2 ring-amber-200" : ""}`}
+                                                />
+                                            </FormControl>
+                                            <p className="text-xs text-gray-400">Required for registration certificate</p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -167,7 +228,7 @@ export function Step2OwnerInfo({
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <p className="text-xs text-gray-400">Female owners receive 5% fee discount</p>
+                                        <p className="text-xs text-gray-400">Female owners receive 5% additional fee discount</p>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -182,11 +243,11 @@ export function Step2OwnerInfo({
                                             <Input
                                                 {...field}
                                                 value={field.value ?? ""}
-                                                readOnly
-                                                className="h-11 bg-gray-50 cursor-not-allowed font-mono"
+                                                readOnly={isProfileManaged}
+                                                className={`h-11 font-mono ${readOnlyClass}`}
                                             />
                                         </FormControl>
-                                        <p className="text-xs text-gray-400">Managed via profile</p>
+                                        {isProfileManaged && <p className="text-xs text-gray-400">Managed via profile</p>}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -218,11 +279,11 @@ export function Step2OwnerInfo({
                                             <Input
                                                 {...field}
                                                 value={field.value ?? ""}
-                                                readOnly
-                                                className="h-11 bg-gray-50 cursor-not-allowed"
+                                                readOnly={isProfileManaged}
+                                                className={`h-11 ${readOnlyClass}`}
                                             />
                                         </FormControl>
-                                        <p className="text-xs text-gray-400">Managed via profile</p>
+                                        {isProfileManaged && <p className="text-xs text-gray-400">Managed via profile</p>}
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -275,32 +336,32 @@ export function Step2OwnerInfo({
                                             value={field.value}
                                             className="flex gap-4 mt-2"
                                         >
-                                            <div
+                                            <label
+                                                htmlFor="owned"
                                                 className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all flex-1 ${field.value === "owned"
-                                                        ? "border-primary bg-primary/5"
-                                                        : "border-gray-200 hover:border-gray-300"
+                                                    ? "border-primary bg-primary/5"
+                                                    : "border-gray-200 hover:border-gray-300"
                                                     }`}
-                                                onClick={() => field.onChange("owned")}
                                             >
                                                 <RadioGroupItem value="owned" id="owned" />
-                                                <label htmlFor="owned" className="cursor-pointer">
+                                                <div>
                                                     <p className="font-medium">Owned</p>
                                                     <p className="text-xs text-gray-500">Property is under your name</p>
-                                                </label>
-                                            </div>
-                                            <div
+                                                </div>
+                                            </label>
+                                            <label
+                                                htmlFor="leased"
                                                 className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all flex-1 ${field.value === "leased"
-                                                        ? "border-orange-500 bg-orange-50"
-                                                        : "border-gray-200 hover:border-gray-300"
+                                                    ? "border-orange-500 bg-orange-50"
+                                                    : "border-gray-200 hover:border-gray-300"
                                                     }`}
-                                                onClick={() => field.onChange("leased")}
                                             >
                                                 <RadioGroupItem value="leased" id="leased" />
-                                                <label htmlFor="leased" className="cursor-pointer">
+                                                <div>
                                                     <p className="font-medium">{OWNERSHIP_LABELS.leased}</p>
                                                     <p className="text-xs text-gray-500">Property on lease deed</p>
-                                                </label>
-                                            </div>
+                                                </div>
+                                            </label>
                                         </RadioGroup>
                                     </FormControl>
                                     <FormMessage />

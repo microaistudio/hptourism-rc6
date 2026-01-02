@@ -918,7 +918,7 @@ export default function DTDODashboard() {
               <p className="text-sm text-muted-foreground mt-1">{emptyState.description}</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="border rounded-lg overflow-hidden">
               {applications.map((app) => (
                 <QueueCard
                   key={app.id}
@@ -946,16 +946,10 @@ export default function DTDODashboard() {
     actionsDisabled?: boolean;
   }) => {
     const applicationKind = application.applicationKind as ApplicationKind | undefined;
-    const isService = isServiceApplication(applicationKind);
-    const serviceLabel = getApplicationKindLabel(applicationKind);
     const [, navigate] = useLocation();
     const status = application.status ?? "";
     const correctionState = getCorrectionState(application);
     const submittedOn = application.submittedAt ? format(new Date(application.submittedAt), "MMM dd, yyyy") : "N/A";
-    const updatedOn = application.updatedAt ? format(new Date(application.updatedAt), "MMM dd, yyyy") : "N/A";
-    const updatedRelative = application.updatedAt
-      ? formatDistanceToNow(new Date(application.updatedAt), { addSuffix: true })
-      : null;
     const reviewPath =
       status === "inspection_under_review"
         ? `/dtdo/inspection-review/${application.id}`
@@ -972,14 +966,12 @@ export default function DTDODashboard() {
     };
 
     const resolvedActionLabel = typeof actionLabel === "function" ? actionLabel(application) : actionLabel;
-    const resolvedActionHint =
-      typeof actionHint === "function" ? actionHint(application) : actionHint ?? undefined;
 
     return (
       <div
         className={cn(
-          "p-4 border rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          actionsDisabled ? "cursor-default bg-muted/50" : "hover-elevate cursor-pointer",
+          "px-4 py-3 border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset transition-colors last:border-b-0",
+          actionsDisabled ? "cursor-default bg-muted/50" : "hover:bg-muted/30 cursor-pointer",
         )}
         role="button"
         tabIndex={0}
@@ -987,72 +979,42 @@ export default function DTDODashboard() {
         onKeyDown={handleKeyDown}
         aria-label={`Open application ${application.applicationNumber}`}
       >
-        <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-          <span>Application #{application.applicationNumber}</span>
-          {application.daName && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-blue-700 dark:bg-blue-950/20 dark:text-blue-100">
-              Forwarded by {application.daName}
-            </span>
-          )}
-          <ApplicationKindBadge kind={applicationKind} />
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <h3 className="text-lg font-semibold leading-tight">{application.propertyName}</h3>
-          {getCategoryBadge(application.category)}
-          {getStatusBadge(status)}
-          {correctionState && (
-            <Badge variant="outline" className={correctionState.className}>
-              {correctionState.label}
-            </Badge>
-          )}
-          {(application.correctionSubmissionCount ?? 0) > 0 && (
-            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-200">
-              Cycle {application.correctionSubmissionCount}
-            </Badge>
-          )}
-        </div>
-        <div className="mt-3 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <span className="font-medium text-foreground">Owner:</span> {application.ownerName}
+        <div className="flex items-center justify-between gap-4">
+          {/* Left side: Icon + Property info */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* Home icon */}
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <FileText className="w-5 h-5 text-amber-600" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              {/* Line 1: Property name + badges */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold">{application.propertyName}</span>
+                {getCategoryBadge(application.category)}
+                {getStatusBadge(status)}
+                {correctionState && (
+                  <Badge variant="outline" className={correctionState.className}>
+                    {correctionState.label}
+                  </Badge>
+                )}
+                <ApplicationKindBadge kind={applicationKind} />
+              </div>
+
+              {/* Line 2: App number, owner, DA name, date */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                <span className="font-mono">{application.applicationNumber}</span>
+                <span>{application.ownerName}</span>
+                {application.daName && (
+                  <span className="text-blue-600">via {application.daName}</span>
+                )}
+                <span className="hidden sm:inline">{application.district}</span>
+                <span className="hidden md:inline">{submittedOn}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="font-medium text-foreground">Mobile:</span> {application.ownerMobile}
-          </div>
-          <div>
-            <span className="font-medium text-foreground">Location:</span>{" "}
-            {application.tehsil || application.block || "Not provided"}, {application.district}
-          </div>
-          <div>
-            <span className="font-medium text-foreground">Rooms:</span> {application.totalRooms}
-          </div>
-          <div>
-            <span className="font-medium text-foreground">Submitted:</span> {submittedOn}
-          </div>
-          <div>
-            <span className="font-medium text-foreground">Updated:</span> {updatedOn}
-            {updatedRelative && (
-              <span className="ml-1 text-xs text-muted-foreground">({updatedRelative})</span>
-            )}
-          </div>
-        </div>
-        {correctionState?.relative && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            {correctionState.relative}
-          </div>
-        )}
-        {isService && (
-          <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-            <span>Service: {serviceLabel}</span>
-            <span>Parent App: {application.parentApplicationNumber || "—"}</span>
-            <span>
-              Certificate #: {application.parentCertificateNumber || application.certificateNumber || "—"}
-            </span>
-          </div>
-        )}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-muted-foreground">
-            {updatedRelative ? `Updated ${updatedRelative}` : "Awaiting next update"}
-          </div>
+
+          {/* Right side: Action button */}
           <Button
             size="sm"
             onClick={(event) => {
@@ -1061,14 +1023,12 @@ export default function DTDODashboard() {
             }}
             disabled={actionsDisabled}
             variant={actionsDisabled ? "outline" : "default"}
+            className="flex-shrink-0"
           >
             {resolvedActionLabel}
-            {!actionsDisabled && <ArrowRight className="w-4 h-4 ml-2" />}
+            {!actionsDisabled && <ArrowRight className="w-4 h-4 ml-1" />}
           </Button>
         </div>
-        {resolvedActionHint && (
-          <p className="text-xs text-muted-foreground mt-1">{resolvedActionHint}</p>
-        )}
       </div>
     );
   };
@@ -1096,90 +1056,107 @@ export default function DTDODashboard() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {stageConfigs.map((stage) => {
           const Icon = stage.icon;
-          const totalCount = stage.totalCount ?? stage.pills.reduce((sum, pill) => sum + pill.count, 0);
-          const actionableCount = stage.actionCount ?? totalCount;
-          const isActiveStage = stage.key === activeStageConfig?.key;
-          const isInfoOnly = stage.key === "inflow";
+          const isActiveStage = activeStage === stage.key;
+          const totalCount = stage.totalCount ?? stage.pills.reduce((acc, pill) => acc + pill.count, 0);
+          const hasActionable = stage.actionCount ? stage.actionCount > 0 : totalCount > 0;
+
+          // Determine if we need attention styling (amber) for specific stages
+          const needsAttention = stage.key === "corrections" && totalCount > 0;
+
           return (
             <Card
               key={stage.key}
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (stage.key !== activeStage) {
-                  setActiveStage(stage.key);
-                  setActivePill(stage.pills[0]?.value ?? "");
-                }
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  if (stage.key !== activeStage) {
-                    setActiveStage(stage.key);
-                    setActivePill(stage.pills[0]?.value ?? "");
-                  }
-                }
-              }}
               className={cn(
-                "p-4 sm:p-4 flex flex-col gap-1.5 cursor-pointer transition-all border border-border hover-elevate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl",
+                "p-3 sm:p-4 flex flex-col gap-1 cursor-pointer transition-all border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl relative overflow-hidden dashboard-card-hover",
                 isActiveStage ? "ring-2 ring-primary" : "",
-                isInfoOnly ? "bg-sky-50/60 border-sky-200" : "",
+                hasActionable ? "dashboard-card-shimmer" : "",
+                needsAttention ? "dashboard-card-shimmer-amber" : "",
               )}
+              onClick={() => setActiveStage(stage.key)}
+              tabIndex={0}
+              role="button"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setActiveStage(stage.key);
+                }
+              }}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{stage.title}</p>
-                  <p className="text-3xl font-semibold mt-1">{actionableCount}</p>
-                  {stage.actionLabel && !isInfoOnly && (
-                    <p className="text-[11px] text-muted-foreground mt-1">{stage.actionLabel}</p>
-                  )}
-                  {totalCount !== actionableCount && (
-                    <p className="text-[11px] text-muted-foreground mt-1">Overall queue: {totalCount}</p>
-                  )}
+              <div className="flex items-start justify-between mb-1">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    {stage.title}
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={cn(
+                        "text-3xl font-bold leading-none tracking-tight",
+                        hasActionable || totalCount > 0 ? "text-foreground" : "text-muted-foreground/50",
+                      )}
+                    >
+                      {totalCount}
+                    </span>
+                  </div>
                 </div>
-                <div className="p-2 rounded-full bg-muted/40">
-                  <Icon className="w-5 h-5 text-primary" />
+                <div
+                  className={cn(
+                    "p-1.5 rounded-full transition-colors",
+                    isActiveStage
+                      ? "bg-primary text-primary-foreground"
+                      : hasActionable
+                        ? needsAttention ? "bg-amber-100 text-amber-600" : "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">{stage.description}</p>
-              <div className="mt-auto flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+
+              <p className="text-[11px] text-muted-foreground line-clamp-2 min-h-[2.5em] mb-3">
+                {stage.description}
+              </p>
+
+              <div className="mt-auto flex flex-col gap-1.5 w-full">
                 {stage.pills.map((pill) => {
-                  const isActionable = actionablePills.has(pill.value) && pill.count > 0 && !isInfoOnly;
-                  const isInfoClickable = isInfoOnly;
-                  const content = (
-                    <>
-                      <span>{pill.label}</span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold">{pill.count}</span>
-                    </>
-                  );
-                  if (isActionable || isInfoClickable) {
-                    return (
-                      <button
-                        key={pill.value}
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setActiveStage(stage.key);
-                          setActivePill(pill.value);
-                        }}
+                  const isActionable = actionablePills.has(pill.value) && pill.count > 0;
+                  const isActive = activePill === pill.value;
+                  const isInfoOnly = stage.key === "completed"; // Completed tab items are informational
+
+                  return (
+                    <button
+                      key={pill.value}
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveStage(stage.key);
+                        setActivePill(pill.value);
+                      }}
+                      className={cn(
+                        "flex items-center justify-between w-full px-2 py-1.5 rounded transition-all text-left text-xs",
+                        // Background logic matching DA dashboard
+                        isActionable || (isInfoOnly && pill.count > 0)
+                          ? stage.key === "corrections"
+                            ? "bg-amber-50 hover:bg-amber-100 text-amber-900"
+                            : "bg-primary/10 hover:bg-primary/15 text-primary-900"
+                          : "bg-muted/30 hover:bg-muted/50 text-muted-foreground",
+                        isActive ? "ring-1 ring-primary shadow-sm" : "",
+                        // Subtle pulse for actionable items
+                        (isActionable && !isActive) ? "animate-pulse-subtle" : "",
+                      )}
+                    >
+                      <span className="font-medium truncate mr-2">{pill.label}</span>
+                      <span
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold transition-colors",
-                          isInfoOnly
-                            ? "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
-                            : "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100",
+                          "flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold leading-none",
+                          (isActionable || (isInfoOnly && pill.count > 0))
+                            ? stage.key === "corrections"
+                              ? "bg-amber-500 text-white dashboard-count-pulse"
+                              : "bg-primary text-primary-foreground dashboard-count-pulse"
+                            : "bg-muted-foreground/20 text-muted-foreground"
                         )}
                       >
-                        {content}
-                      </button>
-                    );
-                  }
-                  return (
-                    <span
-                      key={pill.value}
-                      className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5"
-                    >
-                      {content}
-                    </span>
+                        {pill.count}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -1188,106 +1165,80 @@ export default function DTDODashboard() {
         })}
       </div>
 
-      {activeStageConfig && (
-        <div className="flex flex-wrap gap-2 bg-muted/30 p-3 rounded-3xl">
-          {activeStageConfig.pills.map((pill) => {
-            const isActivePill = pill.value === activePillConfig?.value;
-            return (
-              <button
-                key={pill.value}
-                type="button"
-                className={cn(
-                  "px-4 py-1.5 rounded-full border text-sm font-semibold flex items-center gap-2 transition-colors",
-                  isActivePill
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-white text-foreground border-border hover:bg-muted",
-                )}
-                onClick={() => {
-                  setActiveStage(activeStageConfig.key);
-                  setActivePill(pill.value);
-                }}
-              >
-                <span>{pill.label}</span>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
-                  {pill.count}
-                </span>
-              </button>
-            );
-          })}
-          {activeStageConfig.key === "closures" && (
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs text-muted-foreground">Window:</span>
-              <button
-                type="button"
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-semibold border",
-                  completedRange === "month"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-white text-foreground border-border hover:bg-muted"
-                )}
-                onClick={() => setCompletedRange("month")}
-              >
-                This month
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-semibold border",
-                  completedRange === "30d"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-white text-foreground border-border hover:bg-muted"
-                )}
-                onClick={() => setCompletedRange("30d")}
-              >
-                Last 30 days
-              </button>
-            </div>
-          )}
+      {activeStageConfig?.key === "closures" && (
+        <div className="flex items-center justify-end gap-2 my-4">
+          <span className="text-xs text-muted-foreground">Window:</span>
+          <button
+            type="button"
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-semibold border transition-colors",
+              completedRange === "month"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-white text-foreground border-border hover:bg-muted"
+            )}
+            onClick={() => setCompletedRange("month")}
+          >
+            This month
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-semibold border transition-colors",
+              completedRange === "30d"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-white text-foreground border-border hover:bg-muted"
+            )}
+            onClick={() => setCompletedRange("30d")}
+          >
+            Last 30 days
+          </button>
         </div>
       )}
 
-      {activeStageConfig && activePillConfig && (
-        <Card data-testid={`stage-${activeStageConfig.key}-${activePillConfig.value}`}>
-          <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle>{activePillConfig.label}</CardTitle>
-              <CardDescription>{activePillConfig.description}</CardDescription>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Sort:</span>
-              <Select value={sortOrder} onValueChange={(value: SortOrder) => setSortOrder(value)}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Sort order" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest first</SelectItem>
-                  <SelectItem value="oldest">Oldest first</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {activePillConfig.applications.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground border rounded-lg">
-                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="font-medium">{activePillConfig.emptyTitle}</p>
-                <p className="text-sm mt-1">{activePillConfig.emptyDescription}</p>
+      {
+        activeStageConfig && activePillConfig && (
+          <Card data-testid={`stage-${activeStageConfig.key}-${activePillConfig.value}`}>
+            <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle>{activePillConfig.label}</CardTitle>
+                <CardDescription>{activePillConfig.description}</CardDescription>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {activePillConfig.applications.map((application) => (
-                  <QueueCard
-                    key={application.id}
-                    application={application}
-                    actionLabel={activePillConfig.actionLabel ?? "Open application"}
-                    actionsDisabled={activeStageConfig.key === "inflow"}
-                  />
-                ))}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Sort:</span>
+                <Select value={sortOrder} onValueChange={(value: SortOrder) => setSortOrder(value)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Sort order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest first</SelectItem>
+                    <SelectItem value="oldest">Oldest first</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+            </CardHeader>
+            <CardContent>
+              {activePillConfig.applications.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground border rounded-lg">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="font-medium">{activePillConfig.emptyTitle}</p>
+                  <p className="text-sm mt-1">{activePillConfig.emptyDescription}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activePillConfig.applications.map((application) => (
+                    <QueueCard
+                      key={application.id}
+                      application={application}
+                      actionLabel={activePillConfig.actionLabel ?? "Open application"}
+                      actionsDisabled={activeStageConfig.key === "inflow"}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      }
+    </div >
   );
 }

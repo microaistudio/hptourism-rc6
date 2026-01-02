@@ -380,7 +380,7 @@ export default function RoomsCategoryPreview() {
                                 <div className="flex items-center gap-2 text-emerald-700">
                                     <ArrowRight className="w-5 h-5" />
                                     <span className="text-sm font-medium">
-                                        Qualifies for {determinedCategory.charAt(0).toUpperCase() + determinedCategory.slice(1)} category
+                                        Applicable Category: {determinedCategory.toUpperCase()}
                                     </span>
                                 </div>
                             )}
@@ -485,7 +485,7 @@ export default function RoomsCategoryPreview() {
                                     <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
                                     <div>
                                         <p className="font-medium text-emerald-800">
-                                            Your property qualifies for the <strong>{determinedCategory.toUpperCase()}</strong> category
+                                            Applicable Category: <strong>{determinedCategory.toUpperCase()}</strong>
                                         </p>
                                         <p className="text-sm text-emerald-600">
                                             Based on your highest room rate of ₹{highestRate.toLocaleString()}/night

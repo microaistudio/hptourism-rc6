@@ -74,7 +74,11 @@ export const ownerNavigation: NavSection[] = [
         url: "/help",
         icon: MessageSquare,
       },
-      // Grievance system will be added in Phase 4
+      {
+        title: "Grievances",
+        url: "/grievances",
+        icon: Shield,
+      },
     ],
   },
   {
@@ -211,7 +215,7 @@ export const daNavigation: NavSection[] = [
     items: [
       {
         title: "Dashboard",
-        url: "/da/dashboard",
+        url: "/da/dashboard",  // STABLE stage-based layout
         icon: Home,
       },
     ],
@@ -228,6 +232,11 @@ export const daNavigation: NavSection[] = [
         title: "Existing RC",
         url: "/da/legacy",
         icon: FileText,
+      },
+      {
+        title: "Inspections",
+        url: "/da/inspections",
+        icon: ClipboardCheck,
       },
       // Adventure Sports will be added here in Phase 3
     ],
@@ -267,11 +276,6 @@ export const daNavigation: NavSection[] = [
         icon: Search,
       },
       {
-        title: "Inspections",
-        url: "/da/inspections",
-        icon: ClipboardCheck,
-      },
-      {
         title: "My Profile",
         url: "/da/profile",
         icon: User,
@@ -287,7 +291,7 @@ export const dtdoNavigation: NavSection[] = [
     items: [
       {
         title: "Dashboard",
-        url: "/dtdo/dashboard",
+        url: "/dtdo/dashboard",  // STABLE stage-based layout
         icon: Home,
       },
     ],
@@ -380,10 +384,10 @@ export function getDefaultRouteForRole(role: string): string {
     return '/admin/users';
   }
   if (role === 'dealing_assistant') {
-    return '/da/dashboard';
+    return '/da/dashboard';  // Stable dashboard layout
   }
   if (role === 'district_tourism_officer' || role === 'district_officer') {
-    return '/dtdo/dashboard';
+    return '/dtdo/dashboard';  // Stable dashboard layout
   }
   // All other roles now land on /dashboard with role-specific content
   return '/dashboard';

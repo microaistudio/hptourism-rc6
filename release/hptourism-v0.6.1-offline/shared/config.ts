@@ -131,7 +131,7 @@ const envSchema = z
     SECURITY_ENABLE_CSRF: booleanFlag(false),
     SECURITY_CSRF_HEADER: z.string().default("x-csrf-token"),
     RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
-    RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(500),
+    RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(1000), // Increased from 500 for better UX default
     RATE_LIMIT_AUTH_WINDOW_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
     RATE_LIMIT_AUTH_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
     RATE_LIMIT_UPLOAD_WINDOW_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
@@ -225,15 +225,15 @@ export const config = {
     s3:
       env.OBJECT_STORAGE_MODE === "s3"
         ? {
-            bucket: env.OBJECT_STORAGE_S3_BUCKET!,
-            region: env.OBJECT_STORAGE_S3_REGION!,
-            endpoint: env.OBJECT_STORAGE_S3_ENDPOINT,
-            forcePathStyle: env.OBJECT_STORAGE_S3_FORCE_PATH_STYLE,
-            credentials: {
-              accessKeyId: env.OBJECT_STORAGE_S3_ACCESS_KEY_ID!,
-              secretAccessKey: env.OBJECT_STORAGE_S3_SECRET_ACCESS_KEY!,
-            },
-          }
+          bucket: env.OBJECT_STORAGE_S3_BUCKET!,
+          region: env.OBJECT_STORAGE_S3_REGION!,
+          endpoint: env.OBJECT_STORAGE_S3_ENDPOINT,
+          forcePathStyle: env.OBJECT_STORAGE_S3_FORCE_PATH_STYLE,
+          credentials: {
+            accessKeyId: env.OBJECT_STORAGE_S3_ACCESS_KEY_ID!,
+            secretAccessKey: env.OBJECT_STORAGE_S3_SECRET_ACCESS_KEY!,
+          },
+        }
         : undefined,
   },
   frontend: {

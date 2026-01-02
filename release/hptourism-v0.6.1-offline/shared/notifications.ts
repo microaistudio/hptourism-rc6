@@ -7,5 +7,6 @@ export type NotificationEventId =
   | "verified_for_payment"
   | "da_send_back"
   | "dtdo_revert"
-  | "dtdo_objection";
-
+  | "dtdo_objection"
+  | "application_approved"
+  | "application_rejected";

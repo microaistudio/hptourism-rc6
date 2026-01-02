@@ -596,7 +596,7 @@ function formatCurrency(value?: string | number | null) {
   if (!Number.isFinite(numeric)) {
     return "—";
   }
-  return `₹${numeric.toLocaleString("en-IN")}/-`;
+  return `Rs. ${numeric.toLocaleString("en-IN")}/-`;
 }
 
 function formatRooms(value?: number | null) {
@@ -699,7 +699,7 @@ function formatRoomRate(rate?: string | number | null): string {
 
   // Format without locale to avoid any special characters
   const formatted = Math.round(cleanRate).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `₹${formatted}/-`;
+  return `Rs. ${formatted}/-`;
 }
 
 function formatCategoryLabel(category?: string | null) {

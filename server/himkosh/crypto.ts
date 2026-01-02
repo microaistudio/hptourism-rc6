@@ -41,18 +41,18 @@ export class HimKoshCrypto {
       this.log.debug('Loading key from file', { path: this.keyFilePath });
       const keyData = await fs.readFile(this.keyFilePath);
       this.log.debug('Read key file', { bytes: keyData.length });
-      
+
       // Extract first 16 bytes as key (even if file is longer)
       const keyBytes = Buffer.alloc(16);
       keyData.copy(keyBytes, 0, 0, Math.min(16, keyData.length));
       this.key = keyBytes;
       this.log.debug('Key loaded', { bytes: 16 });
-      
+
       // CRITICAL FIX #3: Use key as IV (first 16 bytes of echallan.key)
       // This matches actual DLL behavior (doc/dummy code was misleading)
       this.iv = keyBytes; // IV = key (same buffer reference)
       this.log.debug('IV aligned with key (DLL behavior)');
-      
+
       return { key: this.key, iv: this.iv };
     } catch (error) {
       if (error instanceof Error) {
@@ -71,14 +71,14 @@ export class HimKoshCrypto {
   async encrypt(textToEncrypt: string): Promise<string> {
     try {
       const { key, iv } = await this.loadKey();
-      
+
       // Create cipher with separate key and IV
       const cipher = crypto.createCipheriv('aes-128-cbc', key, iv);
-      
+
       // CRITICAL: Use 'ascii' encoding to match .NET's Encoding.ASCII (NOT UTF-8)
       let encrypted = cipher.update(textToEncrypt, 'ascii', 'base64');
       encrypted += cipher.final('base64');
-      
+
       return encrypted;
     } catch (error) {
       if (error instanceof Error) {
@@ -97,14 +97,14 @@ export class HimKoshCrypto {
   async decrypt(textToDecrypt: string): Promise<string> {
     try {
       const { key, iv } = await this.loadKey();
-      
+
       // Create decipher with separate key and IV
       const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
-      
+
       // CRITICAL: Use 'ascii' encoding to match .NET's Encoding.ASCII.GetString()
       let decrypted = decipher.update(textToDecrypt, 'base64', 'ascii');
       decrypted += decipher.final('ascii');
-      
+
       return decrypted;
     } catch (error) {
       if (error instanceof Error) {
@@ -168,7 +168,7 @@ export function buildRequestString(params: {
   // Build base string (mandatory fields)
   // CRITICAL: Field ORDER must match government code EXACTLY!
   // CRITICAL FIX #2: All amounts must be integers (no decimals)
-  let parts = [
+  const coreParts = [
     `DeptID=${params.deptId}`,
     `DeptRefNo=${params.deptRefNo}`,
     `TotalAmount=${Math.round(params.totalAmount)}`, // Ensure integer
@@ -179,41 +179,44 @@ export function buildRequestString(params: {
   ];
 
   // Add Head2/Amount2 BEFORE Ddo (government code order)
-  // CRITICAL: Government code includes Head2/Amount2 ALWAYS (even if Amount2=0)
+  // CRITICAL: Government code includes Head2/Amount2 ALWAYS (even if Amount2=0) if it's configured.
+  // We'll follow the safe path: if provided, include it. If strict alignment is needed, this logic may need to be "Always include empty"
+  // But for now, let's assume "Always" meant "Don't put it after DDO".
   if (
     params.head2 &&
     params.amount2 !== undefined &&
     Math.round(params.amount2) > 0
   ) {
-    parts.push(`Head2=${params.head2}`);
-    parts.push(`Amount2=${Math.round(params.amount2)}`); // Ensure integer
+    coreParts.push(`Head2=${params.head2}`);
+    coreParts.push(`Amount2=${Math.round(params.amount2)}`); // Ensure integer
   }
 
   // Add Ddo AFTER Head2/Amount2
-  parts.push(`Ddo=${params.ddo}`);
-  parts.push(`PeriodFrom=${params.periodFrom}`);
-  parts.push(`PeriodTo=${params.periodTo}`);
+  coreParts.push(`Ddo=${params.ddo}`);
+  coreParts.push(`PeriodFrom=${params.periodFrom}`);
+  coreParts.push(`PeriodTo=${params.periodTo}`);
+
   if (params.head3 && params.amount3 && params.amount3 > 0) {
-    parts.push(`Head3=${params.head3}`);
-    parts.push(`Amount3=${Math.round(params.amount3)}`); // Ensure integer
+    coreParts.push(`Head3=${params.head3}`);
+    coreParts.push(`Amount3=${Math.round(params.amount3)}`);
   }
   if (params.head4 && params.amount4 && params.amount4 > 0) {
-    parts.push(`Head4=${params.head4}`);
-    parts.push(`Amount4=${Math.round(params.amount4)}`); // Ensure integer
+    coreParts.push(`Head4=${params.head4}`);
+    coreParts.push(`Amount4=${Math.round(params.amount4)}`);
   }
   if (params.head10 && params.amount10 && params.amount10 > 0) {
-    parts.push(`Head10=${params.head10}`);
-    parts.push(`Amount10=${Math.round(params.amount10)}`); // Ensure integer
+    coreParts.push(`Head10=${params.head10}`);
+    coreParts.push(`Amount10=${Math.round(params.amount10)}`);
   }
 
   if (params.serviceCode) {
-    parts.push(`Service_code=${params.serviceCode}`);
+    coreParts.push(`Service_code=${params.serviceCode}`);
   }
   if (params.returnUrl) {
-    parts.push(`return_url=${params.returnUrl}`);
+    coreParts.push(`return_url=${params.returnUrl}`);
   }
 
-  const dataString = parts.join('|');
+  const dataString = coreParts.join('|');
   return { coreString: dataString, fullString: dataString };
 }
 

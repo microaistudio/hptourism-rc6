@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, sql } from 'drizzle-orm';
 import { db } from './db';
 import {
   users,
@@ -194,11 +194,22 @@ export class DbStorage implements IStorage {
   }
 
   async deleteApplication(id: string): Promise<void> {
-    // Delete in order of dependencies
+    // Delete in order of dependencies - must handle ALL tables with applicationId FK
     await this.deleteApplicationActions(id);
     await db.delete(notifications).where(eq(notifications.applicationId, id));
     await db.delete(payments).where(eq(payments.applicationId, id));
     await this.deleteDocumentsByApplication(id);
+
+    // Also delete from tables that may not have ON DELETE CASCADE
+    // Import these dynamically to avoid circular deps if needed
+    const { himkoshTransactions, reviews, supportTickets, certificates, grievances } = await import('../shared/schema');
+    await db.delete(himkoshTransactions).where(eq(himkoshTransactions.applicationId, id));
+    await db.delete(reviews).where(eq(reviews.applicationId, id));
+    await db.delete(supportTickets).where(eq(supportTickets.applicationId, id));
+    await db.delete(certificates).where(eq(certificates.applicationId, id));
+    await db.delete(grievances).where(eq(grievances.applicationId, id));
+
+    // Finally delete the application itself
     await db.delete(homestayApplications).where(eq(homestayApplications.id, id));
   }
 
@@ -209,10 +220,10 @@ export class DbStorage implements IStorage {
   }
 
   async getDocumentsByApplication(applicationId: string): Promise<Document[]> {
-    // First try the documents table
+    // First try the documents table - use ASC order for stable sequence (oldest first)
     const tableDocuments = await db.select().from(documents)
       .where(eq(documents.applicationId, applicationId))
-      .orderBy(desc(documents.uploadDate));
+      .orderBy(asc(documents.uploadDate));
 
     if (tableDocuments.length > 0) {
       return tableDocuments;
@@ -404,7 +415,7 @@ export class DbStorage implements IStorage {
   async getApplicationActions(applicationId: string): Promise<ApplicationAction[]> {
     return await db.select().from(applicationActions)
       .where(eq(applicationActions.applicationId, applicationId))
-      .orderBy(applicationActions.createdAt);
+      .orderBy(desc(applicationActions.createdAt));
   }
 
   async deleteApplicationActions(applicationId: string): Promise<void> {

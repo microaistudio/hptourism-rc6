@@ -1,8 +1,10 @@
 import { Dispatch, SetStateAction } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, AlertTriangle, Paperclip, Image } from "lucide-react";
 import { ObjectUploader, type UploadedFileMetadata } from "@/components/ObjectUploader";
 import { Progress } from "@/components/ui/progress";
+import { DEFAULT_UPLOAD_POLICY, type UploadPolicy } from "@shared/uploadPolicy";
 
 interface UploadedDocuments {
     revenuePapers: UploadedFileMetadata[];
@@ -40,6 +42,15 @@ export function Step5Documents({
     isLegacyRC = false,
 }: Step5DocumentsProps) {
     const isDeleteRooms = applicationKind === 'delete_rooms';
+
+    // Fetch upload policy from admin config
+    const { data: uploadPolicyData } = useQuery<UploadPolicy>({
+        queryKey: ["/api/settings/upload-policy"],
+        staleTime: 5 * 60 * 1000,
+    });
+    const uploadPolicy = uploadPolicyData ?? DEFAULT_UPLOAD_POLICY;
+    const docsMaxMB = uploadPolicy.documents.maxFileSizeMB;
+    const photosMaxMB = uploadPolicy.photos.maxFileSizeMB;
 
     // Calculate progress for required sections
     const requiredSections = isLegacyRC ? 1 : (requiresCommercialUtilityProof ? 6 : 4);
@@ -113,6 +124,12 @@ export function Step5Documents({
                         </div>
                     </div>
 
+                    {/* Consolidated Document Upload Notice */}
+                    <div className="mx-6 mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                        <p className="font-medium">📎 Document Upload Requirements</p>
+                        <p className="text-xs mt-1">Maximum file size: {docsMaxMB}MB for PDF documents, {photosMaxMB}MB for photos/images. Large images will be automatically optimized.</p>
+                    </div>
+
                     {/* For Legacy RC, show only supporting documents */}
                     {isLegacyRC ? (
                         <div className="p-6">
@@ -127,7 +144,7 @@ export function Step5Documents({
                                     <label className="text-sm font-medium">Supporting Documents (Up to 5 files)</label>
                                 </div>
                                 <p className="text-xs text-gray-500 mb-1">
-                                    Upload any supporting documents such as NOC, fire safety certificate, water quality report, or any other relevant documents.
+                                    Upload any additional documents as per requirement.
                                 </p>
                                 <p className="text-xs text-gray-400 mb-2">
                                     Allowed formats: PDF, PNG, JPG, JPEG
@@ -153,7 +170,7 @@ export function Step5Documents({
                                         <h3 className="font-medium text-gray-900">
                                             Revenue Papers (Jamabandi & Tatima) <span className="text-red-500">*</span>
                                         </h3>
-                                        <p className="text-sm text-gray-500 mt-1">Land revenue records showing ownership</p>
+                                        <p className="text-sm text-gray-500 mt-1">Land revenue records showing ownership of the property</p>
                                         <p className="text-xs text-gray-400 mt-1">Allowed format: PDF only</p>
                                     </div>
                                     <span className="text-xs text-gray-400">{uploadedDocuments.revenuePapers.length}/2 files</span>
@@ -166,6 +183,7 @@ export function Step5Documents({
                                     onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, revenuePapers: paths }))}
                                     existingFiles={uploadedDocuments.revenuePapers}
                                     isMissing={!isDeleteRooms && uploadedDocuments.revenuePapers.length === 0}
+                                    hideNote
                                 />
                             </div>
 
@@ -189,6 +207,7 @@ export function Step5Documents({
                                     onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, affidavitSection29: paths }))}
                                     existingFiles={uploadedDocuments.affidavitSection29}
                                     isMissing={!isDeleteRooms && uploadedDocuments.affidavitSection29.length === 0}
+                                    hideNote
                                 />
                             </div>
 
@@ -212,6 +231,7 @@ export function Step5Documents({
                                     onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, undertakingFormC: paths }))}
                                     existingFiles={uploadedDocuments.undertakingFormC}
                                     isMissing={!isDeleteRooms && uploadedDocuments.undertakingFormC.length === 0}
+                                    hideNote
                                 />
                             </div>
 
@@ -237,6 +257,7 @@ export function Step5Documents({
                                             onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, commercialElectricityBill: paths }))}
                                             existingFiles={uploadedDocuments.commercialElectricityBill}
                                             isMissing={!isDeleteRooms && uploadedDocuments.commercialElectricityBill.length === 0}
+                                            hideNote
                                         />
                                     </div>
 
@@ -259,6 +280,7 @@ export function Step5Documents({
                                             onUploadComplete={(paths) => setUploadedDocuments(prev => ({ ...prev, commercialWaterBill: paths }))}
                                             existingFiles={uploadedDocuments.commercialWaterBill}
                                             isMissing={!isDeleteRooms && uploadedDocuments.commercialWaterBill.length === 0}
+                                            hideNote
                                         />
                                     </div>
                                 </>
@@ -289,6 +311,7 @@ export function Step5Documents({
                                     onUploadComplete={(paths) => setPropertyPhotos(paths)}
                                     existingFiles={propertyPhotos}
                                     isMissing={!isDeleteRooms && propertyPhotos.length < 2}
+                                    hideNote
                                 />
                             </div>
 
@@ -299,13 +322,14 @@ export function Step5Documents({
                                         <Paperclip className="w-5 h-5 text-gray-500" />
                                         <div>
                                             <h3 className="font-medium text-gray-900">Additional/Supporting Documents</h3>
-                                            <p className="text-sm text-gray-500 mt-1">NOC, fire safety certificate, water quality report, etc. (Optional)</p>
+                                            <p className="text-sm text-gray-500 mt-1">Any additional documents as per requirement (Optional)</p>
                                             <p className="text-xs text-gray-400 mt-1">Allowed formats: PDF, PNG, JPG, JPEG</p>
                                         </div>
                                     </div>
                                     <span className="text-xs text-gray-400">{additionalDocuments.length}/5 files</span>
                                 </div>
                                 <ObjectUploader
+                                    showDescription={true}
                                     label="Upload Supporting Documents"
                                     multiple={true}
                                     maxFiles={5}
@@ -314,6 +338,7 @@ export function Step5Documents({
                                     accept=".pdf,.png,.jpg,.jpeg"
                                     onUploadComplete={(paths) => setAdditionalDocuments(paths)}
                                     existingFiles={additionalDocuments}
+                                    hideNote
                                 />
                             </div>
                         </div>

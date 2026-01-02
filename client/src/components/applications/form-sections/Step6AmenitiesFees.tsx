@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApplicationSummaryCard } from "@/components/application/application-summary";
 import type { ApplicationForm } from "@/lib/application-schema";
 import type { CategoryType } from "@shared/fee-calculator";
+import { FEATURE_FLAGS } from "@/config/features";
 
 interface Amenity {
     id: string;
@@ -75,171 +76,78 @@ export function Step6AmenitiesFees({
 }: Step6AmenitiesFeesProps) {
     return (
         <div className="space-y-6">
-            {/* SECTION 1: Property Amenities */}
-            <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
-                <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                            <span className="text-lg font-bold">1</span>
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-semibold">Property Amenities</h2>
-                            <p className="text-slate-300 text-sm">Select available amenities at your property</p>
+            {/* SECTION 1: Property Amenities - Hidden for policy compliance */}
+            {FEATURE_FLAGS.SHOW_AMENITIES_SELECTION && (
+                <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                <span className="text-lg font-bold">1</span>
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-semibold">Property Amenities</h2>
+                                <p className="text-slate-300 text-sm">Select available amenities at your property</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="bg-white p-6">
-                    <p className="text-sm text-gray-500 mb-4">
-                        CCTV surveillance and fire-safety equipment remain locked because you confirmed them in the safety checklist. Other amenities are optional.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {AMENITIES.map((amenity) => {
-                            const IconComponent = amenity.icon;
-                            const isMandatory = MANDATORY_AMENITY_IDS.has(amenity.id);
-                            const isChecked = selectedAmenities[amenity.id] || false;
-                            return (
-                                <div
-                                    key={amenity.id}
-                                    className={`flex items-center space-x-3 p-3 border rounded-lg transition-all ${isMandatory
-                                        ? "opacity-90 border-dashed bg-muted/50 cursor-not-allowed"
-                                        : isChecked
-                                            ? "border-primary bg-primary/5 shadow-sm"
-                                            : "hover:border-gray-300 hover:shadow-sm cursor-pointer"
-                                        }`}
-                                    data-testid={`checkbox-amenity-${amenity.id}`}
-                                >
-                                    <Checkbox
-                                        checked={isChecked}
-                                        disabled={isMandatory}
-                                        onCheckedChange={(checked) =>
-                                            !isMandatory && setSelectedAmenities(prev => ({ ...prev, [amenity.id]: !!checked }))
-                                        }
-                                    />
-                                    <label
-                                        className={`flex items-center gap-2 flex-1 ${isMandatory ? "cursor-not-allowed" : "cursor-pointer"}`}
-                                        onClick={() => {
-                                            if (isMandatory) return;
-                                            setSelectedAmenities(prev => ({ ...prev, [amenity.id]: !prev[amenity.id] }));
-                                        }}
+                    <div className="bg-white p-6">
+                        <p className="text-sm text-gray-500 mb-4">
+                            CCTV surveillance and fire-safety equipment remain locked because you confirmed them in the safety checklist. Other amenities are optional.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {AMENITIES.map((amenity) => {
+                                const IconComponent = amenity.icon;
+                                const isMandatory = MANDATORY_AMENITY_IDS.has(amenity.id);
+                                const isChecked = selectedAmenities[amenity.id] || false;
+                                return (
+                                    <div
+                                        key={amenity.id}
+                                        className={`flex items-center space-x-3 p-3 border rounded-lg transition-all ${isMandatory
+                                            ? "opacity-90 border-dashed bg-muted/50 cursor-not-allowed"
+                                            : isChecked
+                                                ? "border-primary bg-primary/5 shadow-sm"
+                                                : "hover:border-gray-300 hover:shadow-sm cursor-pointer"
+                                            }`}
+                                        data-testid={`checkbox-amenity-${amenity.id}`}
                                     >
-                                        <IconComponent className="w-4 h-4 text-primary" />
-                                        <span className="text-sm font-medium">{amenity.label}</span>
-                                        {isMandatory && (
-                                            <Badge variant="outline" className="text-[10px] uppercase ml-auto">
-                                                Mandatory
-                                            </Badge>
-                                        )}
-                                    </label>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-
-            {/* SECTION 2: Additional Facilities */}
-            <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
-                <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                            <span className="text-lg font-bold">2</span>
+                                        <Checkbox
+                                            checked={isChecked}
+                                            disabled={isMandatory}
+                                            onCheckedChange={(checked) =>
+                                                !isMandatory && setSelectedAmenities(prev => ({ ...prev, [amenity.id]: !!checked }))
+                                            }
+                                        />
+                                        <label
+                                            className={`flex items-center gap-2 flex-1 ${isMandatory ? "cursor-not-allowed" : "cursor-pointer"}`}
+                                            onClick={() => {
+                                                if (isMandatory) return;
+                                                setSelectedAmenities(prev => ({ ...prev, [amenity.id]: !prev[amenity.id] }));
+                                            }}
+                                        >
+                                            <IconComponent className="w-4 h-4 text-primary" />
+                                            <span className="text-sm font-medium">{amenity.label}</span>
+                                            {isMandatory && (
+                                                <Badge variant="outline" className="text-[10px] uppercase ml-auto">
+                                                    Mandatory
+                                                </Badge>
+                                            )}
+                                        </label>
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div>
-                            <h2 className="text-xl font-semibold">Additional Facilities</h2>
-                            <p className="text-slate-200 text-sm">Optional details about eco-friendly features and nearby attractions</p>
-                        </div>
                     </div>
                 </div>
-                <div className="bg-white p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="ecoFriendlyFacilities"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Eco-Friendly Facilities</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Solar panels, rainwater harvesting, waste management, etc."
-                                            className="min-h-20"
-                                            data-testid="input-eco-friendly"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+            )}
 
-                        <FormField
-                            control={form.control}
-                            name="nearestHospital"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nearest Hospital</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Name and distance"
-                                            data-testid="input-nearest-hospital"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
 
-                        <FormField
-                            control={form.control}
-                            name="keyLocationHighlight1"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nearby Attraction 1</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Describe a nearby attraction or highlight (max 100 words)"
-                                            className="min-h-20"
-                                            maxLength={600}
-                                            data-testid="input-key-highlight-1"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormDescription>Describe in less than 100 words</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="keyLocationHighlight2"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nearby Attraction 2</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Describe another nearby attraction or highlight (max 100 words)"
-                                            className="min-h-20"
-                                            maxLength={600}
-                                            data-testid="input-key-highlight-2"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormDescription>Describe in less than 100 words</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </div>
-            </div>
 
             {/* SECTION 3: Certificate Validity */}
             <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
                 <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                            <span className="text-lg font-bold">3</span>
+                            <span className="text-lg font-bold">2</span>
                         </div>
                         <div>
                             <h2 className="text-xl font-semibold">Certificate Validity Period</h2>
@@ -297,7 +205,7 @@ export function Step6AmenitiesFees({
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                            <span className="text-lg font-bold">4</span>
+                            <span className="text-lg font-bold">3</span>
                         </div>
                         <div>
                             <h2 className="text-xl font-semibold">Registration Fee Summary</h2>

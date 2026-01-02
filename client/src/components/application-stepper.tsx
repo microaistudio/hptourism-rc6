@@ -16,6 +16,7 @@ interface ApplicationStepperProps {
   formData: Record<string, any>;
   onStepClick: (step: number) => void;
   steps: StepConfig[];
+  step4Completion?: number; // Custom weighted completion for Step 4
 }
 
 export function ApplicationStepper({
@@ -25,6 +26,7 @@ export function ApplicationStepper({
   formData,
   onStepClick,
   steps,
+  step4Completion,
 }: ApplicationStepperProps) {
   const calculateStepCompletion = (step: StepConfig): number => {
     const requiredFields = step.requiredFields;
@@ -45,7 +47,10 @@ export function ApplicationStepper({
     <div className="w-full mb-8">
       <div className="flex items-center justify-between gap-2">
         {steps.map((step, index) => {
-          const completion = calculateStepCompletion(step);
+          // Use custom step4Completion for step 4, otherwise calculate normally
+          const completion = step.id === 4 && step4Completion !== undefined
+            ? step4Completion
+            : calculateStepCompletion(step);
           const isActive = currentStep === step.id;
           const isPast = currentStep > step.id;
           const isClickable = step.id <= maxStepReached;

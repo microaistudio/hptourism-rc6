@@ -34,15 +34,16 @@ export type UploadCategoryKey = keyof Pick<UploadPolicy, "documents" | "photos">
 
 export const DEFAULT_UPLOAD_POLICY: UploadPolicy = {
   documents: {
-    allowedMimeTypes: ["application/pdf"],
-    allowedExtensions: [".pdf"],
-    maxFileSizeMB: 2,
+    // Allow PDF and images for supporting documents (including Additional Documents)
+    allowedMimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/jpg"],
+    allowedExtensions: [".pdf", ".jpg", ".jpeg", ".png"],
+    maxFileSizeMB: 5,
   },
   photos: {
     // Extended to also allow PDF for mixed uploads (e.g., supporting documents)
     allowedMimeTypes: ["image/jpeg", "image/png", "image/jpg", "application/pdf"],
     allowedExtensions: [".jpg", ".jpeg", ".png", ".pdf"],
-    maxFileSizeMB: 2,
+    maxFileSizeMB: 10,
   },
   totalPerApplicationMB: 20,
 };

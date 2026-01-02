@@ -1,0 +1,2 @@
+/home/subhash.thakur.india/Projects/hptourism-rc5/logs/20251210-0000-01-app.log.gz
+/home/subhash.thakur.india/Projects/hptourism-rc5/logs/20251211-0000-01-app.log.gz

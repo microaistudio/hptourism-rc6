@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getDefaultRouteForRole } from "@/config/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { ArrowLeft, User, Building2, Lock, Phone, ArrowRight, Loader2, RefreshCw
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import heroImagePine from "@assets/stock_images/beautiful_himachal_p_50139e3f.jpg";
 import hpsedcLogo from "@/assets/logos/hpsedc.svg";
+import vCliqLogo from "@/assets/logos/v-cliq-logo.jpg";
 import type { User as UserType } from "@shared/schema";
 
 // --- Configuration & Types ---
@@ -246,6 +247,8 @@ export default function Login() {
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
+      // CRITICAL: Clear all cached queries to prevent stale session data from affecting redirect
+      queryClient.clear();
       setLocation(getRedirectRoute(data.user));
     },
     onError: (error: any) => {
@@ -270,6 +273,8 @@ export default function Login() {
         title: "Welcome back!",
         description: "OTP verified successfully.",
       });
+      // CRITICAL: Clear all cached queries to prevent stale session data from affecting redirect
+      queryClient.clear();
       setLocation(getRedirectRoute(data.user));
     },
     onError: (error: any) => {
@@ -328,6 +333,8 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full h-full text-white">
+          {/* V CLIQ Campaign Logo - Removed */}
+
           <div className="flex items-center gap-3" onClick={() => setLocation("/")}>
             <div className="bg-white/10 backdrop-blur-md p-2 rounded-lg cursor-pointer hover:bg-white/20 transition">
               <ArrowLeft className="w-6 h-6" />
@@ -335,27 +342,33 @@ export default function Login() {
             <span className="font-semibold tracking-wide cursor-pointer">Back to Home</span>
           </div>
 
-          <div className="space-y-6 max-w-lg">
+          <div className="space-y-6 max-w-lg" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
             <h1 className="text-5xl font-bold leading-tight">
-              Start your <br />
-              <span style={{ color: COLORS.primary }}>Homestay Journey</span>
+              <span style={{ color: COLORS.primary }}>Home Stay</span> <br />
+              Registration
             </h1>
             <p className="text-lg text-gray-200 leading-relaxed opacity-90">
-              Join thousands of hosts in Himachal Pradesh. Register your property,
-              manage bookings, and grow your business with the official government portal.
+              Register under HP Homestay Rules 2025 and avail exclusive discounts:
             </p>
 
-            <div className="flex gap-4 pt-4">
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold">19k+</span>
-                <span className="text-xs uppercase tracking-wider opacity-70">Properties</span>
+            <div className="space-y-2 text-base text-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span><strong>10% Discount</strong> on 3-year registration</span>
               </div>
-              <div className="w-px bg-white/30 h-10"></div>
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold">60 Days</span>
-                <span className="text-xs uppercase tracking-wider opacity-70">Approval SLA</span>
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span><strong>5% Additional Discount</strong> for women owners</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span><strong>50% Discount</strong> for Pangi Sub-Division</span>
               </div>
             </div>
+
+
+
+
           </div>
 
           <div className="text-xs text-white/40">
@@ -486,6 +499,7 @@ export default function Login() {
                               {...field}
                               className="pl-10 h-14 bg-gray-50 border-gray-200 focus-visible:ring-green-500 focus-visible:border-green-500 transition-all rounded-lg text-lg"
                               placeholder={audience === 'user' ? "e.g. 9876543210" : "Enter official username"}
+                              autoComplete="off"
                             />
                           </div>
                         </FormControl>
@@ -526,6 +540,7 @@ export default function Login() {
                                 {...field}
                                 className="pl-10 h-14 bg-gray-50 border-gray-200 focus-visible:ring-green-500 focus-visible:border-green-500 transition-all rounded-lg text-lg"
                                 placeholder="••••••••"
+                                autoComplete="off"
                               />
                             </div>
                           </FormControl>

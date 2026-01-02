@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,8 @@ export function InspectionReportCard({
   preferDtdoEndpoint?: boolean;
   enabled?: boolean;
 }) {
+  const [, setLocation] = useLocation();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/applications", applicationId ?? "unknown", "inspection-report"],
     enabled: Boolean(applicationId) && enabled,
@@ -96,6 +99,45 @@ export function InspectionReportCard({
     }
 
     const { report, inspectionOrder, da, dtdo, application } = data;
+
+    // Handle case where inspection is scheduled but report is not yet submitted
+    if (!report && inspectionOrder) {
+      return (
+        <div className="space-y-4">
+          <Alert className="bg-blue-50 border-blue-200">
+            <ClipboardCheck className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              Inspection is scheduled for <strong>{format(new Date(inspectionOrder.inspectionDate), "PPP")}</strong>.
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              The inspection order has been generated. Please record your findings in the inspection report form.
+            </p>
+            <Button
+              className="w-full sm:w-auto self-start bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => setLocation(`/da/inspections/${inspectionOrder.id}`)}
+            >
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              Fill Inspection Report Now
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!report) {
+      return (
+        <div className="flex flex-col items-start gap-3">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <Info className="h-5 w-5" />
+            <p className="text-sm">Inspection report will be available once the DA submits it from the field.</p>
+          </div>
+        </div>
+      );
+    }
+
     const outcome = outcomeBadge(application.siteInspectionOutcome || report.recommendation);
     const actualDate = report.actualInspectionDate ? format(new Date(report.actualInspectionDate), "PPP") : null;
     const submittedDate = report.submittedDate ? format(new Date(report.submittedDate), "PPP") : null;
@@ -108,7 +150,7 @@ export function InspectionReportCard({
     const inspector = da?.fullName ?? "—";
     const dtdoName = dtdo?.fullName ?? "—";
     const photos = Array.isArray(report.inspectionPhotos) ? report.inspectionPhotos : [];
-    const inspectionReportLink = report?.id ? `/dtdo/inspection-report/${report.id}` : null;
+    const inspectionReportLink = report?.id ? `/dtdo/inspection-review/${application.id}` : null;
 
     return (
       <div className="space-y-6">

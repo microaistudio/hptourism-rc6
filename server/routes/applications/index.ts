@@ -546,6 +546,43 @@ export function createApplicationsRouter() {
     },
   );
 
+  // Discard/Delete Draft Application
+  router.delete("/:id", requireAuth, async (req, res) => {
+    try {
+      const applicationId = req.params.id;
+      const userId = req.session.userId!;
+
+      const application = await storage.getApplication(applicationId);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      // Authorization check: Only owner of the application can delete it
+      // Or admin (if needed, but for now focus on Owner)
+      const user = await storage.getUser(userId);
+      if (application.userId !== userId && user?.role !== 'admin') {
+        return res.status(403).json({ message: "You are not authorized to delete this application" });
+      }
+
+      // Status check: Only drafts can be deleted
+      if (application.status !== "draft") {
+        return res.status(400).json({ message: "Only draft applications can be discarded" });
+      }
+
+      await storage.deleteApplication(applicationId);
+
+      // We don't log audit here because the application record is gone, 
+      // so foreign key constraints on audit log would fail if pointing to app id.
+      // Just system log.
+      applicationsLog.info({ applicationId, userId }, "Draft application discarded by user");
+
+      res.json({ message: "Draft discarded successfully" });
+    } catch (error) {
+      applicationsLog.error({ err: error, route: "DELETE /:id" }, "Failed to discard draft");
+      res.status(500).json({ message: "Failed to discard draft" });
+    }
+  });
+
   router.get("/:id/timeline", requireAuth, async (req, res) => {
     try {
       const application = await storage.getApplication(req.params.id);
@@ -743,20 +780,32 @@ export function createApplicationsRouter() {
         .orderBy(desc(inspectionReports.submittedDate))
         .limit(1);
 
-      if (!report) {
-        return res.status(404).json({ message: "Inspection report not available yet" });
-      }
-
+      // Fetch inspection order (needed even if report is missing)
       const [order] = await db
         .select()
         .from(inspectionOrders)
-        .where(eq(inspectionOrders.id, report.inspectionOrderId))
+        .where(eq(inspectionOrders.applicationId, application.id))
+        .orderBy(desc(inspectionOrders.createdAt))
         .limit(1);
 
+      if (!report && !order) {
+        return res.status(404).json({ message: "Inspection not scheduled yet" });
+      }
+
       const owner = await storage.getUser(application.userId);
+      // Fetch DAs involved if any
+      let da = null;
+      let dtdo = null;
+
+      if (order?.assignedTo) {
+        da = await storage.getUser(order.assignedTo);
+      }
+      if (order?.scheduledBy) {
+        dtdo = await storage.getUser(order.scheduledBy);
+      }
 
       res.json({
-        report,
+        report: report ?? null,
         inspectionOrder: order ?? null,
         application: {
           id: application.id,
@@ -779,6 +828,18 @@ export function createApplicationsRouter() {
             mobile: owner.mobile,
           }
           : null,
+        da: da ? {
+          id: da.id,
+          fullName: da.fullName,
+          mobile: da.mobile,
+          district: da.district
+        } : null,
+        dtdo: dtdo ? {
+          id: dtdo.id,
+          fullName: dtdo.fullName,
+          mobile: dtdo.mobile,
+          district: dtdo.district
+        } : null
       });
     } catch (error) {
       applicationsLog.error({ err: error, route: "/:id/inspection-report" }, "Failed to fetch inspection report");
