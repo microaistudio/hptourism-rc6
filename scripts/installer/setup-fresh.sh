@@ -24,7 +24,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 echo "============================================"
 echo "  HP Tourism Portal - Fresh Installation"
-echo "  Version: 0.6.1"
+echo "  Version: 0.7.1"
 echo "============================================"
 echo ""
 
@@ -181,7 +181,12 @@ log_info "Setting up PM2..."
 cd "$APP_DIR/app"
 
 # Stop any existing process
+# Stop any existing process (by name or port)
+log_info "Stopping existing application processes..."
 pm2 delete hptourism 2>/dev/null || true
+pm2 delete hptourism-rc5 2>/dev/null || true # Legacy name
+# Also try to free up the port if something else is holding it
+fuser -k $APP_PORT/tcp 2>/dev/null || true
 
 # Start application
 pm2 start ecosystem.config.cjs --name hptourism

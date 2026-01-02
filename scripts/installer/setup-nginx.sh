@@ -26,7 +26,7 @@ server {
     listen 80 default_server;
     listen [::]:80 default_server;
 
-    server_name _;
+    server_name 10.126.117.27 localhost _;
 
     # Max upload size
     client_max_body_size 25M;
@@ -67,7 +67,13 @@ server {
 EOF
 
 # Disable default site
-rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+# Disable ALL existing sites to prevent conflicts
+log_info "Disabling conflicting Nginx sites..."
+if [ "$(ls -A /etc/nginx/sites-enabled/)" ]; then
+    mkdir -p /etc/nginx/sites-enabled-backup-$(date +%Y%m%d_%H%M%S)
+    cp /etc/nginx/sites-enabled/* /etc/nginx/sites-enabled-backup-$(date +%Y%m%d_%H%M%S)/ 2>/dev/null || true
+    rm -f /etc/nginx/sites-enabled/*
+fi
 
 # Enable our site
 ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/

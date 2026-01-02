@@ -20,7 +20,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 echo "============================================"
 echo "  HP Tourism Portal - Upgrade"
-echo "  Version: 0.6.1"
+echo "  Version: 0.7.1"
 echo "============================================"
 echo ""
 

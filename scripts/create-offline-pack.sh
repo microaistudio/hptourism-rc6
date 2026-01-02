@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION="0.6.1"
+VERSION="0.7.1"
 PACK_NAME="hptourism-v${VERSION}-offline"
 RELEASE_DIR="release/${PACK_NAME}"
 
@@ -138,11 +138,15 @@ On a **fresh Ubuntu server**, this installer will:
 8. Configure Nginx reverse proxy
 9. Set up PM2 process manager with auto-start
 
-## Prerequisites
+## Prerequisites (Must be pre-installed by DevOps)
 
-- Ubuntu 22.04 or 24.04 LTS
-- Root access (sudo)
-- Node.js v20+ (must be pre-installed)
+- **OS**: Ubuntu 22.04 or 24.04 LTS
+- **Root access** (sudo)
+- **Node.js**: v20.x or later (Run `node -v` to verify)
+- **PostgreSQL**: v14 or later (Run `psql --version` to verify)
+- **Nginx**: Latest stable version (Run `nginx -v` to verify)
+
+> **Note to DevOps**: The installer will skip installation steps for these if they are already present. Please ensure `systemctl status postgresql` and `systemctl status nginx` show active/running.
 
 ## Quick Install
 

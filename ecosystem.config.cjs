@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "hptourism-rc5",
+      name: "hptourism",
       script: "dist/index.js",
       cwd: __dirname,
       node_args: "--enable-source-maps",
